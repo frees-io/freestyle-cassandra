@@ -16,7 +16,7 @@
 
 package freestyle.cassandra
 
-import java.util.concurrent.Executors
+import java.util.concurrent.{Callable, Executors}
 
 import com.google.common.util.concurrent.{
   ListenableFuture,
@@ -29,10 +29,16 @@ trait TestUtils {
   val service: ListeningExecutorService =
     MoreExecutors.listeningDecorator(Executors.newFixedThreadPool(10))
 
-  def successfulFuture[T](value: T): ListenableFuture[T] = service.submit(() => value)
+  def successfulFuture[T](value: T): ListenableFuture[T] =
+    service.submit(new Callable[T] {
+      override def call(): T = value
+    })
 
   val exception: Throwable = new RuntimeException("Test exception")
 
-  def failedFuture[T]: ListenableFuture[T] = service.submit(() => { throw exception })
+  def failedFuture[T]: ListenableFuture[T] =
+    service.submit(new Callable[T] {
+      override def call(): T = throw exception
+    })
 
 }
