@@ -14,15 +14,15 @@
  * limitations under the License.
  */
 
-package freestyle.cassandra
+package freestyle
+package cassandra
 
-import collection.JavaConverters._
 import com.datastax.driver.core._
-import com.google.common.util.concurrent.ListenableFuture
-import freestyle.FreeS
 import freestyle.async.AsyncM
-import org.scalamock.scalatest.{AsyncMockFactory, MockFactory}
-import org.scalatest.{AsyncWordSpec, Matchers, OneInstancePerTest, WordSpec}
+import org.scalamock.scalatest.MockFactory
+import org.scalatest.{Matchers, OneInstancePerTest, WordSpec}
+
+import scala.collection.JavaConverters._
 
 class LowLevelAPISpec
     extends WordSpec

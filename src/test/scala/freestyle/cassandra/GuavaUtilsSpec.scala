@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-package freestyle.cassandra
+package freestyle
+package cassandra
 
 import cats.instances.future._
 import freestyle.async.AsyncM
 import freestyle.async.implicits._
-import freestyle.{FreeS, _}
 import org.scalatest.{Assertion, AsyncWordSpec, Matchers}
 
 import scala.concurrent.Future
@@ -41,11 +41,11 @@ class GuavaUtilsSpec extends AsyncWordSpec with Matchers with TestUtils {
 
   "GuavaUtils.call" should {
 
-    "return the right response if the future returns successfully" in {
+    "return the right response if the future ends successfully" in {
       verifySuccess(guavaUtils.call(successfulFuture(string)), string)
     }
 
-    "return an exception if the call to session returns a failed future" in {
+    "return an exception if the future ends with a failure" in {
       verifyFailure(guavaUtils.call(failedFuture[String]))
     }
 
@@ -53,11 +53,11 @@ class GuavaUtilsSpec extends AsyncWordSpec with Matchers with TestUtils {
 
   "GuavaUtils.call with map" should {
 
-    "return the right response if the future returns successfully" in {
+    "return the right response if the future ends successfully" in {
       verifySuccess(guavaUtils.call[String, Int](successfulFuture(string), _.length), sLength)
     }
 
-    "return an exception if the call to session returns a failed future" in {
+    "return an exception if the future ends with a failure" in {
       verifyFailure(guavaUtils.call[String, Int](failedFuture[String], _.length))
     }
 
