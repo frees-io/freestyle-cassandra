@@ -16,6 +16,7 @@
 
 package freestyle
 package cassandra
+package api
 
 import cats.instances.future._
 import freestyle.async.AsyncM

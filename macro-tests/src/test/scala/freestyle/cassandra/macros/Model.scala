@@ -14,23 +14,20 @@
  * limitations under the License.
  */
 
-package freestyle
-package cassandra
+package freestyle.cassandra.macros
 
-import cats.syntax.either._
-import com.google.common.util.concurrent.{FutureCallback, Futures, ListenableFuture}
-import freestyle.async._
+object Model {
 
-class GuavaUtils[F[_]: AsyncM] {
+  @table
+  case class Table1(id: Long)
 
-  def call[I, O](f: ListenableFuture[I], map: I => O): FreeS[F, O] =
-    AsyncM[F].async[O] { cb =>
-      Futures.addCallback(f, new FutureCallback[I] {
-        override def onSuccess(result: I): Unit    = cb(map(result).asRight)
-        override def onFailure(t: Throwable): Unit = cb(t.asLeft)
-      })
-    }
+  @table
+  case class Table2(id: Long, username: String)
 
-  def call[T](f: ListenableFuture[T]): FreeS[F, T] = call[T, T](f, v => v)
+  @table
+  case class Table3(id: Long, username: String, age: Int)
+
+  @table
+  case class Table4(id: Long, firstName: String, lastName: String, age: Int)
 
 }
