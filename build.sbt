@@ -22,18 +22,19 @@ lazy val root = project
   .aggregate(core, macros, macroTests)
 
 lazy val core = project.in(file("core"))
-  .settings(moduleName := "core")
+  .settings(moduleName := "freestyle-cassandra-core")
   .settings(libraryDependencies ++= commonDependencies)
   .settings(libraryDependencies ++= testDependencies)
 
 lazy val macros = project.in(file("macros"))
-  .settings(moduleName := "macros")
+  .settings(moduleName := "freestyle-cassandra-macros")
   .settings(libraryDependencies += %("scala-reflect", scalaVersion.value))
   .settings(libraryDependencies ++= commonDependencies)
   .settings(libraryDependencies ++= testDependencies)
   .dependsOn(core)
 
 lazy val macroTests = project.in(file("macro-tests"))
-  .settings(moduleName := "macro-tests")
+  .settings(moduleName := "freestyle-cassandra-macro-tests")
+  .settings(noPublishSettings)
   .settings(libraryDependencies ++= testDependencies)
   .dependsOn(core, macros)
