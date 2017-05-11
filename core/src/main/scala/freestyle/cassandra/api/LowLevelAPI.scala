@@ -16,6 +16,7 @@
 
 package freestyle
 package cassandra
+package api
 
 import collection.JavaConverters._
 import com.datastax.driver.core._

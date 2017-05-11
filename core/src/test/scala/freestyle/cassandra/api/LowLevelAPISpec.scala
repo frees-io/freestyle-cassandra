@@ -16,6 +16,7 @@
 
 package freestyle
 package cassandra
+package api
 
 import com.datastax.driver.core._
 import freestyle.async.AsyncM
