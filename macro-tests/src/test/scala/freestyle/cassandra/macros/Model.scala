@@ -18,16 +18,16 @@ package freestyle.cassandra.macros
 
 object Model {
 
-  @TableClass
+  @table
   case class Table1(id: Long)
 
-  @TableClass
+  @table
   case class Table2(id: Long, username: String)
 
-  @TableClass
+  @table
   case class Table3(id: Long, username: String, age: Int)
 
-  @TableClass
+  @table
   case class Table4(id: Long, firstName: String, lastName: String, age: Int)
 
 }

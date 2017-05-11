@@ -23,13 +23,13 @@ import scala.language.experimental.macros
 import scala.language.postfixOps
 import scala.reflect.macros.whitebox
 
-class TableClass extends StaticAnnotation {
+class table extends StaticAnnotation {
 
-  def macroTransform(annottees: Any*): Any = macro TableClass.impl
+  def macroTransform(annottees: Any*): Any = macro table.impl
 
 }
 
-object TableClass {
+object table {
 
   def impl(c: whitebox.Context)(annottees: c.Expr[Any]*): c.Expr[Any] = {
 
@@ -46,7 +46,7 @@ object TableClass {
         params: List[ValDef]) = {
 
       val codecs = paramTypes.zipWithIndex.map {
-        case (t, p) => q"""${TermName(s"tc$p")}: ByteBufferCodec[$t]"""
+        case (t, p) => q"""${TermName(s"codec$p")}: ByteBufferCodec[$t]"""
       }
 
       val paramNames     = params.map(_.name.toString)
@@ -84,7 +84,7 @@ object TableClass {
 
       val tableClass = paramTypes.size match {
         case n if n > 0 && n <= 3 => TypeName(s"TableClass$n")
-        case n                    => c.abort(c.enclosingPosition, s"Class with $n fields not supported")
+        case n                    => c.abort(c.enclosingPosition, s"Classes with $n different field types are not supported")
       }
 
       val newMethod = createMethod(className, paramTypes, params)

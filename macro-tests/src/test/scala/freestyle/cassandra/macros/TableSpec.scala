@@ -24,15 +24,13 @@ import freestyle.cassandra.model._
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, OneInstancePerTest, WordSpec}
 
-import scala.collection.JavaConverters._
-
-class TableClassSpec extends WordSpec with Matchers with OneInstancePerTest with MockFactory {
+class TableSpec extends WordSpec with Matchers with OneInstancePerTest with MockFactory {
 
   import freestyle.cassandra.codecs._
 
   implicit val sessionMock: Session = stub[Session]
 
-  (sessionMock.prepare(_: String)).when(*).returns(new PreparedStatementTest)
+  (sessionMock.prepare(_: String)).when(*).returns(PreparedStatementTest)
 
   "TableClass annotation" should {
 
@@ -43,7 +41,7 @@ class TableClassSpec extends WordSpec with Matchers with OneInstancePerTest with
       val statement: AnyRef = table.boundedInsert
       statement shouldBe a[BoundStatementTest]
       val values: Map[String, ByteBuffer] =
-        statement.asInstanceOf[BoundStatementTest].getValues.asScala.toMap
+        statement.asInstanceOf[BoundStatementTest].getValues
       values.get("id") shouldBe Some(longCodec.serialize(table.id))
     }
 
@@ -54,7 +52,7 @@ class TableClassSpec extends WordSpec with Matchers with OneInstancePerTest with
       val statement: AnyRef = table.boundedInsert
       statement shouldBe a[BoundStatementTest]
       val values: Map[String, ByteBuffer] =
-        statement.asInstanceOf[BoundStatementTest].getValues.asScala.toMap
+        statement.asInstanceOf[BoundStatementTest].getValues
       values.get("id") shouldBe Some(longCodec.serialize(table.id))
       values.get("username") shouldBe Some(stringCodec.serialize(table.username))
     }
@@ -66,7 +64,7 @@ class TableClassSpec extends WordSpec with Matchers with OneInstancePerTest with
       val statement: AnyRef = table.boundedInsert
       statement shouldBe a[BoundStatementTest]
       val values: Map[String, ByteBuffer] =
-        statement.asInstanceOf[BoundStatementTest].getValues.asScala.toMap
+        statement.asInstanceOf[BoundStatementTest].getValues
       values.get("id") shouldBe Some(longCodec.serialize(table.id))
       values.get("username") shouldBe Some(stringCodec.serialize(table.username))
       values.get("age") shouldBe Some(intCodec.serialize(table.age))
@@ -79,7 +77,7 @@ class TableClassSpec extends WordSpec with Matchers with OneInstancePerTest with
       val statement: AnyRef = table.boundedInsert
       statement shouldBe a[BoundStatementTest]
       val values: Map[String, ByteBuffer] =
-        statement.asInstanceOf[BoundStatementTest].getValues.asScala.toMap
+        statement.asInstanceOf[BoundStatementTest].getValues
       values.get("id") shouldBe Some(longCodec.serialize(table.id))
       values.get("firstName") shouldBe Some(stringCodec.serialize(table.firstName))
       values.get("lastName") shouldBe Some(stringCodec.serialize(table.lastName))

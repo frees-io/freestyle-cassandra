@@ -31,7 +31,7 @@ abstract class BaseTable {
 
 abstract class TableClass1[T1] extends BaseTable {
 
-  def boundedInsert(implicit session: Session, tc1: ByteBufferCodec[T1]): BoundStatement
+  def boundedInsert(implicit session: Session, codec: ByteBufferCodec[T1]): BoundStatement
 
 }
 
@@ -39,8 +39,8 @@ abstract class TableClass2[T1, T2] extends BaseTable {
 
   def boundedInsert(
       implicit session: Session,
-      tc1: ByteBufferCodec[T1],
-      tc2: ByteBufferCodec[T2]): BoundStatement
+      codec1: ByteBufferCodec[T1],
+      codec2: ByteBufferCodec[T2]): BoundStatement
 
 }
 
@@ -48,8 +48,8 @@ abstract class TableClass3[T1, T2, T3] extends BaseTable {
 
   def boundedInsert(
       implicit session: Session,
-      tc1: ByteBufferCodec[T1],
-      tc2: ByteBufferCodec[T2],
-      tc3: ByteBufferCodec[T3]): BoundStatement
+      codec1: ByteBufferCodec[T1],
+      codec2: ByteBufferCodec[T2],
+      codec3: ByteBufferCodec[T3]): BoundStatement
 
 }
