@@ -84,7 +84,8 @@ object table {
 
       val tableClass = paramTypes.size match {
         case n if n > 0 && n <= 3 => TypeName(s"TableClass$n")
-        case n                    => c.abort(c.enclosingPosition, s"Classes with $n different field types are not supported")
+        case n =>
+          c.abort(c.enclosingPosition, s"Classes with $n different field types are not supported")
       }
 
       val newMethod = createMethod(className, paramTypes, params)
