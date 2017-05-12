@@ -26,6 +26,9 @@ import org.scalatest.{Matchers, OneInstancePerTest, WordSpec}
 
 class TableSpec extends WordSpec with Matchers with OneInstancePerTest with MockFactory {
 
+  implicit val varcharTC: TypeCodec[String] = TypeCodec.varchar()
+  implicit val pc: ProtocolVersion          = ProtocolVersion.V4
+
   import freestyle.cassandra.codecs._
 
   implicit val sessionMock: Session = stub[Session]
@@ -54,7 +57,7 @@ class TableSpec extends WordSpec with Matchers with OneInstancePerTest with Mock
       val values: Map[String, ByteBuffer] =
         statement.asInstanceOf[BoundStatementTest].getValues
       values.get("id") shouldBe Some(longCodec.serialize(table.id))
-      values.get("username") shouldBe Some(stringCodec.serialize(table.username))
+      values.get("username") shouldBe Some(varcharTC.serialize(table.username, pc))
     }
 
     "generate a TableClass3 with the right methods" in {
@@ -66,7 +69,7 @@ class TableSpec extends WordSpec with Matchers with OneInstancePerTest with Mock
       val values: Map[String, ByteBuffer] =
         statement.asInstanceOf[BoundStatementTest].getValues
       values.get("id") shouldBe Some(longCodec.serialize(table.id))
-      values.get("username") shouldBe Some(stringCodec.serialize(table.username))
+      values.get("username") shouldBe Some(varcharTC.serialize(table.username, pc))
       values.get("age") shouldBe Some(intCodec.serialize(table.age))
     }
 
@@ -79,8 +82,8 @@ class TableSpec extends WordSpec with Matchers with OneInstancePerTest with Mock
       val values: Map[String, ByteBuffer] =
         statement.asInstanceOf[BoundStatementTest].getValues
       values.get("id") shouldBe Some(longCodec.serialize(table.id))
-      values.get("firstName") shouldBe Some(stringCodec.serialize(table.firstName))
-      values.get("lastName") shouldBe Some(stringCodec.serialize(table.lastName))
+      values.get("firstName") shouldBe Some(varcharTC.serialize(table.firstName, pc))
+      values.get("lastName") shouldBe Some(varcharTC.serialize(table.lastName, pc))
       values.get("age") shouldBe Some(intCodec.serialize(table.age))
     }
 

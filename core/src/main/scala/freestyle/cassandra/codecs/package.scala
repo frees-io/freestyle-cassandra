@@ -18,9 +18,8 @@ package freestyle.cassandra
 
 import java.nio.ByteBuffer
 
-import com.datastax.driver.core.DataType
+import com.datastax.driver.core.{DataType, ProtocolVersion, TypeCodec}
 import com.datastax.driver.core.exceptions.InvalidTypeException
-import com.datastax.driver.core.utils.Bytes
 
 package object codecs {
 
@@ -108,18 +107,14 @@ package object codecs {
         byteBuffer.getShort(byteBuffer.position())
     }
 
-  implicit val stringCodec: ByteBufferCodec[String] = new ByteBufferCodec[String] {
+  implicit def byteBufferCodec[T](
+      implicit tc: TypeCodec[T],
+      pv: ProtocolVersion): ByteBufferCodec[T] = new ByteBufferCodec[T] {
+    override def deserialize(bytes: ByteBuffer): T =
+      tc.deserialize(bytes, pv)
 
-    import java.nio.charset.StandardCharsets._
-
-    override def deserialize(bytes: ByteBuffer): String =
-      Option(bytes) match {
-        case None                          => ""
-        case Some(b) if b.remaining() == 0 => ""
-        case Some(b)                       => new String(Bytes.getArray(b), UTF_8)
-      }
-
-    override def serialize(value: String): ByteBuffer = ByteBuffer.wrap(value.getBytes(UTF_8))
+    override def serialize(value: T): ByteBuffer =
+      tc.serialize(value, pv)
   }
 
 }

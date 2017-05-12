@@ -20,18 +20,19 @@ import java.nio.ByteBuffer
 
 import cats.syntax.either._
 import com.datastax.driver.core.exceptions.InvalidTypeException
-import com.datastax.driver.core.{ProtocolVersion, TypeCodec}
+import com.datastax.driver.core.{DataType, ProtocolVersion, TypeCodec}
 import freestyle.cassandra.codecs
 import org.scalacheck.{Arbitrary, Gen}
 import org.scalacheck.Prop._
-import org.scalatest.{Matchers, WordSpec}
+import org.scalamock.scalatest.MockFactory
+import org.scalatest.{Assertion, Matchers, WordSpec}
 import org.scalatest.prop.Checkers
 
-class CodecsSpec extends WordSpec with Matchers with Checkers {
+class CodecsSpec extends WordSpec with Matchers with Checkers with MockFactory {
 
   import codecs._
 
-  def checkInverseCodec[T](codec: ByteBufferCodec[T])(implicit A: Arbitrary[T]) =
+  def checkInverseCodec[T](codec: ByteBufferCodec[T])(implicit A: Arbitrary[T]): Assertion =
     check {
       forAll { v: T =>
         codec.deserialize(codec.serialize(v)) == v
@@ -55,7 +56,7 @@ class CodecsSpec extends WordSpec with Matchers with Checkers {
   }
 
   def checkDeserialize[T](codec: ByteBufferCodec[T], byteSize: Int, defaultValue: T)(
-      implicit A: Arbitrary[T]) = {
+      implicit A: Arbitrary[T]): Assertion = {
     val prop = forAll(byteBufferGen(codec, defaultValue)) {
       case (bb, v) =>
         val deserialized = Either.catchNonFatal(codec.deserialize(bb))
@@ -70,12 +71,7 @@ class CodecsSpec extends WordSpec with Matchers with Checkers {
     check(prop, minSuccessful(500))
   }
 
-  val consumedByteBuffer: ByteBuffer = {
-    val byteBuffer = ByteBuffer.allocate(8)
-    byteBuffer.limit(8)
-    byteBuffer.position(8)
-    byteBuffer
-  }
+  abstract class MyStringTypeCodec extends TypeCodec[String](DataType.varchar(), classOf[String])
 
   "Boolean codec" should {
 
@@ -83,7 +79,7 @@ class CodecsSpec extends WordSpec with Matchers with Checkers {
     val byteSize     = 1
     val defaultValue = false
 
-    "serialize and deserialize are inverse" in {
+    "check that the serialize and deserialize are invertible" in {
       checkInverseCodec(codec)
     }
 
@@ -98,7 +94,7 @@ class CodecsSpec extends WordSpec with Matchers with Checkers {
     val byteSize     = 1
     val defaultValue = 0
 
-    "serialize and deserialize are inverse" in {
+    "check that the serialize and deserialize are invertible" in {
       checkInverseCodec(codec)
     }
 
@@ -113,7 +109,7 @@ class CodecsSpec extends WordSpec with Matchers with Checkers {
     val byteSize     = 8
     val defaultValue = 0d
 
-    "serialize and deserialize are inverse" in {
+    "check that the serialize and deserialize are invertible" in {
       checkInverseCodec(codec)
     }
 
@@ -128,7 +124,7 @@ class CodecsSpec extends WordSpec with Matchers with Checkers {
     val byteSize     = 4
     val defaultValue = 0f
 
-    "serialize and deserialize are inverse" in {
+    "check that the serialize and deserialize are invertible" in {
       checkInverseCodec(codec)
     }
 
@@ -143,7 +139,7 @@ class CodecsSpec extends WordSpec with Matchers with Checkers {
     val byteSize     = 4
     val defaultValue = 0
 
-    "serialize and deserialize are inverse" in {
+    "check that the serialize and deserialize are invertible" in {
       checkInverseCodec(codec)
     }
 
@@ -158,7 +154,7 @@ class CodecsSpec extends WordSpec with Matchers with Checkers {
     val byteSize     = 8
     val defaultValue = 0l
 
-    "serialize and deserialize are inverse" in {
+    "check that the serialize and deserialize are invertible" in {
       checkInverseCodec(codec)
     }
 
@@ -173,7 +169,7 @@ class CodecsSpec extends WordSpec with Matchers with Checkers {
     val byteSize     = 2
     val defaultValue = 0
 
-    "serialize and deserialize are inverse" in {
+    "check that the serialize and deserialize are invertible" in {
       checkInverseCodec(codec)
     }
 
@@ -182,28 +178,23 @@ class CodecsSpec extends WordSpec with Matchers with Checkers {
     }
   }
 
-  "String codec" should {
+  "Generic ByteBufferCodec" should {
 
-    val codec        = codecs.stringCodec
-    val defaultValue = ""
+    val bb = ByteBuffer.allocate(10)
+    val pc = ProtocolVersion.V1
 
-    "serialize and deserialize are inverse" in {
-      checkInverseCodec(codec)
-    }
+    "call to serialize and deserialize with the right parameters" in {
 
-    "deserialize all possible values" in {
-      val prop = forAll(byteBufferGen(codec, defaultValue)(Arbitrary(Gen.alphaStr))) {
-        case (bb, v) =>
-          val deserialized = Either.catchNonFatal(codec.deserialize(bb))
-          val expected = if (bb == null || bb.remaining() == 0) {
-            Right(defaultValue)
-          } else {
-            Right(v.substring(v.length - bb.remaining()))
-          }
-          deserialized shouldBe expected
-          deserialized == expected
+      check {
+        forAll { value: String =>
+          val tcMock = mock[MyStringTypeCodec]
+          val codec  = codecs.byteBufferCodec(tcMock, pc)
+
+          (tcMock.serialize _).expects(value, pc).returns(bb)
+          (tcMock.deserialize _).expects(bb, pc).returns(value)
+          codec.serialize(value) == bb && codec.deserialize(bb) == value
+        }
       }
-      check(prop, minSuccessful(500))
     }
   }
 
