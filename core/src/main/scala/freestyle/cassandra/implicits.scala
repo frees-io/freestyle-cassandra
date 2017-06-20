@@ -18,7 +18,7 @@ package freestyle.cassandra
 
 import collection.JavaConverters._
 import com.datastax.driver.core._
-import com.google.common.util.concurrent.{FutureCallback, Futures, ListenableFuture}
+import com.google.common.util.concurrent._
 import freestyle._
 import freestyle.async.AsyncContext
 import freestyle.cassandra.api.LowLevelAPI
@@ -30,7 +30,15 @@ object implicits {
 
     def init: ListenableFuture[Session] = session.initAsync()
 
-    def close: ListenableFuture[Void] = session.closeAsync()
+    def close: ListenableFuture[Unit] =
+      Futures.transformAsync(
+        session.closeAsync(),
+        new AsyncFunction[Void, Unit] {
+          override def apply(input: Void): ListenableFuture[Unit] =
+            Futures.immediateFuture((): Unit)
+        },
+        MoreExecutors.directExecutor()
+      )
 
     def prepare(query: String): ListenableFuture[PreparedStatement] = session.prepareAsync(query)
 

@@ -25,7 +25,7 @@ trait LowLevelAPI {
 
   def init: FS[Session]
 
-  def close: FS[Void]
+  def close: FS[Unit]
 
   def prepare(query: String): FS[PreparedStatement]
 

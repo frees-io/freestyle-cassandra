@@ -30,8 +30,9 @@ class ListenableFutureHandlerSpec
     with MockFactory
     with TestUtils {
 
-  val sessionMock: Session           = stub[Session]
+  val sessionMock: Session           = mock[Session]
   val regStMock: RegularStatement    = stub[RegularStatement]
+  val prepStMock: PreparedStatement  = stub[PreparedStatement]
   val queryString: String            = "SELECT * FROM table;"
   val mapValues: Map[String, AnyRef] = Map("param1" -> "value1", "param2" -> "value2")
 
@@ -40,42 +41,49 @@ class ListenableFutureHandlerSpec
   "ListenableFutureHandler" should {
 
     "call to initAsync when calling init() method" in {
-      handler.init
-      (sessionMock.initAsync _).verify()
+      val result = successfulFuture(sessionMock)
+      (sessionMock.initAsync _).expects().returns(result)
+      handler.init shouldBe result
     }
 
     "call to closeAsync when calling close() method" in {
+      (sessionMock.closeAsync _).expects().returns(CloseFutureTest)
       handler.close
-      (sessionMock.closeAsync _).verify()
     }
 
     "call to prepareAsync(String) when calling prepare(String) method" in {
-      handler.prepare(queryString)
-      (sessionMock.prepareAsync(_: String)).verify(queryString)
+      val result = successfulFuture(prepStMock)
+      (sessionMock
+        .prepareAsync(_: String))
+        .expects(queryString)
+        .returns(result)
+      handler.prepare(queryString) shouldBe result
     }
 
     "call to prepareAsync(RegularStatement) when calling prepare(RegularStatement) method" in {
-      handler.prepareStatement(regStMock)
-      (sessionMock.prepareAsync(_: RegularStatement)).verify(regStMock)
+      val result = successfulFuture(prepStMock)
+      (sessionMock.prepareAsync(_: RegularStatement)).expects(regStMock).returns(result)
+      handler.prepareStatement(regStMock) shouldBe result
     }
 
     "call to executeAsync(String) when calling execute(String) method" in {
-      handler.execute(queryString)
-      (sessionMock.executeAsync(_: String)).verify(queryString)
+      (sessionMock.executeAsync(_: String)).expects(queryString).returns(ResultSetFutureTest)
+      handler.execute(queryString) shouldBe ResultSetFutureTest
     }
 
     "call to executeAsync(String, java.util.Map) when calling executeWithMap(String, Map) method" in {
-      handler.executeWithMap(queryString, mapValues)
       (sessionMock
         .executeAsync(_: String, _: java.util.Map[String, AnyRef]))
-        .verify(where { (s, m) =>
+        .expects(where { (s, m) =>
           s == queryString && m.asScala == mapValues
         })
+        .returns(ResultSetFutureTest)
+      handler.executeWithMap(queryString, mapValues) shouldBe ResultSetFutureTest
     }
 
     "call to executeAsync(Statement) when calling executeStatement(Statement) method" in {
-      handler.executeStatement(regStMock)
-      (sessionMock.executeAsync(_: Statement)).verify(regStMock)
+      (sessionMock.executeAsync(_: Statement)).expects(regStMock).returns(ResultSetFutureTest)
+      handler.executeStatement(regStMock) shouldBe ResultSetFutureTest
     }
 
   }

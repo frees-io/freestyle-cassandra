@@ -31,14 +31,14 @@ class LowLevelAPISpec
     with TestUtils {
 
   val sessionMock: Session      = stub[Session]
-  val void: Void                = null.asInstanceOf[Void]
+  val unit: Unit                = ()
   val prepSt: PreparedStatement = stub[PreparedStatement]
   val resultSet: ResultSet      = stub[ResultSet]
 
   implicit val lowLevelAPIHandler: LowLevelAPI.Op ~> Id = new (LowLevelAPI.Op ~> Id) {
     override def apply[A](fa: LowLevelAPI.Op[A]): Id[A] = fa match {
       case LowLevelAPI.InitOP()                  => sessionMock
-      case LowLevelAPI.CloseOP()                 => void
+      case LowLevelAPI.CloseOP()                 => unit
       case LowLevelAPI.PrepareOP(_)              => prepSt
       case LowLevelAPI.PrepareStatementOP(_)     => prepSt
       case LowLevelAPI.ExecuteOP(_)              => resultSet
@@ -54,7 +54,7 @@ class LowLevelAPISpec
 
       type ReturnResult = (
           Session,
-          Void,
+          Unit,
           PreparedStatement,
           PreparedStatement,
           ResultSet,
@@ -79,7 +79,7 @@ class LowLevelAPISpec
       result shouldBe (
         (
           sessionMock,
-          void,
+          unit,
           prepSt,
           prepSt,
           resultSet,
