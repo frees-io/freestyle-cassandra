@@ -18,38 +18,25 @@ package freestyle
 package cassandra
 package api
 
-import collection.JavaConverters._
 import com.datastax.driver.core._
-import freestyle.async._
 
-class LowLevelAPI[F[_]: AsyncM](guavaUtils: GuavaUtils[F]) {
+@free
+trait LowLevelAPI {
 
-  import guavaUtils._
+  def init: FS[Session]
 
-  def init(implicit session: Session): FreeS[F, Session] =
-    call[Session](session.initAsync())
+  def close: FS[Unit]
 
-  def close(implicit session: Session): FreeS[F, Unit] =
-    call[Void, Unit](session.closeAsync(), _ => (): Unit)
+  def prepare(query: String): FS[PreparedStatement]
 
-  def prepare(query: String)(implicit session: Session): FreeS[F, PreparedStatement] =
-    call[PreparedStatement](session.prepareAsync(query))
+  def prepareStatement(statement: RegularStatement): FS[PreparedStatement]
 
-  def prepare(statement: RegularStatement)(
-      implicit session: Session): FreeS[F, PreparedStatement] =
-    call[PreparedStatement](session.prepareAsync(statement))
+  def execute(query: String): FS[ResultSet]
 
-  def execute(query: String)(implicit session: Session): FreeS[F, ResultSet] =
-    call[ResultSet](session.executeAsync(query))
+  def executeWithValues(query: String, values: Any*): FS[ResultSet]
 
-  def execute(statement: Statement)(implicit session: Session): FreeS[F, ResultSet] =
-    call[ResultSet](session.executeAsync(statement))
+  def executeWithMap(query: String, values: Map[String, AnyRef]): FS[ResultSet]
 
-  def execute(query: String, values: Any*)(implicit session: Session): FreeS[F, ResultSet] =
-    call[ResultSet](session.executeAsync(query, values))
-
-  def execute(query: String, values: Map[String, AnyRef])(
-      implicit session: Session): FreeS[F, ResultSet] =
-    call[ResultSet](session.executeAsync(query, values.asJava))
+  def executeStatement(statement: Statement): FS[ResultSet]
 
 }

@@ -14,16 +14,14 @@
  * limitations under the License.
  */
 
-package freestyle
-package cassandra
-package api
+package freestyle.cassandra.api
 
+import cats.{~>, Id}
 import com.datastax.driver.core._
-import freestyle.async.AsyncM
+import freestyle._
+import freestyle.cassandra.TestUtils
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, OneInstancePerTest, WordSpec}
-
-import scala.collection.JavaConverters._
 
 class LowLevelAPISpec
     extends WordSpec
@@ -32,80 +30,62 @@ class LowLevelAPISpec
     with MockFactory
     with TestUtils {
 
-  class GuavaUtilsOp extends GuavaUtils[AsyncM.Op]
+  val sessionMock: Session      = stub[Session]
+  val unit: Unit                = ()
+  val prepSt: PreparedStatement = stub[PreparedStatement]
+  val resultSet: ResultSet      = stub[ResultSet]
 
-  val sessionMock: Session           = stub[Session]
-  val regStMock: RegularStatement    = stub[RegularStatement]
-  val queryString: String            = "SELECT * FROM table;"
-  val values: List[String]           = List("param1", "param2")
-  val mapValues: Map[String, AnyRef] = Map("param1" -> "value1", "param2" -> "value2")
-
-  val sessionResult: FreeS[AsyncM.Op, Session]          = FreeS.pure(sessionMock)
-  val unitResult: FreeS[AsyncM.Op, Unit]                = FreeS.pure((): Unit)
-  val prepStResult: FreeS[AsyncM.Op, PreparedStatement] = FreeS.pure(stub[PreparedStatement])
-  val rsResult: FreeS[AsyncM.Op, ResultSet]             = FreeS.pure(stub[ResultSet])
-
-  val guavaUtilsMock: GuavaUtilsOp = mock[GuavaUtilsOp]
-
-  val api = new LowLevelAPI[AsyncM.Op](guavaUtilsMock)
+  implicit val lowLevelAPIHandler: LowLevelAPI.Op ~> Id = new (LowLevelAPI.Op ~> Id) {
+    override def apply[A](fa: LowLevelAPI.Op[A]): Id[A] = fa match {
+      case LowLevelAPI.InitOP()                  => sessionMock
+      case LowLevelAPI.CloseOP()                 => unit
+      case LowLevelAPI.PrepareOP(_)              => prepSt
+      case LowLevelAPI.PrepareStatementOP(_)     => prepSt
+      case LowLevelAPI.ExecuteOP(_)              => resultSet
+      case LowLevelAPI.ExecuteWithValuesOP(_, _) => resultSet
+      case LowLevelAPI.ExecuteWithMapOP(_, _)    => resultSet
+      case LowLevelAPI.ExecuteStatementOP(_)     => resultSet
+    }
+  }
 
   "LowLevelAPI" should {
 
-    "works as expected when calling init() method" in {
-      (guavaUtilsMock.call[Session] _).expects(*).returns(sessionResult)
+    "work as expect when calling OP" in {
 
-      api.init(sessionMock) shouldBe sessionResult
-      (sessionMock.initAsync _).verify()
-    }
+      type ReturnResult = (
+          Session,
+          Unit,
+          PreparedStatement,
+          PreparedStatement,
+          ResultSet,
+          ResultSet,
+          ResultSet,
+          ResultSet)
 
-    "works as expected when calling close() method" in {
-      (guavaUtilsMock.call[Void, Unit] _).expects(*, *).returns(unitResult)
+      def program[F[_]](implicit lowLevelAPI: LowLevelAPI[F]): FreeS[F, ReturnResult] = {
+        for {
+          v1 <- lowLevelAPI.init
+          v2 <- lowLevelAPI.close
+          v3 <- lowLevelAPI.prepare("")
+          v4 <- lowLevelAPI.prepareStatement(null)
+          v5 <- lowLevelAPI.execute("")
+          v6 <- lowLevelAPI.executeWithValues("", null)
+          v7 <- lowLevelAPI.executeWithMap("", null)
+          v8 <- lowLevelAPI.executeStatement(null)
+        } yield (v1, v2, v3, v4, v5, v6, v7, v8)
+      }
 
-      api.close(sessionMock) shouldBe unitResult
-      (sessionMock.closeAsync _).verify()
-    }
-
-    "works as expected when calling prepare(String) method" in {
-      (guavaUtilsMock.call[PreparedStatement] _).expects(*).returns(prepStResult)
-
-      api.prepare(queryString)(sessionMock) shouldBe prepStResult
-      (sessionMock.prepareAsync(_: String)).verify(queryString)
-    }
-
-    "works as expected when calling prepare(RegularStatement) method" in {
-      (guavaUtilsMock.call[PreparedStatement] _).expects(*).returns(prepStResult)
-
-      api.prepare(regStMock)(sessionMock) shouldBe prepStResult
-      (sessionMock.prepareAsync(_: RegularStatement)).verify(regStMock)
-    }
-
-    "works as expected when calling execute(String) method" in {
-      (guavaUtilsMock.call[ResultSet] _).expects(*).returns(rsResult)
-
-      api.execute(queryString)(sessionMock) shouldBe rsResult
-      (sessionMock.executeAsync(_: String)).verify(queryString)
-    }
-
-    "works as expected when calling execute(Statement) method" in {
-      (guavaUtilsMock.call[ResultSet] _).expects(*).returns(rsResult)
-
-      api.execute(regStMock)(sessionMock) shouldBe rsResult
-      (sessionMock.executeAsync(_: Statement)).verify(regStMock)
-    }
-
-    "works as expected when calling execute(String, Any*) method" in {
-      (guavaUtilsMock.call[ResultSet] _).expects(*).returns(rsResult)
-      api.execute(queryString, values: _*)(sessionMock) shouldBe rsResult
-    }
-
-    "works as expected when calling execute(String, Map[String, AnyRef]) method" in {
-      (guavaUtilsMock.call[ResultSet] _).expects(*).returns(rsResult)
-      api.execute(queryString, mapValues)(sessionMock) shouldBe rsResult
-      (sessionMock
-        .executeAsync(_: String, _: java.util.Map[String, AnyRef]))
-        .verify(where { (s, m) =>
-          s == queryString && m.asScala == mapValues
-        })
+      val result = program[LowLevelAPI.Op].interpret[Id]
+      result shouldBe (
+        (
+          sessionMock,
+          unit,
+          prepSt,
+          prepSt,
+          resultSet,
+          resultSet,
+          resultSet,
+          resultSet))
     }
 
   }
