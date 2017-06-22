@@ -6,9 +6,13 @@ lazy val commonDependencies: Seq[ModuleID] = Seq(
   %%("cats-core"),
   %%("freestyle-async"),
   %%("shapeless"),
+  %%("circe-core"),
+  %%("circe-parser"),
+  %%("circe-generic"),
   %("cassandra-driver-core"),
   %("cassandra-driver-mapping"),
-  %("cassandra-driver-extras"))
+  %("cassandra-driver-extras"),
+  "org.scala-lang.modules" %% "scala-parser-combinators" % "1.0.6")
 
 lazy val testDependencies: Seq[ModuleID] = Seq(
   %%("scalatest") % "test",
