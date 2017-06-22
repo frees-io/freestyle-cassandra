@@ -62,14 +62,14 @@ object parsers extends RegexParsers {
   private[this] def parseKeyspace(
       keyspaceName: String,
       json: String,
-      dw: String): ParseResult[KeySpace] = {
+      dw: String): ParseResult[Keyspace] = {
     for {
       replication   <- parseReplication(json)
       durableWrites <- parseDurableWrites(dw)
-    } yield KeySpace(keyspaceName, replication, durableWrites)
+    } yield Keyspace(keyspaceName, replication, durableWrites)
   }
 
-  def keyspaceParser: Parser[KeySpace] =
+  def keyspaceParser: Parser[Keyspace] =
     "CREATE KEYSPACE" ~
       (QuotedNameRegex | UnquotedNameRegex) ~
       ((WithRepRegex ~ AndDWRegex) |

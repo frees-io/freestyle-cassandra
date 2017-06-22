@@ -14,24 +14,27 @@
  * limitations under the License.
  */
 
-package freestyle.cassandra.parser.common
+package freestyle.cassandra.parser
 
-object model {
+import freestyle.cassandra.parser.common.model.Keyspace
+import org.scalatest.{Matchers, WordSpec}
+import org.scalacheck.Prop._
+import org.scalatest.prop.Checkers._
 
-  val simpleStrategyClass: String          = "SimpleStrategy"
-  val networkTopologyStrategyClass: String = "NetworkTopologyStrategy"
+class StrategyParserSpec extends WordSpec with Matchers with KeyspaceArbitraries {
 
-  abstract class KeyspaceReplication(cls: String)
+  "keyspaceParser" should {
 
-  case class SimpleStrategyReplication(replicationFactor: Int)
-      extends KeyspaceReplication(simpleStrategyClass)
+    "parse all valid keySpace statements" in {
+      check {
+        forAllNoShrink { tuple: (Keyspace, String) =>
+          val result = parsers.parse(parsers.keyspaceParser, tuple._2)
+          result.successful && result.get == tuple._1
+        }
+      }
 
-  case class NetworkTopologyStrategyReplication(dcs: Map[String, Int])
-      extends KeyspaceReplication(networkTopologyStrategyClass)
+    }
 
-  case class Keyspace(
-      name: String,
-      replication: KeyspaceReplication,
-      durableWrites: Option[Boolean])
+  }
 
 }
