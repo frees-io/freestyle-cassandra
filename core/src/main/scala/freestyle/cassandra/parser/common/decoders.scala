@@ -29,10 +29,12 @@ object decoders {
   val replicationFactorField: String = "replication_factor"
 
   private[this] def withClassField[T](field: String)(f: HCursor => Result[T]): Decoder[T] =
-    (c: HCursor) => {
-      c.downField(classField).as[String] flatMap {
-        case `field`   => f(c)
-        case className => Left(DecodingFailure(s"$className should be '$field'", List.empty))
+    new Decoder[T] {
+      override def apply(c: HCursor): Result[T] = {
+        c.downField(classField).as[String] flatMap {
+          case `field`   => f(c)
+          case className => Left(DecodingFailure(s"$className should be '$field'", List.empty))
+        }
       }
     }
 

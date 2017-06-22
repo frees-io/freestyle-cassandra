@@ -68,7 +68,7 @@ trait KeyspaceArbitraries {
 
   implicit val keySpaceArbitrary: Arbitrary[(Keyspace, String)] = Arbitrary {
     for {
-      keyspaceName  <- Gen.identifier
+      keyspaceName  <- Gen.identifier.filter(_.length <= 48)
       strategy      <- Gen.oneOf(keySpaceSimpleReplicationGen, keySpaceNetworkReplicationGen)
       durableWrites <- Gen.option(Gen.oneOf(true, false))
       keySpace = Keyspace(keyspaceName, strategy, durableWrites)
