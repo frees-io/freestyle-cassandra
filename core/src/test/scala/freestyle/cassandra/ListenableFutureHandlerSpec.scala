@@ -17,7 +17,6 @@
 package freestyle.cassandra
 
 import com.datastax.driver.core._
-import freestyle.cassandra.implicits.ListenableFutureHandler
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, OneInstancePerTest, WordSpec}
 
@@ -36,7 +35,8 @@ class ListenableFutureHandlerSpec
   val queryString: String            = "SELECT * FROM table;"
   val mapValues: Map[String, AnyRef] = Map("param1" -> "value1", "param2" -> "value2")
 
-  val handler = new ListenableFutureHandler()(sessionMock)
+  import freestyle.cassandra.implicits._
+  val handler: ListenableFutureHandler = listenableFutureHandler(sessionMock)
 
   "ListenableFutureHandler" should {
 
