@@ -12,6 +12,9 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Based on blog post by Mike Limansky: "Generating SQL queries with shapeless"
+ * http://limansky.me/posts/2017-02-02-generating-sql-queries-with-shapeless.html
  */
 
 package freestyle.cassandra.query
