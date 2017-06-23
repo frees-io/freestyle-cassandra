@@ -5,6 +5,7 @@ pgpSecretRing := file(s"$gpgFolder/secring.gpg")
 lazy val commonDependencies: Seq[ModuleID] = Seq(
   %%("cats-core"),
   %%("freestyle-async"),
+  %%("shapeless"),
   %("cassandra-driver-core"),
   %("cassandra-driver-mapping"),
   %("cassandra-driver-extras"))
