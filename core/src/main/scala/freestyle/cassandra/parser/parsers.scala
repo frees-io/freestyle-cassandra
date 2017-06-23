@@ -42,16 +42,20 @@ object parsers extends RegexParsers {
   implicit def parseResultOps[T](parseResult: ParseResult[T]): ParseResultOps[T] =
     new ParseResultOps(parseResult)
 
+  def keyspaceParser: Parser[Keyspace] =
+    "CREATE KEYSPACE" ~ "IF NOT EXISTS".? ~
+      (QuotedNameRegex | UnquotedNameRegex) ~
+      ((WithRepRegex ~ AndDWRegex) |
+        (WithDWRegex ~ AndRepRegex)) >> {
+      case _ ~ _ ~ NameRegex(keyspaceName) ~ (WithRepRegex(json) ~ AndDWRegex(_, dw)) =>
+        parseKeyspace(keyspaceName, json, dw).toParser
+      case _ ~ _ ~ NameRegex(keyspaceName) ~ (WithDWRegex(dw) ~ AndRepRegex(json)) =>
+        parseKeyspace(keyspaceName, json, dw).toParser
+    }
+
   private[this] def parseReplication(jsonString: String): ParseResult[KeyspaceReplication] =
     circeParse(jsonString.replaceAllLiterally("'", "\""))
-      .flatMap { json =>
-        json.as(decodeSimpleStrategy).recoverWith {
-          case _ =>
-            json.as(decodeNetworkTopologyStrategy).leftMap {
-              _.copy(message = s"Can't parse $jsonString")
-            }
-        }
-      }
+      .flatMap(_.as[KeyspaceReplication])
       .leftMap(_.getMessage())
 
   private[this] def parseDurableWrites(value: String): ParseResult[Option[Boolean]] =
@@ -61,22 +65,11 @@ object parsers extends RegexParsers {
 
   private[this] def parseKeyspace(
       keyspaceName: String,
-      json: String,
-      dw: String): ParseResult[Keyspace] = {
+      jsonReplication: String,
+      durableWrites: String): ParseResult[Keyspace] = {
     for {
-      replication   <- parseReplication(json)
-      durableWrites <- parseDurableWrites(dw)
+      replication   <- parseReplication(jsonReplication)
+      durableWrites <- parseDurableWrites(durableWrites)
     } yield Keyspace(keyspaceName, replication, durableWrites)
   }
-
-  def keyspaceParser: Parser[Keyspace] =
-    "CREATE KEYSPACE" ~
-      (QuotedNameRegex | UnquotedNameRegex) ~
-      ((WithRepRegex ~ AndDWRegex) |
-        (WithDWRegex ~ AndRepRegex)) >> {
-      case _ ~ NameRegex(keyspaceName) ~ (WithRepRegex(json) ~ AndDWRegex(_, dw)) =>
-        parseKeyspace(keyspaceName, json, dw).toParser
-      case _ ~ NameRegex(keyspaceName) ~ (WithDWRegex(dw) ~ AndRepRegex(json)) =>
-        parseKeyspace(keyspaceName, json, dw).toParser
-    }
 }

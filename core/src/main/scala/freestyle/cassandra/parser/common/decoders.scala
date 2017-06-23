@@ -16,10 +16,9 @@
 
 package freestyle.cassandra.parser.common
 
-import cats.free.Free
 import cats.implicits._
 import io.circe.Decoder.Result
-import io.circe.{Decoder, DecodingFailure, HCursor}
+import io.circe.{Decoder, HCursor}
 
 object decoders {
 
@@ -28,31 +27,20 @@ object decoders {
   val classField: String             = "class"
   val replicationFactorField: String = "replication_factor"
 
-  private[this] def withClassField[T](field: String)(f: HCursor => Result[T]): Decoder[T] =
-    new Decoder[T] {
-      override def apply(c: HCursor): Result[T] = {
+  implicit val keyspaceReplicationDecoder: Decoder[KeyspaceReplication] =
+    new Decoder[KeyspaceReplication] {
+      override def apply(c: HCursor): Result[KeyspaceReplication] =
         c.downField(classField).as[String] flatMap {
-          case `field`   => f(c)
-          case className => Left(DecodingFailure(s"$className should be '$field'", List.empty))
+          case `networkTopologyStrategyClass` =>
+            (c.fieldSet.getOrElse(Set.empty) - classField).toList
+              .traverse { field =>
+                c.downField(field).as[Int].map(field -> _)
+              }
+              .map { (tupleList: List[(String, Int)]) =>
+                NetworkTopologyStrategyReplication(tupleList.toMap)
+              }
+          case `simpleStrategyClass` =>
+            c.downField(replicationFactorField).as[Int].map(SimpleStrategyReplication)
         }
-      }
-    }
-
-  val decodeNetworkTopologyStrategy: Decoder[NetworkTopologyStrategyReplication] =
-    withClassField(networkTopologyStrategyClass) { c =>
-      val dcs: List[String] = (c.fieldSet.getOrElse(Set.empty) - classField).toList
-      dcs
-        .traverse { field =>
-          c.downField(field).as[Int].map(field -> _)
-        }
-        .map { (tupleList: List[(String, Int)]) =>
-          NetworkTopologyStrategyReplication(tupleList.toMap)
-        }
-
-    }
-
-  val decodeSimpleStrategy: Decoder[SimpleStrategyReplication] =
-    withClassField(simpleStrategyClass) { c =>
-      c.downField(replicationFactorField).as[Int].map(SimpleStrategyReplication)
     }
 }

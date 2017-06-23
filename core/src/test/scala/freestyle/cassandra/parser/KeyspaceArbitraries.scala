@@ -18,6 +18,7 @@ package freestyle.cassandra.parser
 
 import freestyle.cassandra.parser.common.model._
 import org.scalacheck.{Arbitrary, Gen}
+import Arbitrary._
 
 trait KeyspaceArbitraries {
 
@@ -46,11 +47,13 @@ trait KeyspaceArbitraries {
     val durableWrites: Option[String] = keyspace.durableWrites map (dw => s"durable_writes = $dw")
 
     for {
-      quotedName       <- Gen.oneOf(true, false)
-      replicationFirst <- Gen.oneOf(true, false)
+      ifNotExists      <- arbitrary[Boolean]
+      quotedName       <- arbitrary[Boolean]
+      replicationFirst <- arbitrary[Boolean]
     } yield {
-      val keySpace = "CREATE KEYSPACE " + (if (quotedName) "\"" + keyspace.name + "\""
-                                           else keyspace.name)
+      val keySpace = "CREATE KEYSPACE " +
+        (if (ifNotExists) "IF NOT EXISTS " else "") +
+        (if (quotedName) "\"" + keyspace.name + "\"" else keyspace.name)
       val withClause = durableWrites match {
         case Some(dw) if !replicationFirst => "WITH " + dw
         case _                             => "WITH " + replication
@@ -70,7 +73,7 @@ trait KeyspaceArbitraries {
     for {
       keyspaceName  <- Gen.identifier.filter(_.length <= 48)
       strategy      <- Gen.oneOf(keySpaceSimpleReplicationGen, keySpaceNetworkReplicationGen)
-      durableWrites <- Gen.option(Gen.oneOf(true, false))
+      durableWrites <- Gen.option(arbitrary[Boolean])
       keySpace = Keyspace(keyspaceName, strategy, durableWrites)
       sql <- sqlGen(keySpace)
     } yield (keySpace, sql)
