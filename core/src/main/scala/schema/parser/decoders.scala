@@ -15,7 +15,7 @@
  */
 
 package freestyle.cassandra
-package parser.common
+package schema.parser
 
 import cats.implicits._
 import io.circe.Decoder.Result
@@ -23,7 +23,7 @@ import io.circe.{Decoder, HCursor}
 
 object decoders {
 
-  import freestyle.cassandra.parser.common.model._
+  import freestyle.cassandra.schema.model._
 
   val classField: String             = "class"
   val replicationFactorField: String = "replication_factor"

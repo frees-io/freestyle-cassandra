@@ -14,7 +14,8 @@
  * limitations under the License.
  */
 
-package freestyle.cassandra.api
+package freestyle.cassandra
+package api
 
 import cats.{~>, Id}
 import com.datastax.driver.core._

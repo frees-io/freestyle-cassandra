@@ -14,8 +14,7 @@
  * limitations under the License.
  */
 
-package freestyle
-package cassandra
+package freestyle.cassandra
 package codecs
 
 import java.nio.ByteBuffer
