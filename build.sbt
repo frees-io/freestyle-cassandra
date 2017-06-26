@@ -9,15 +9,16 @@ lazy val commonDependencies: Seq[ModuleID] = Seq(
   %%("circe-core"),
   %%("circe-parser"),
   %%("circe-generic"),
+  %%("classy-core"),
+  %%("classy-config-typesafe"),
   %("cassandra-driver-core"),
   %("cassandra-driver-mapping"),
   %("cassandra-driver-extras"),
-  "org.scala-lang.modules" %% "scala-parser-combinators" % "1.0.6")
+  "org.scala-lang.modules" %% "scala-parser-combinators" % "1.0.6"
+)
 
-lazy val testDependencies: Seq[ModuleID] = Seq(
-  %%("scalatest") % "test",
-  %%("scalamockScalatest") % "test",
-  %%("scalacheck") % "test")
+lazy val testDependencies: Seq[ModuleID] =
+  Seq(%%("scalatest") % "test", %%("scalamockScalatest") % "test", %%("scalacheck") % "test")
 
 lazy val root = project
   .in(file("."))
@@ -26,7 +27,8 @@ lazy val root = project
   .dependsOn(core)
   .aggregate(core)
 
-lazy val core = project.in(file("core"))
+lazy val core = project
+  .in(file("core"))
   .settings(moduleName := "freestyle-cassandra-core")
   .settings(libraryDependencies ++= commonDependencies)
   .settings(libraryDependencies ++= testDependencies)
