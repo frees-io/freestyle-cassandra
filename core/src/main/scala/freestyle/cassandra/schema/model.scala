@@ -14,6 +14,7 @@ object model {
   case class CQLList(cqlType: CQLType)                    extends CQLType
   case class CQLMap(cqlTypeK: CQLType, cqlTypeV: CQLType) extends CQLType
   case class CQLSet(cqlType: CQLType)                     extends CQLType
+  case class CQLTuple(cqlType: CQLType, other: CQLType*)  extends CQLType
   case object Ascii                                       extends CQLType
   case object BigInt                                      extends CQLType
   case object Blob                                        extends CQLType
