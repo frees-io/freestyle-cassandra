@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
-package freestyle
-package cassandra
+package freestyle.cassandra
 package api
 
+import freestyle._
 import com.datastax.driver.core._
 
 @free
