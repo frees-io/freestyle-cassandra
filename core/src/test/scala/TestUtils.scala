@@ -14,8 +14,7 @@
  * limitations under the License.
  */
 
-package freestyle
-package cassandra
+package freestyle.cassandra
 
 import java.util.concurrent.{Callable, Executors}
 

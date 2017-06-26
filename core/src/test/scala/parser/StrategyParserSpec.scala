@@ -14,9 +14,11 @@
  * limitations under the License.
  */
 
-package freestyle.cassandra.parser
+package freestyle.cassandra
+package parser
 
-import freestyle.cassandra.parser.common.model.Keyspace
+import freestyle.cassandra.schema.model.Keyspace
+import freestyle.cassandra.schema.parser.parsers
 import org.scalatest.{Matchers, WordSpec}
 import org.scalacheck.Prop._
 import org.scalatest.prop.Checkers._

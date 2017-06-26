@@ -15,7 +15,7 @@
  */
 
 package freestyle.cassandra
-package parser.common
+package schema.parser
 
 import scala.util.matching.Regex
 

@@ -15,10 +15,9 @@
  */
 
 package freestyle.cassandra
-package parser
+package schema.parser
 
 import cats.syntax.either._
-import freestyle.cassandra.parser.common._
 import io.circe.parser.{parse => circeParse}
 
 import scala.util.parsing.combinator._
@@ -27,7 +26,7 @@ object parsers extends RegexParsers {
 
   import decoders._
   import definitions._
-  import model._
+  import schema.model._
 
   type ParseResult[T] = Either[String, T]
 

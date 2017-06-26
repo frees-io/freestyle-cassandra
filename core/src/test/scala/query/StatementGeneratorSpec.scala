@@ -14,7 +14,8 @@
  * limitations under the License.
  */
 
-package freestyle.cassandra.query
+package freestyle.cassandra
+package query
 
 import org.scalatest.{Matchers, WordSpec}
 import StatementGenerator._

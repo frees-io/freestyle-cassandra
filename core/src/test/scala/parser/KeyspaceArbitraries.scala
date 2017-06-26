@@ -14,9 +14,10 @@
  * limitations under the License.
  */
 
-package freestyle.cassandra.parser
+package freestyle.cassandra
+package parser
 
-import freestyle.cassandra.parser.common.model._
+import freestyle.cassandra.schema.model._
 import org.scalacheck.{Arbitrary, Gen}
 import Arbitrary._
 
