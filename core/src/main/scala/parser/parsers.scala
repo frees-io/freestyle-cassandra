@@ -14,7 +14,8 @@
  * limitations under the License.
  */
 
-package freestyle.cassandra.parser
+package freestyle.cassandra
+package parser
 
 import cats.syntax.either._
 import freestyle.cassandra.parser.common._

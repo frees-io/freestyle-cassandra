@@ -41,7 +41,8 @@ trait KeyspaceArbitraries {
       case SimpleStrategyReplication(n) =>
         s"replication = {'class': 'SimpleStrategy', 'replication_factor' : $n}"
       case NetworkTopologyStrategyReplication(map) =>
-        s"replication = {'class': 'NetworkTopologyStrategy', ${map.toList.map(t => s"'${t._1}': ${t._2}").mkString(",")}}"
+        val dcJsonArgs = map.toList.map(t => s"'${t._1}': ${t._2}")
+        "replication = {'class': 'NetworkTopologyStrategy', %s}".format(dcJsonArgs.mkString(","))
     }
 
     val durableWrites: Option[String] = keyspace.durableWrites map (dw => s"durable_writes = $dw")

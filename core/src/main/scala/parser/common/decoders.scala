@@ -14,7 +14,8 @@
  * limitations under the License.
  */
 
-package freestyle.cassandra.parser.common
+package freestyle.cassandra
+package parser.common
 
 import cats.implicits._
 import io.circe.Decoder.Result

@@ -27,7 +27,7 @@ class StrategyParserSpec extends WordSpec with Matchers with KeyspaceArbitraries
 
     "parse all valid keySpace statements" in {
       check {
-        forAllNoShrink { tuple: (Keyspace, String) =>
+        forAll { tuple: (Keyspace, String) =>
           val result = parsers.parse(parsers.keyspaceParser, tuple._2)
           result.successful && result.get == tuple._1
         }
