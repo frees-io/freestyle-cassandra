@@ -41,10 +41,8 @@ object datastax {
         apply: List[T] => ContactPoints): Either[DecodeError, ContactPoints] =
       l.traverse(f).map(apply)
 
-    def inetAddressParser(s: String): Either[DecodeError, InetAddress] = {
-      import cats.syntax.either._
+    def inetAddressParser(s: String): Either[DecodeError, InetAddress] =
       Either.catchNonFatal(InetAddress.getByName(s)).leftMap(_ => WrongType("X.X.X.X", Some(s)))
-    }
 
     def inetSocketAddressParser(s: String): Either[DecodeError, InetSocketAddress] = {
       val SockedAddress = "([^:]+):([0-9]+)".r
@@ -77,33 +75,37 @@ object datastax {
   implicit val threadingOptionsRead           = instanceRead[ThreadingOptions]
   implicit val timestampGeneratorRead         = instanceRead[TimestampGenerator]
 
-  implicit val hostDistances: List[(String, HostDistance)] =
-    ("ignored", HostDistance.IGNORED) ::
-      ("local", HostDistance.LOCAL) ::
-      ("remote", HostDistance.REMOTE) :: Nil
+  implicit val hostDistances: Map[String, HostDistance] =
+    Map(
+      "ignored" -> HostDistance.IGNORED,
+      "local"   -> HostDistance.LOCAL,
+      "remote"  -> HostDistance.REMOTE)
 
-  implicit val consistencyLevels: List[(String, ConsistencyLevel)] =
-    ("ALL", ConsistencyLevel.ALL) ::
-      ("ANY", ConsistencyLevel.ANY) ::
-      ("EACH_QUORUM", ConsistencyLevel.EACH_QUORUM) ::
-      ("LOCAL_ONE", ConsistencyLevel.LOCAL_ONE) ::
-      ("LOCAL_QUORUM", ConsistencyLevel.LOCAL_QUORUM) ::
-      ("LOCAL_SERIAL", ConsistencyLevel.LOCAL_SERIAL) ::
-      ("ONE", ConsistencyLevel.ONE) ::
-      ("QUORUM", ConsistencyLevel.QUORUM) ::
-      ("SERIAL", ConsistencyLevel.SERIAL) ::
-      ("THREE", ConsistencyLevel.THREE) ::
-      ("TWO", ConsistencyLevel.TWO) :: Nil
+  implicit val consistencyLevels: Map[String, ConsistencyLevel] =
+    Map(
+      "ALL"          -> ConsistencyLevel.ALL,
+      "ANY"          -> ConsistencyLevel.ANY,
+      "EACH_QUORUM"  -> ConsistencyLevel.EACH_QUORUM,
+      "LOCAL_ONE"    -> ConsistencyLevel.LOCAL_ONE,
+      "LOCAL_QUORUM" -> ConsistencyLevel.LOCAL_QUORUM,
+      "LOCAL_SERIAL" -> ConsistencyLevel.LOCAL_SERIAL,
+      "ONE"          -> ConsistencyLevel.ONE,
+      "QUORUM"       -> ConsistencyLevel.QUORUM,
+      "SERIAL"       -> ConsistencyLevel.SERIAL,
+      "THREE"        -> ConsistencyLevel.THREE,
+      "TWO"          -> ConsistencyLevel.TWO
+    )
 
-  implicit val protocolVersions: List[(String, ProtocolVersion)] =
-    ("V1", ProtocolVersion.V1) ::
-      ("V2", ProtocolVersion.V2) ::
-      ("V3", ProtocolVersion.V3) ::
-      ("V4", ProtocolVersion.V4) ::
-      ("V5", ProtocolVersion.V5) :: Nil
+  implicit val protocolVersions: Map[String, ProtocolVersion] =
+    Map(
+      "V1" -> ProtocolVersion.V1,
+      "V2" -> ProtocolVersion.V2,
+      "V3" -> ProtocolVersion.V3,
+      "V4" -> ProtocolVersion.V4,
+      "V5" -> ProtocolVersion.V5)
 
-  implicit val compressions: List[(String, Compression)] =
-    ("lz4", Compression.LZ4) :: ("snappy", Compression.SNAPPY) :: ("none", Compression.NONE) :: Nil
+  implicit val compressions: Map[String, Compression] =
+    Map("lz4" -> Compression.LZ4, "snappy" -> Compression.SNAPPY, "none" -> Compression.NONE)
 
   implicit val credentialsRead: Read[Config, Credentials] = Read.instance[Config, Credentials] {
     path =>

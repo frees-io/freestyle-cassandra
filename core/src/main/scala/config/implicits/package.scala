@@ -35,11 +35,11 @@ package object implicits {
       }
     }
 
-  implicit def stringListRead[T](implicit list: List[(String, T)]): Read[Config, T] =
+  implicit def stringListRead[T](implicit map: Map[String, T]): Read[Config, T] =
     read[String, T] { value =>
-      list.find(_._1 == value) match {
-        case Some((_, v)) => Decoder.const(v)
-        case None         => Decoder.fail(WrongType(list.map(_._1).mkString(" | "), Some(value)))
+      map.get(value) match {
+        case Some(v) => Decoder.const(v)
+        case None    => Decoder.fail(WrongType(map.keys.mkString(" | "), Some(value)))
       }
     }
 
