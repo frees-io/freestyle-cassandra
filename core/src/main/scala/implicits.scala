@@ -73,6 +73,9 @@ object implicits {
 
     def connect: ClusterAPIOps[M, Session] = Kleisli(c => H(c.connectAsync()))
 
+    def connectKeyspace(keyspace: String): ClusterAPIOps[M, Session] =
+      Kleisli(c => H(c.connectAsync(keyspace)))
+
     def close: ClusterAPIOps[M, Unit] = closeFuture2unit[M, Cluster](_.closeAsync())
 
     def configuration: ClusterAPIOps[M, Configuration] =
@@ -107,5 +110,10 @@ object implicits {
 
   implicit def lowLevelAPIHandler[M[_]](implicit AC: AsyncContext[M]): LowLevelAPIHandler[M] =
     new LowLevelAPIHandler[M]
+
+  implicit def clusterAPIHandler[M[_]](
+      implicit AC: AsyncContext[M],
+      E: MonadError[M, Throwable]): ClusterAPIHandler[M] =
+    new ClusterAPIHandler[M]
 
 }

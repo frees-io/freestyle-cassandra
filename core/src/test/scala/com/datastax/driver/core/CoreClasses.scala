@@ -70,3 +70,8 @@ class StatementTest extends Statement {
 
   override def getKeyspace: String = null
 }
+
+object MetadataTest extends Metadata(null)
+
+object MetricsTest
+    extends Metrics(new Cluster.Builder().addContactPoint("127.0.0.1").build().manager)

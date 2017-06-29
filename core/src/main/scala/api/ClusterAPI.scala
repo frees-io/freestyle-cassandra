@@ -25,6 +25,8 @@ trait ClusterAPI {
 
   def connect: FS[Session]
 
+  def connectKeyspace(keyspace: String): FS[Session]
+
   def close: FS[Unit]
 
   def configuration: FS[Configuration]
