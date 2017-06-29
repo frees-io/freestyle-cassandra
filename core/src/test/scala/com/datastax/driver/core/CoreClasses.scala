@@ -15,6 +15,7 @@
  */
 
 package com.datastax.driver.core
+import java.nio.ByteBuffer
 import java.util.concurrent.{Executor, TimeUnit}
 
 object CloseFutureTest extends CloseFuture {
@@ -37,4 +38,12 @@ object ResultSetFutureTest extends ResultSetFuture {
   override def get(): ResultSet = null
 
   override def get(timeout: Long, unit: TimeUnit): ResultSet = null
+}
+
+class StatementTest extends Statement {
+  override def getRoutingKey(
+      protocolVersion: ProtocolVersion,
+      codecRegistry: CodecRegistry): ByteBuffer = null
+
+  override def getKeyspace: String = null
 }
