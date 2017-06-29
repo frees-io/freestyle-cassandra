@@ -17,12 +17,15 @@
 package freestyle.cassandra
 
 import com.datastax.driver.core._
+import freestyle.cassandra.api.LowLevelAPIOps
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, OneInstancePerTest, WordSpec}
 
 import scala.collection.JavaConverters._
+import scala.concurrent.{Await, Future}
+import scala.concurrent.ExecutionContext.Implicits.global
 
-class ListenableFutureHandlerSpec
+class LowLevelAPIHandlerSpec
     extends WordSpec
     with Matchers
     with OneInstancePerTest
@@ -32,23 +35,29 @@ class ListenableFutureHandlerSpec
   val sessionMock: Session           = mock[Session]
   val regStMock: RegularStatement    = stub[RegularStatement]
   val prepStMock: PreparedStatement  = stub[PreparedStatement]
+  val rsMock: ResultSet              = stub[ResultSet]
   val queryString: String            = "SELECT * FROM table;"
   val mapValues: Map[String, AnyRef] = Map("param1" -> "value1", "param2" -> "value2")
 
+  import freestyle.async.implicits._
   import freestyle.cassandra.implicits._
-  val handler: ListenableFutureHandler = listenableFutureHandler(sessionMock)
+  val handler: LowLevelAPIHandler[Future] = lowLevelAPIHandler[Future]
+
+  import scala.concurrent.duration._
+  def run[T](k: LowLevelAPIOps[Future, T]): T =
+    Await.result(k.run(sessionMock), 5.seconds)
 
   "ListenableFutureHandler" should {
 
     "call to initAsync when calling init() method" in {
       val result = successfulFuture(sessionMock)
       (sessionMock.initAsync _).expects().returns(result)
-      handler.init shouldBe result
+      run(handler.init) shouldBe sessionMock
     }
 
     "call to closeAsync when calling close() method" in {
       (sessionMock.closeAsync _).expects().returns(CloseFutureTest)
-      handler.close
+      run(handler.close) shouldBe ((): Unit)
     }
 
     "call to prepareAsync(String) when calling prepare(String) method" in {
@@ -57,18 +66,21 @@ class ListenableFutureHandlerSpec
         .prepareAsync(_: String))
         .expects(queryString)
         .returns(result)
-      handler.prepare(queryString) shouldBe result
+      run(handler.prepare(queryString)) shouldBe prepStMock
     }
 
     "call to prepareAsync(RegularStatement) when calling prepare(RegularStatement) method" in {
       val result = successfulFuture(prepStMock)
       (sessionMock.prepareAsync(_: RegularStatement)).expects(regStMock).returns(result)
-      handler.prepareStatement(regStMock) shouldBe result
+      run(handler.prepareStatement(regStMock)) shouldBe prepStMock
     }
 
     "call to executeAsync(String) when calling execute(String) method" in {
-      (sessionMock.executeAsync(_: String)).expects(queryString).returns(ResultSetFutureTest)
-      handler.execute(queryString) shouldBe ResultSetFutureTest
+      (sessionMock
+        .executeAsync(_: String))
+        .expects(queryString)
+        .returns(ResultSetFutureTest(rsMock))
+      run(handler.execute(queryString)) shouldBe rsMock
     }
 
     "call to executeAsync(String, java.util.Map) when calling executeWithMap(String, Map) method" in {
@@ -77,13 +89,16 @@ class ListenableFutureHandlerSpec
         .expects(where { (s, m) =>
           s == queryString && m.asScala == mapValues
         })
-        .returns(ResultSetFutureTest)
-      handler.executeWithMap(queryString, mapValues) shouldBe ResultSetFutureTest
+        .returns(ResultSetFutureTest(rsMock))
+      run(handler.executeWithMap(queryString, mapValues)) shouldBe rsMock
     }
 
     "call to executeAsync(Statement) when calling executeStatement(Statement) method" in {
-      (sessionMock.executeAsync(_: Statement)).expects(regStMock).returns(ResultSetFutureTest)
-      handler.executeStatement(regStMock) shouldBe ResultSetFutureTest
+      (sessionMock
+        .executeAsync(_: Statement))
+        .expects(regStMock)
+        .returns(ResultSetFutureTest(rsMock))
+      run(handler.executeStatement(regStMock)) shouldBe rsMock
     }
 
   }
