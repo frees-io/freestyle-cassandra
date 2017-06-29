@@ -27,7 +27,8 @@ class ConfigStatementOpsSpec extends WordSpec with Matchers with Checkers with M
 
   import ConfigArbitraries._
   import org.scalacheck.Shapeless._
-  import config.implicits._
+  import config.model._
+  import config.model.implicits._
   import scala.collection.JavaConverters._
 
   "ConfigStatementOps" should {
