@@ -11,3 +11,4 @@ The maintainers of the project are:
 These are the people that have contributed to the freestyle-cassandra project:
 
 * Fede Fernández <[fedefernandez](https://github.com/fedefernandez)>
+* Raúl Raja Martínez <[raulraja](https://github.com/raulraja)>
