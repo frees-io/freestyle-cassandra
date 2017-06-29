@@ -30,5 +30,6 @@ lazy val root = project
 lazy val core = project
   .in(file("core"))
   .settings(moduleName := "freestyle-cassandra-core")
+  .settings(scalaMetaSettings)
   .settings(libraryDependencies ++= commonDependencies)
   .settings(libraryDependencies ++= testDependencies)
