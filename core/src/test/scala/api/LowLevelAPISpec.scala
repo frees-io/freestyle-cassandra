@@ -20,7 +20,6 @@ package api
 import cats.{~>, Id}
 import com.datastax.driver.core._
 import freestyle._
-import freestyle.cassandra.TestUtils
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, OneInstancePerTest, WordSpec}
 

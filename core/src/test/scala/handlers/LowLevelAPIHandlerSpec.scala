@@ -15,6 +15,7 @@
  */
 
 package freestyle.cassandra
+package handlers
 
 import com.datastax.driver.core._
 import freestyle.cassandra.api.LowLevelAPIOps
@@ -38,9 +39,10 @@ class LowLevelAPIHandlerSpec
   val rsMock: ResultSet              = stub[ResultSet]
   val queryString: String            = "SELECT * FROM table;"
   val mapValues: Map[String, AnyRef] = Map("param1" -> "value1", "param2" -> "value2")
+  val values: Seq[Any]               = Seq("value1", "value2")
 
   import freestyle.async.implicits._
-  import freestyle.cassandra.implicits._
+  import freestyle.cassandra.handlers.implicits._
   val handler: LowLevelAPIHandler[Future] = lowLevelAPIHandler[Future]
 
   import scala.concurrent.duration._

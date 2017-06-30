@@ -17,6 +17,7 @@
 package freestyle.cassandra
 
 import cats.data.Kleisli
+import cats.~>
 import com.datastax.driver.core.{Cluster, Session}
 
 package object api {
@@ -24,5 +25,9 @@ package object api {
   type LowLevelAPIOps[F[_], A] = Kleisli[F, Session, A]
 
   type ClusterAPIOps[F[_], A] = Kleisli[F, Cluster, A]
+
+  def apiInterpreter[F[_], A](a: A): (Kleisli[F, A, ?] ~> F) = new (Kleisli[F, A, ?] ~> F) {
+    override def apply[B](fa: Kleisli[F, A, B]): F[B] = fa(a)
+  }
 
 }

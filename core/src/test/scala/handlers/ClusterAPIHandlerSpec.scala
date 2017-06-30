@@ -15,14 +15,14 @@
  */
 
 package freestyle.cassandra
+package handlers
 
 import com.datastax.driver.core._
 import com.google.common.util.concurrent.ListenableFuture
-import freestyle.cassandra.api.{ClusterAPIOps, LowLevelAPIOps}
+import freestyle.cassandra.api.ClusterAPIOps
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, OneInstancePerTest, WordSpec}
 
-import scala.collection.JavaConverters._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{Await, Future}
 
@@ -40,7 +40,7 @@ class ClusterAPIHandlerSpec
 
   import cats.instances.future._
   import freestyle.async.implicits._
-  import freestyle.cassandra.implicits._
+  import freestyle.cassandra.handlers.implicits._
   val handler: ClusterAPIHandler[Future] = clusterAPIHandler[Future]
 
   import scala.concurrent.duration._
