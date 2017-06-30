@@ -15,26 +15,24 @@
  */
 
 package freestyle.cassandra
+package api
 
-import com.google.common.util.concurrent._
-import freestyle._
-import freestyle.async.AsyncContext
+import com.datastax.driver.core.{Configuration, Metadata, Metrics, Session}
+import freestyle.free
 
-object implicits {
+@free
+trait ClusterAPI {
 
-  class ListenableFuture2AsyncM[M[_]](implicit AC: AsyncContext[M])
-      extends FSHandler[ListenableFuture, M] {
-    override def apply[A](fa: ListenableFuture[A]): M[A] =
-      AC.runAsync { cb =>
-        Futures.addCallback(fa, new FutureCallback[A] {
-          override def onSuccess(result: A): Unit    = cb(Right(result))
-          override def onFailure(t: Throwable): Unit = cb(Left(t))
-        })
-      }
+  def connect: FS[Session]
 
-  }
+  def connectKeyspace(keyspace: String): FS[Session]
 
-  implicit def listenableFuture2Async[M[_]](implicit AC: AsyncContext[M]) =
-    new ListenableFuture2AsyncM[M]
+  def close: FS[Unit]
+
+  def configuration: FS[Configuration]
+
+  def metadata: FS[Metadata]
+
+  def metrics: FS[Metrics]
 
 }

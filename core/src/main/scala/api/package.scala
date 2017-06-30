@@ -16,25 +16,18 @@
 
 package freestyle.cassandra
 
-import com.google.common.util.concurrent._
-import freestyle._
-import freestyle.async.AsyncContext
+import cats.data.Kleisli
+import cats.~>
+import com.datastax.driver.core.{Cluster, Session}
 
-object implicits {
+package object api {
 
-  class ListenableFuture2AsyncM[M[_]](implicit AC: AsyncContext[M])
-      extends FSHandler[ListenableFuture, M] {
-    override def apply[A](fa: ListenableFuture[A]): M[A] =
-      AC.runAsync { cb =>
-        Futures.addCallback(fa, new FutureCallback[A] {
-          override def onSuccess(result: A): Unit    = cb(Right(result))
-          override def onFailure(t: Throwable): Unit = cb(Left(t))
-        })
-      }
+  type LowLevelAPIOps[F[_], A] = Kleisli[F, Session, A]
 
+  type ClusterAPIOps[F[_], A] = Kleisli[F, Cluster, A]
+
+  def apiInterpreter[F[_], A](a: A): (Kleisli[F, A, ?] ~> F) = new (Kleisli[F, A, ?] ~> F) {
+    override def apply[B](fa: Kleisli[F, A, B]): F[B] = fa(a)
   }
-
-  implicit def listenableFuture2Async[M[_]](implicit AC: AsyncContext[M]) =
-    new ListenableFuture2AsyncM[M]
 
 }

@@ -18,26 +18,49 @@ package com.datastax.driver.core
 import java.nio.ByteBuffer
 import java.util.concurrent.{Executor, TimeUnit}
 
+import com.google.common.util.concurrent.ListenableFuture
+
 object CloseFutureTest extends CloseFuture {
   override def force(): CloseFuture = this
-}
 
-object ResultSetFutureTest extends ResultSetFuture {
   override def cancel(mayInterruptIfRunning: Boolean): Boolean = true
 
-  override def getUninterruptibly: ResultSet = null
+  override def setFuture(future: ListenableFuture[_ <: Void]): Boolean = true
 
-  override def getUninterruptibly(timeout: Long, unit: TimeUnit): ResultSet = null
+  override def interruptTask(): Unit = {}
 
-  override def addListener(listener: Runnable, executor: Executor): Unit = (): Unit
+  override def get(timeout: Long, unit: TimeUnit): Void = null
+
+  override def get(): Void = null
+
+  override def setException(throwable: Throwable): Boolean = true
+
+  override def addListener(listener: Runnable, executor: Executor): Unit =
+    listener.run()
+  override def isCancelled: Boolean = false
+
+  override def set(value: Void): Boolean = true
+
+  override def isDone: Boolean = true
+}
+
+case class ResultSetFutureTest(rs: ResultSet) extends ResultSetFuture {
+  override def cancel(mayInterruptIfRunning: Boolean): Boolean = true
+
+  override def getUninterruptibly: ResultSet = rs
+
+  override def getUninterruptibly(timeout: Long, unit: TimeUnit): ResultSet = rs
+
+  override def addListener(listener: Runnable, executor: Executor): Unit =
+    listener.run()
 
   override def isCancelled: Boolean = false
 
-  override def isDone: Boolean = false
+  override def isDone: Boolean = true
 
-  override def get(): ResultSet = null
+  override def get(): ResultSet = rs
 
-  override def get(timeout: Long, unit: TimeUnit): ResultSet = null
+  override def get(timeout: Long, unit: TimeUnit): ResultSet = rs
 }
 
 class StatementTest extends Statement {
@@ -47,3 +70,8 @@ class StatementTest extends Statement {
 
   override def getKeyspace: String = null
 }
+
+object MetadataTest extends Metadata(null)
+
+object MetricsTest
+    extends Metrics(new Cluster.Builder().addContactPoint("127.0.0.1").build().manager)
