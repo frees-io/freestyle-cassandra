@@ -19,14 +19,15 @@ package config
 
 import java.nio.ByteBuffer
 
+import config.model._
 import com.datastax.driver.core.{CodecRegistry, ConsistencyLevel, PagingState}
-import org.scalacheck.{Arbitrary, Gen}
 import com.datastax.driver.core.policies.{
   DefaultRetryPolicy,
   DowngradingConsistencyRetryPolicy,
   FallthroughRetryPolicy,
   RetryPolicy
 }
+import org.scalacheck.{Arbitrary, Gen}
 
 trait ConfigArbitraries {
 

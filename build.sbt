@@ -10,7 +10,6 @@ lazy val commonDependencies: Seq[ModuleID] = Seq(
   %%("circe-parser"),
   %%("circe-generic"),
   %%("classy-core"),
-  %%("classy-config-typesafe"),
   %("cassandra-driver-core"),
   %("cassandra-driver-mapping"),
   %("cassandra-driver-extras"),
