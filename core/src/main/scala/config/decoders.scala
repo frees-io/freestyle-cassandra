@@ -30,6 +30,8 @@ import collection.JavaConverters._
 
 class Decoders[Config] extends DatastaxReads[Config] {
 
+  import reads.maps._
+
   def builderCustomProp[Builder, T](b: Builder, attr: String)(f: (Builder, T) => Builder)(
       implicit R: Read[Config, T]): Decoder[Config, Builder] =
     builderProp[Builder, T](b, attr, b => f(b, _))

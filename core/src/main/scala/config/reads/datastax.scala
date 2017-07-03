@@ -32,6 +32,8 @@ import scala.util.{Failure, Success, Try}
 
 trait DatastaxReads[Config] {
 
+  import maps._
+
   def instanceRead[T](implicit R: Read[Config, String]): Read[Config, T] =
     read[String, T] { value =>
       Try(Class.forName(value).newInstance().asInstanceOf[T]) match {
@@ -104,38 +106,6 @@ trait DatastaxReads[Config] {
   def timestampGeneratorRead(implicit R: Read[Config, String]): Read[Config, TimestampGenerator] =
     instanceRead[TimestampGenerator]
 
-  implicit val hostDistances: Map[String, HostDistance] =
-    Map(
-      "ignored" -> HostDistance.IGNORED,
-      "local"   -> HostDistance.LOCAL,
-      "remote"  -> HostDistance.REMOTE)
-
-  implicit val consistencyLevels: Map[String, ConsistencyLevel] =
-    Map(
-      "ALL"          -> ConsistencyLevel.ALL,
-      "ANY"          -> ConsistencyLevel.ANY,
-      "EACH_QUORUM"  -> ConsistencyLevel.EACH_QUORUM,
-      "LOCAL_ONE"    -> ConsistencyLevel.LOCAL_ONE,
-      "LOCAL_QUORUM" -> ConsistencyLevel.LOCAL_QUORUM,
-      "LOCAL_SERIAL" -> ConsistencyLevel.LOCAL_SERIAL,
-      "ONE"          -> ConsistencyLevel.ONE,
-      "QUORUM"       -> ConsistencyLevel.QUORUM,
-      "SERIAL"       -> ConsistencyLevel.SERIAL,
-      "THREE"        -> ConsistencyLevel.THREE,
-      "TWO"          -> ConsistencyLevel.TWO
-    )
-
-  implicit val protocolVersions: Map[String, ProtocolVersion] =
-    Map(
-      "V1" -> ProtocolVersion.V1,
-      "V2" -> ProtocolVersion.V2,
-      "V3" -> ProtocolVersion.V3,
-      "V4" -> ProtocolVersion.V4,
-      "V5" -> ProtocolVersion.V5)
-
-  implicit val compressions: Map[String, Compression] =
-    Map("lz4" -> Compression.LZ4, "snappy" -> Compression.SNAPPY, "none" -> Compression.NONE)
-
   def credentialsDecoder(implicit R: Read[Config, String]): Read[Config, Credentials] =
     Read.instance[Config, Credentials] { path =>
       Read
@@ -194,5 +164,41 @@ trait DatastaxReads[Config] {
         .join(Read.from[Config][Int](s"$path.newValue"))
         .map(NewConnectionThreshold.tupled)
     }
+
+}
+
+object maps {
+
+  implicit val hostDistances: Map[String, HostDistance] =
+    Map(
+      "ignored" -> HostDistance.IGNORED,
+      "local"   -> HostDistance.LOCAL,
+      "remote"  -> HostDistance.REMOTE)
+
+  implicit val consistencyLevels: Map[String, ConsistencyLevel] =
+    Map(
+      "ALL"          -> ConsistencyLevel.ALL,
+      "ANY"          -> ConsistencyLevel.ANY,
+      "EACH_QUORUM"  -> ConsistencyLevel.EACH_QUORUM,
+      "LOCAL_ONE"    -> ConsistencyLevel.LOCAL_ONE,
+      "LOCAL_QUORUM" -> ConsistencyLevel.LOCAL_QUORUM,
+      "LOCAL_SERIAL" -> ConsistencyLevel.LOCAL_SERIAL,
+      "ONE"          -> ConsistencyLevel.ONE,
+      "QUORUM"       -> ConsistencyLevel.QUORUM,
+      "SERIAL"       -> ConsistencyLevel.SERIAL,
+      "THREE"        -> ConsistencyLevel.THREE,
+      "TWO"          -> ConsistencyLevel.TWO
+    )
+
+  implicit val protocolVersions: Map[String, ProtocolVersion] =
+    Map(
+      "V1" -> ProtocolVersion.V1,
+      "V2" -> ProtocolVersion.V2,
+      "V3" -> ProtocolVersion.V3,
+      "V4" -> ProtocolVersion.V4,
+      "V5" -> ProtocolVersion.V5)
+
+  implicit val compressions: Map[String, Compression] =
+    Map("lz4" -> Compression.LZ4, "snappy" -> Compression.SNAPPY, "none" -> Compression.NONE)
 
 }
