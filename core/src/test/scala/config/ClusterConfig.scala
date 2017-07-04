@@ -14,35 +14,22 @@
  * limitations under the License.
  */
 
-import com.datastax.driver.core.{ConsistencyLevel, HostDistance, ProtocolVersion}
+package freestyle.cassandra
+package config
+
 import com.datastax.driver.core.ProtocolOptions.Compression
+import com.datastax.driver.core.{ConsistencyLevel, HostDistance, ProtocolVersion}
 
-/*
- * Copyright 2017 47 Degrees, LLC. <http://www.47deg.com>
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
-object configTree extends App {
+object ClusterConfig {
 
   import freestyle.cassandra.config.reads.maps._
 
-  case class IpConfig(n1: Int, n2: Int, n3: Int, n4: Int) {
-    override def toString: String = s""" "$n1.$n2.$n3.$n4" """
-  }
-
   sealed trait ConfigObj extends Product with Serializable {
     def print: String
+  }
+
+  case class IpConfig(n1: Int, n2: Int, n3: Int, n4: Int) extends ConfigObj {
+    override def print: String = s""" "$n1.$n2.$n3.$n4" """
   }
 
   case class CredentialsConfig(username: String, password: String) extends ConfigObj {
@@ -54,24 +41,51 @@ object configTree extends App {
   }
 
   case class CompressionConfig(compression: Compression) extends ConfigObj {
-    override def print: String =
-      compressions.find(_._2 == compression).map(t => s" = ${t._1}").getOrElse("")
+    override def print: String = printEnum(compressions, compression)
   }
 
   case class ProtocolVersionConfig(protocol: ProtocolVersion) extends ConfigObj {
-    override def print: String =
-      protocolVersions.find(_._2 == protocol).map(t => s" = ${t._1}").getOrElse("")
+    override def print: String = printEnum(protocolVersions, protocol)
   }
 
   case class ConsistencyLevelConfig(consistency: ConsistencyLevel) extends ConfigObj {
-    override def print: String =
-      consistencyLevels.find(_._2 == consistency).map(t => s" = ${t._1}").getOrElse("")
+    override def print: String = printEnum(consistencyLevels, consistency)
   }
 
-  case class ConnectionsPerHost(distance: HostDistance, code: Int, max: Int)
+  case class ConnectionsPerHost(distance: HostDistance, code: Int, max: Int) extends ConfigObj {
+    override def print: String =
+      s"""{
+         |  distance = ${printEnum(hostDistances, distance)}
+         |  code = $code
+         |  max = $max
+         |}""".stripMargin
+  }
+
   case class CoreConnectionsPerHost(distance: HostDistance, newCoreConnections: Int)
+      extends ConfigObj {
+    override def print: String =
+      s"""{
+         |  distance = ${printEnum(hostDistances, distance)}
+         |  newCoreConnections = $newCoreConnections
+         |}""".stripMargin
+  }
+
   case class MaxConnectionsPerHost(distance: HostDistance, maxCoreConnections: Int)
-  case class NewConnectionThreshold(distance: HostDistance, newValue: Int)
+      extends ConfigObj {
+    override def print: String =
+      s"""{
+         |  distance = ${printEnum(hostDistances, distance)}
+         |  maxCoreConnections = $maxCoreConnections
+         |}""".stripMargin
+  }
+
+  case class NewConnectionThreshold(distance: HostDistance, newValue: Int) extends ConfigObj {
+    override def print: String =
+      s"""{
+         |  distance = ${printEnum(hostDistances, distance)}
+         |  newValue = $newValue
+         |}""".stripMargin
+  }
 
   case class PoolingOptionsConfig(
       connectionsPerHost: Option[ConnectionsPerHost] = None,
@@ -158,21 +172,6 @@ object configTree extends App {
     }
   }
 
-  def printOpt[T](t: (String, Option[T])): Option[String] = t match {
-    case (l, Some(s: String))    => Some(s""" $l = "$s" """)
-    case (l, Some(o: ConfigObj)) => Some(s""" $l ${o.print} """)
-    case (l, Some(a))            => Some(s""" $l = ${a.toString} """)
-    case (_, None)               => None
-  }
-
-  println(
-    ClusterConfig(
-      contactPoints = List(IpConfig(127, 0, 0, 1)),
-      credentials = Some(CredentialsConfig("user", "pass")),
-      name = Some("MyCluster"),
-      allowBetaProtocolVersion = Some(false)
-    ).print)
-
   case class ClusterConfig(
       contactPoints: List[IpConfig],
       credentials: Option[CredentialsConfig] = None,
@@ -192,12 +191,12 @@ object configTree extends App {
       port: Option[Int] = None,
       compression: Option[CompressionConfig] = None,
       poolingOptionsConfig: Option[PoolingOptionsConfig] = None,
-      protocolVersion: Option[CompressionConfig] = None,
+      protocolVersion: Option[ProtocolVersionConfig] = None,
       queryOptions: Option[QueryOptionsConfig] = None,
       socketOptions: Option[SocketOptionsConfig] = None)
       extends ConfigObj {
     override def print: String = {
-      val fields = s""" contactPoints = [ ${contactPoints.mkString(",")} ] """ +:
+      val fields = s""" contactPoints = [ ${contactPoints.map(_.print).mkString(",")} ] """ +:
         List(
         "credentials"                   -> credentials,
         "name"                          -> name,
@@ -223,5 +222,15 @@ object configTree extends App {
       ("{" +: fields :+ "}") mkString "\n"
     }
   }
+
+  private[this] def printOpt[T](t: (String, Option[T])): Option[String] = t match {
+    case (l, Some(s: String))    => Some(s""" $l = "$s" """)
+    case (l, Some(o: ConfigObj)) => Some(s""" $l ${o.print} """)
+    case (l, Some(a))            => Some(s""" $l = ${a.toString} """)
+    case (_, None)               => None
+  }
+
+  private[this] def printEnum[T](map: Map[String, T], value: T): String =
+    map.find(_._2 == value).map(t => s""" = "${t._1}" """).getOrElse("")
 
 }
