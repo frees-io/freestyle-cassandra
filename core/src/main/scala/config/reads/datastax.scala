@@ -21,7 +21,7 @@ import java.net.{InetAddress, InetSocketAddress}
 import java.util.concurrent.Executor
 
 import cats.implicits._
-import classy.DecodeError.{Underlying, WrongType}
+import classy.DecodeError.{AtPath, Missing, Underlying, WrongType}
 import classy.{DecodeError, Decoder, Read}
 import com.datastax.driver.core.ProtocolOptions.Compression
 import com.datastax.driver.core._
@@ -31,6 +31,8 @@ import freestyle.cassandra.config.model._
 import scala.util.{Failure, Success, Try}
 
 trait DatastaxReads[Config] {
+
+  import maps._
 
   def instanceRead[T](implicit R: Read[Config, String]): Read[Config, T] =
     read[String, T] { value =>
@@ -51,7 +53,8 @@ trait DatastaxReads[Config] {
   def read[A, B](f: A => Decoder[Config, B])(implicit R: Read[Config, A]): Read[Config, B] =
     Read.instance[Config, B](path => R.apply(path).flatMap(f))
 
-  def contactPointListRead(implicit R: Read[Config, List[String]]): Read[Config, ContactPoints] = {
+  def contactPointListRead(
+      implicit R: Read[Config, List[String]]): Read[Config, Option[ContactPoints]] = {
 
     def trav[T](
         l: List[String],
@@ -70,13 +73,13 @@ trait DatastaxReads[Config] {
       }
     }
 
-    read[List[String], ContactPoints] { list =>
+    read[List[String], Option[ContactPoints]] { list =>
       trav[InetSocketAddress](list, inetSocketAddressParser, ContactPointWithPortList)
         .recoverWith {
           case _ =>
             trav[InetAddress](list, inetAddressParser, ContactPointList)
         } match {
-        case Right(t) => Decoder.const(t)
+        case Right(t) => Decoder.const(Some(t))
         case Left(e)  => Decoder.fail(e)
       }
     }
@@ -103,6 +106,85 @@ trait DatastaxReads[Config] {
     instanceRead[ThreadingOptions]
   def timestampGeneratorRead(implicit R: Read[Config, String]): Read[Config, TimestampGenerator] =
     instanceRead[TimestampGenerator]
+
+  case class ReadAndPath[T](path: String)(implicit R: Read[Config, T]) {
+    def decoder: Decoder[Config, T] = Read.from[Config][T](path)
+  }
+
+  def readOption2[T, T1, T2](r1: ReadAndPath[T1], r2: ReadAndPath[T2])(
+      f: ((T1, T2)) => T): Decoder[Config, Option[T]] =
+    r1.decoder.optional.join(r2.decoder.optional).flatMap {
+      case (Some(v1), Some(v2)) => Decoder.const(Some(f((v1, v2))))
+      case (None, None)         => Decoder.const(None)
+      case (None, _)            => Decoder.fail(AtPath(r1.path, Missing))
+      case (_, None)            => Decoder.fail(AtPath(r2.path, Missing))
+    }
+
+  def readOption3[T, T1, T2, T3](r1: ReadAndPath[T1], r2: ReadAndPath[T2], r3: ReadAndPath[T3])(
+      f: ((T1, T2, T3)) => T): Decoder[Config, Option[T]] =
+    r1.decoder.optional.join(r2.decoder.optional).join(r3.decoder.optional).flatMap {
+      case (Some(v1), Some(v2), Some(v3)) => Decoder.const(Some(f((v1, v2, v3))))
+      case (None, None, None)             => Decoder.const(None)
+      case (None, _, _)                   => Decoder.fail(AtPath(r1.path, Missing))
+      case (_, None, _)                   => Decoder.fail(AtPath(r2.path, Missing))
+      case (_, _, None)                   => Decoder.fail(AtPath(r3.path, Missing))
+    }
+
+  def credentialsDecoder(implicit R: Read[Config, String]): Read[Config, Option[Credentials]] =
+    Read.instance[Config, Option[Credentials]] { path =>
+      readOption2(ReadAndPath[String](s"$path.username"), ReadAndPath[String](s"$path.password"))(
+        Credentials.tupled)
+    }
+
+  def connectionsPerHostDecoder(
+      implicit R1: Read[Config, String],
+      R2: Read[Config, Int]): Read[Config, Option[ConnectionsPerHost]] =
+    Read.instance[Config, Option[ConnectionsPerHost]] { path =>
+      readOption3(
+        ReadAndPath[HostDistance](s"$path.distance")(stringListRead[HostDistance]),
+        ReadAndPath[Int](s"$path.core"),
+        ReadAndPath[Int](s"$path.max"))(ConnectionsPerHost.tupled)
+    }
+
+  def coreConnectionsPerHostDecoder(
+      implicit R1: Read[Config, String],
+      R2: Read[Config, Int]): Read[Config, Option[CoreConnectionsPerHost]] =
+    Read.instance[Config, Option[CoreConnectionsPerHost]] { path =>
+      readOption2(
+        ReadAndPath[HostDistance](s"$path.distance")(stringListRead[HostDistance]),
+        ReadAndPath[Int](s"$path.newCoreConnections"))(CoreConnectionsPerHost.tupled)
+    }
+
+  def maxConnectionsPerHostDecoder(
+      implicit R1: Read[Config, String],
+      R2: Read[Config, Int]): Read[Config, Option[MaxConnectionsPerHost]] =
+    Read.instance[Config, Option[MaxConnectionsPerHost]] { path =>
+      readOption2(
+        ReadAndPath[HostDistance](s"$path.distance")(stringListRead[HostDistance]),
+        ReadAndPath[Int](s"$path.maxCoreConnections"))(MaxConnectionsPerHost.tupled)
+    }
+
+  def maxRequestsPerConnectionDecoder(
+      implicit R1: Read[Config, String],
+      R2: Read[Config, Int]): Read[Config, Option[MaxRequestsPerConnection]] =
+    Read.instance[Config, Option[MaxRequestsPerConnection]] { path =>
+      readOption2(
+        ReadAndPath[HostDistance](s"$path.distance")(stringListRead[HostDistance]),
+        ReadAndPath[Int](s"$path.newMaxRequests"))(MaxRequestsPerConnection.tupled)
+    }
+
+  def newConnectionThresholdDecoder(
+      implicit R1: Read[Config, String],
+      R2: Read[Config, Int]): Read[Config, Option[NewConnectionThreshold]] =
+    Read.instance[Config, Option[NewConnectionThreshold]] { path =>
+      readOption2(
+        ReadAndPath[HostDistance](s"$path.distance")(stringListRead[HostDistance]),
+        ReadAndPath[Int](s"$path.newValue"))(NewConnectionThreshold.tupled)
+    }
+
+}
+
+object maps {
 
   implicit val hostDistances: Map[String, HostDistance] =
     Map(
@@ -135,64 +217,5 @@ trait DatastaxReads[Config] {
 
   implicit val compressions: Map[String, Compression] =
     Map("lz4" -> Compression.LZ4, "snappy" -> Compression.SNAPPY, "none" -> Compression.NONE)
-
-  def credentialsDecoder(implicit R: Read[Config, String]): Read[Config, Credentials] =
-    Read.instance[Config, Credentials] { path =>
-      Read
-        .from[Config][String](s"$path.username")
-        .join(Read.from[Config][String](s"$path.password"))
-        .map(Credentials.tupled)
-    }
-
-  def connectionsPerHostDecoder(
-      implicit R1: Read[Config, String],
-      R2: Read[Config, Int]): Read[Config, ConnectionsPerHost] =
-    Read.instance[Config, ConnectionsPerHost] { path =>
-      Read
-        .from[Config][HostDistance](s"$path.distance")(stringListRead[HostDistance])
-        .join(Read.from[Config][Int](s"$path.core"))
-        .join(Read.from[Config][Int](s"$path.max"))
-        .map(ConnectionsPerHost.tupled)
-    }
-
-  def coreConnectionsPerHostDecoder(
-      implicit R1: Read[Config, String],
-      R2: Read[Config, Int]): Read[Config, CoreConnectionsPerHost] =
-    Read.instance[Config, CoreConnectionsPerHost] { path =>
-      Read
-        .from[Config][HostDistance](s"$path.distance")(stringListRead[HostDistance])
-        .join(Read.from[Config][Int](s"$path.newCoreConnections"))
-        .map(CoreConnectionsPerHost.tupled)
-    }
-
-  def maxConnectionsPerHostDecoder(
-      implicit R1: Read[Config, String],
-      R2: Read[Config, Int]): Read[Config, MaxConnectionsPerHost] =
-    Read.instance[Config, MaxConnectionsPerHost] { path =>
-      Read
-        .from[Config][HostDistance](s"$path.distance")(stringListRead[HostDistance])
-        .join(Read.from[Config][Int](s"$path.maxCoreConnections"))
-        .map(MaxConnectionsPerHost.tupled)
-    }
-
-  def maxRequestsPerHostDecoder(
-      implicit R1: Read[Config, String],
-      R2: Read[Config, Int]): Read[Config, MaxRequestsPerConnection] =
-    Read.instance[Config, MaxRequestsPerConnection] { path =>
-      Read
-        .from[Config][HostDistance](s"$path.distance")(stringListRead[HostDistance])
-        .join(Read.from[Config][Int](s"$path.newMaxRequests"))
-        .map(MaxRequestsPerConnection.tupled)
-    }
-
-  def newConnectionThresholdDecoder(
-      implicit R1: Read[Config, String],
-      R2: Read[Config, Int]): Read[Config, NewConnectionThreshold] =
-    Read.instance[Config, NewConnectionThreshold] { path =>
-      Read
-        .from[Config][HostDistance](s"$path.distance")(stringListRead[HostDistance])
-        .join(Read.from[Config][Int](s"$path.newValue"))
-        .map(NewConnectionThreshold.tupled)
-    }
 
 }

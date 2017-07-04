@@ -27,11 +27,11 @@ class ListenableFuture2AsyncMSpec
     extends WordSpec
     with Matchers
     with OneInstancePerTest
-    with MockFactory
-    with TestUtils {
+    with MockFactory {
 
   import freestyle.async.implicits._
   import freestyle.cassandra.implicits._
+  import TestUtils._
 
   val handler: ListenableFuture2AsyncM[Future] = listenableFuture2Async[Future]
 

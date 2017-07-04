@@ -23,12 +23,9 @@ import freestyle._
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, OneInstancePerTest, WordSpec}
 
-class LowLevelAPISpec
-    extends WordSpec
-    with Matchers
-    with OneInstancePerTest
-    with MockFactory
-    with TestUtils {
+class LowLevelAPISpec extends WordSpec with Matchers with OneInstancePerTest with MockFactory {
+
+  import TestUtils._
 
   val sessionMock: Session      = stub[Session]
   val unit: Unit                = ()
@@ -67,11 +64,11 @@ class LowLevelAPISpec
           v1 <- lowLevelAPI.init
           v2 <- lowLevelAPI.close
           v3 <- lowLevelAPI.prepare("")
-          v4 <- lowLevelAPI.prepareStatement(null)
+          v4 <- lowLevelAPI.prepareStatement(Null[RegularStatement])
           v5 <- lowLevelAPI.execute("")
-          v6 <- lowLevelAPI.executeWithValues("", null)
-          v7 <- lowLevelAPI.executeWithMap("", null)
-          v8 <- lowLevelAPI.executeStatement(null)
+          v6 <- lowLevelAPI.executeWithValues("", Null[Any])
+          v7 <- lowLevelAPI.executeWithMap("", Null[Map[String, AnyRef]])
+          v8 <- lowLevelAPI.executeStatement(Null[Statement])
         } yield (v1, v2, v3, v4, v5, v6, v7, v8)
       }
 

@@ -32,6 +32,7 @@ import org.scalatest.prop.Checkers
 class CodecsSpec extends WordSpec with Matchers with Checkers with MockFactory {
 
   import codecs._
+  import TestUtils._
 
   def checkInverseCodec[T](codec: ByteBufferCodec[T])(implicit A: Arbitrary[T]): Assertion =
     check {
@@ -43,7 +44,7 @@ class CodecsSpec extends WordSpec with Matchers with Checkers with MockFactory {
   def byteBufferGen[T](codec: ByteBufferCodec[T], defaultValue: T)(
       implicit A: Arbitrary[T]): Gen[(ByteBuffer, T)] = {
 
-    val nullByteBuffer = null.asInstanceOf[ByteBuffer]
+    val nullByteBuffer = Null[ByteBuffer]
 
     def codecGen: Gen[(ByteBuffer, T)] =
       for {
@@ -61,9 +62,10 @@ class CodecsSpec extends WordSpec with Matchers with Checkers with MockFactory {
     val prop = forAll(byteBufferGen(codec, defaultValue)) {
       case (bb, v) =>
         val deserialized = Either.catchNonFatal(codec.deserialize(bb))
-        if (bb == null || bb.remaining() == 0) {
+        val remaining    = Option(bb).map(_.remaining()).getOrElse(0)
+        if (remaining == 0) {
           deserialized == Right(defaultValue)
-        } else if (bb.remaining() == byteSize) {
+        } else if (remaining == byteSize) {
           deserialized == Right(v)
         } else {
           deserialized.isLeft && deserialized.left.get.isInstanceOf[InvalidTypeException]

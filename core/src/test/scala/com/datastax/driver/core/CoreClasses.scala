@@ -20,6 +20,8 @@ import java.util.concurrent.{Executor, TimeUnit}
 
 import com.google.common.util.concurrent.ListenableFuture
 
+import freestyle.cassandra.TestUtils._
+
 object CloseFutureTest extends CloseFuture {
   override def force(): CloseFuture = this
 
@@ -29,9 +31,9 @@ object CloseFutureTest extends CloseFuture {
 
   override def interruptTask(): Unit = {}
 
-  override def get(timeout: Long, unit: TimeUnit): Void = null
+  override def get(timeout: Long, unit: TimeUnit): Void = Null[Void]
 
-  override def get(): Void = null
+  override def get(): Void = Null[Void]
 
   override def setException(throwable: Throwable): Boolean = true
 
@@ -66,9 +68,9 @@ case class ResultSetFutureTest(rs: ResultSet) extends ResultSetFuture {
 class StatementTest extends Statement {
   override def getRoutingKey(
       protocolVersion: ProtocolVersion,
-      codecRegistry: CodecRegistry): ByteBuffer = null
+      codecRegistry: CodecRegistry): ByteBuffer = Null[ByteBuffer]
 
-  override def getKeyspace: String = null
+  override def getKeyspace: String = Null[String]
 }
 
 object MetadataTest extends Metadata(null)

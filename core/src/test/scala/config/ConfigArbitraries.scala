@@ -19,8 +19,9 @@ package config
 
 import java.nio.ByteBuffer
 
+import com.datastax.driver.core.ProtocolOptions.Compression
 import config.model._
-import com.datastax.driver.core.{CodecRegistry, ConsistencyLevel, PagingState}
+import com.datastax.driver.core._
 import com.datastax.driver.core.policies.{
   DefaultRetryPolicy,
   DowngradingConsistencyRetryPolicy,
@@ -45,6 +46,26 @@ trait ConfigArbitraries {
       ConsistencyLevel.THREE,
       ConsistencyLevel.TWO
     )
+  }
+
+  implicit val protocolVersionArbitrary: Arbitrary[ProtocolVersion] = Arbitrary {
+    Gen.oneOf(
+      ProtocolVersion.NEWEST_BETA,
+      ProtocolVersion.NEWEST_SUPPORTED,
+      ProtocolVersion.V1,
+      ProtocolVersion.V2,
+      ProtocolVersion.V3,
+      ProtocolVersion.V4,
+      ProtocolVersion.V5
+    )
+  }
+
+  implicit val compressionArbitrary: Arbitrary[Compression] = Arbitrary {
+    Gen.oneOf(Compression.NONE, Compression.LZ4, Compression.SNAPPY)
+  }
+
+  implicit val hostDistanceArbitrary: Arbitrary[HostDistance] = Arbitrary {
+    Gen.oneOf(HostDistance.IGNORED, HostDistance.LOCAL, HostDistance.REMOTE)
   }
 
   implicit val byteBufferArbitrary: Arbitrary[ByteBuffer] = Arbitrary {
