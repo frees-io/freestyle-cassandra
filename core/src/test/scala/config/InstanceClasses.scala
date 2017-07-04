@@ -27,26 +27,28 @@ import com.datastax.driver.core.policies._
 import io.netty.channel.socket.SocketChannel
 import io.netty.handler.ssl.SslHandler
 
+import TestUtils._
+
 class MyJavaExecutor extends Executor {
   override def execute(command: Runnable): Unit = {}
 }
 
 class MyAddressTranslator extends AddressTranslator {
   override def init(cluster: Cluster): Unit                             = {}
-  override def translate(address: InetSocketAddress): InetSocketAddress = null
+  override def translate(address: InetSocketAddress): InetSocketAddress = Null[InetSocketAddress]
   override def close(): Unit                                            = {}
 }
 
 class MyAuthProvider extends AuthProvider {
   override def newAuthenticator(host: InetSocketAddress, authenticator: String): Authenticator =
-    null
+    Null[Authenticator]
 }
 
 class MyLoadBalancingPolicy extends LoadBalancingPolicy {
   override def newQueryPlan(loggedKeyspace: String, statement: Statement): util.Iterator[Host] =
-    null
+    Null[util.Iterator[Host]]
   override def init(cluster: Cluster, hosts: util.Collection[Host]): Unit = {}
-  override def distance(host: Host): HostDistance                         = null
+  override def distance(host: Host): HostDistance                         = Null[HostDistance]
   override def onAdd(host: Host): Unit                                    = {}
   override def onUp(host: Host): Unit                                     = {}
   override def onDown(host: Host): Unit                                   = {}
@@ -55,9 +57,10 @@ class MyLoadBalancingPolicy extends LoadBalancingPolicy {
 }
 
 class MyReconnectionPolicy extends ReconnectionPolicy {
-  override def init(cluster: Cluster): Unit                           = {}
-  override def newSchedule(): ReconnectionPolicy.ReconnectionSchedule = null
-  override def close(): Unit                                          = {}
+  override def init(cluster: Cluster): Unit = {}
+  override def newSchedule(): ReconnectionPolicy.ReconnectionSchedule =
+    Null[ReconnectionPolicy.ReconnectionSchedule]
+  override def close(): Unit = {}
 }
 
 class MyRetryPolicy extends RetryPolicy {
@@ -68,25 +71,25 @@ class MyRetryPolicy extends RetryPolicy {
       requiredResponses: Int,
       receivedResponses: Int,
       dataRetrieved: Boolean,
-      nbRetry: Int): RetryPolicy.RetryDecision = null
+      nbRetry: Int): RetryPolicy.RetryDecision = Null[RetryPolicy.RetryDecision]
   override def onWriteTimeout(
       statement: Statement,
       cl: ConsistencyLevel,
       writeType: WriteType,
       requiredAcks: Int,
       receivedAcks: Int,
-      nbRetry: Int): RetryPolicy.RetryDecision = null
+      nbRetry: Int): RetryPolicy.RetryDecision = Null[RetryPolicy.RetryDecision]
   override def onUnavailable(
       statement: Statement,
       cl: ConsistencyLevel,
       requiredReplica: Int,
       aliveReplica: Int,
-      nbRetry: Int): RetryPolicy.RetryDecision = null
+      nbRetry: Int): RetryPolicy.RetryDecision = Null[RetryPolicy.RetryDecision]
   override def onRequestError(
       statement: Statement,
       cl: ConsistencyLevel,
       e: DriverException,
-      nbRetry: Int): RetryPolicy.RetryDecision = null
+      nbRetry: Int): RetryPolicy.RetryDecision = Null[RetryPolicy.RetryDecision]
   override def close(): Unit                   = {}
 }
 
@@ -94,12 +97,13 @@ class MySpeculativeExecutionPolicy extends SpeculativeExecutionPolicy {
   override def init(cluster: Cluster): Unit = {}
   override def newPlan(
       loggedKeyspace: String,
-      statement: Statement): SpeculativeExecutionPolicy.SpeculativeExecutionPlan = null
-  override def close(): Unit                                                     = {}
+      statement: Statement): SpeculativeExecutionPolicy.SpeculativeExecutionPlan =
+    Null[SpeculativeExecutionPolicy.SpeculativeExecutionPlan]
+  override def close(): Unit = {}
 }
 
 class MySSLOptions extends SSLOptions {
-  override def newSSLHandler(channel: SocketChannel): SslHandler = null
+  override def newSSLHandler(channel: SocketChannel): SslHandler = Null[SslHandler]
 }
 
 class MyThreadingOptions extends ThreadingOptions

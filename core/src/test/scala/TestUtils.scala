@@ -24,7 +24,7 @@ import com.google.common.util.concurrent.{
   MoreExecutors
 }
 
-trait TestUtils {
+object TestUtils {
 
   val service: ListeningExecutorService =
     MoreExecutors.listeningDecorator(Executors.newFixedThreadPool(10))
@@ -40,5 +40,11 @@ trait TestUtils {
     service.submit(new Callable[T] {
       override def call(): T = throw exception
     })
+
+  class Null[A] { var t: A = _ }
+
+  object Null {
+    def apply[A]: A = new Null[A].t
+  }
 
 }

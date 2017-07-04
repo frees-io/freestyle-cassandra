@@ -30,8 +30,7 @@ class ClusterAPIHandlerSpec
     extends WordSpec
     with Matchers
     with OneInstancePerTest
-    with MockFactory
-    with TestUtils {
+    with MockFactory {
 
   val clusterMock: Cluster         = mock[Cluster]
   val sessionMock: Session         = mock[Session]
@@ -41,6 +40,7 @@ class ClusterAPIHandlerSpec
   import cats.instances.future._
   import freestyle.async.implicits._
   import freestyle.cassandra.handlers.implicits._
+  import TestUtils._
   val handler: ClusterAPIHandler[Future] = clusterAPIHandler[Future]
 
   import scala.concurrent.duration._

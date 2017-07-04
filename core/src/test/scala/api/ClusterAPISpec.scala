@@ -23,12 +23,9 @@ import freestyle._
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, OneInstancePerTest, WordSpec}
 
-class ClusterAPISpec
-    extends WordSpec
-    with Matchers
-    with OneInstancePerTest
-    with MockFactory
-    with TestUtils {
+class ClusterAPISpec extends WordSpec with Matchers with OneInstancePerTest with MockFactory {
+
+  import TestUtils._
 
   val sessionMock: Session         = stub[Session]
   val configuration: Configuration = new Configuration.Builder().build()

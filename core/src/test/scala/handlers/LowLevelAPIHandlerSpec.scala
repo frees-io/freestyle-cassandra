@@ -30,8 +30,7 @@ class LowLevelAPIHandlerSpec
     extends WordSpec
     with Matchers
     with OneInstancePerTest
-    with MockFactory
-    with TestUtils {
+    with MockFactory {
 
   val sessionMock: Session           = mock[Session]
   val regStMock: RegularStatement    = stub[RegularStatement]
@@ -43,6 +42,7 @@ class LowLevelAPIHandlerSpec
 
   import freestyle.async.implicits._
   import freestyle.cassandra.handlers.implicits._
+  import TestUtils._
   val handler: LowLevelAPIHandler[Future] = lowLevelAPIHandler[Future]
 
   import scala.concurrent.duration._
