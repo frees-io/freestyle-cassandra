@@ -17,7 +17,12 @@ lazy val commonDependencies: Seq[ModuleID] = Seq(
 )
 
 lazy val testDependencies: Seq[ModuleID] =
-  Seq(%%("scalatest"), %%("scalamockScalatest"), %%("scalacheck"), %%("scheckShapeless")) map (_  % "test")
+  Seq(
+    %%("scalatest"),
+    %%("scalamockScalatest"),
+    %%("scalacheck"),
+    %%("scheckShapeless"),
+    %%("classy-config-typesafe")) map (_  % "test")
 
 lazy val root = project
   .in(file("."))

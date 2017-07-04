@@ -33,12 +33,12 @@ class Decoders[Config] extends DatastaxReads[Config] {
   import reads.maps._
 
   def builderCustomProp[Builder, T](b: Builder, attr: String)(f: (Builder, T) => Builder)(
-      implicit R: Read[Config, T]): Decoder[Config, Builder] =
+      implicit R: Read[Config, Option[T]]): Decoder[Config, Builder] =
     builderProp[Builder, T](b, attr, b => f(b, _))
 
   def builderProp[Builder, T](b: Builder, attr: String, f: Builder => (T => Builder))(
-      implicit R: Read[Config, T]): Decoder[Config, Builder] =
-    Read.from[Config][Option[T]](attr).map {
+      implicit R: Read[Config, Option[T]]): Decoder[Config, Builder] =
+    R(attr).map {
       case Some(v) => f(b)(v)
       case _       => b
     }
@@ -52,7 +52,7 @@ class Decoders[Config] extends DatastaxReads[Config] {
     def fields: List[FunctionField]
 
     def customField[T](attr: String)(f: (Builder, T) => Builder)(
-        implicit R: Read[Config, T]): FunctionField =
+        implicit R: Read[Config, Option[T]]): FunctionField =
       (b: Builder, path: Option[String]) =>
         builderCustomProp[Builder, T](b, buildPath(path, attr))(f)
 
@@ -102,6 +102,9 @@ class Decoders[Config] extends DatastaxReads[Config] {
         customField[MaxConnectionsPerHost]("maxConnectionsPerHost") { (b, v) =>
           b.setMaxConnectionsPerHost(v.distance, v.newMaxConnections)
         }(maxConnectionsPerHostDecoder),
+        customField[MaxRequestsPerConnection]("maxRequestsPerConnection") { (b, v) =>
+          b.setMaxRequestsPerConnection(v.distance, v.newMaxRequests)
+        }(maxRequestsPerConnectionDecoder),
         customField[NewConnectionThreshold]("newConnectionThreshold") { (b, v) =>
           b.setNewConnectionThreshold(v.distance, v.newValue)
         }(newConnectionThresholdDecoder),
@@ -166,9 +169,9 @@ class Decoders[Config] extends DatastaxReads[Config] {
       extends DecoderBuilder[Cluster.Builder] {
     override def empty: Cluster.Builder = new Cluster.Builder
 
-    val poolingOptionsRead: Read[Config, PoolingOptions]  = new PoolingOptionsBuilder().buildRead
-    val queryOptionsRead: Read[Config, QueryOptions]      = new QueryOptionsBuilder().buildRead
-    val socketOptionsDecoder: Read[Config, SocketOptions] = new SocketOptionsBuilder().buildRead
+    val poolingOptionsRead: Read[Config, PoolingOptions] = new PoolingOptionsBuilder().buildRead
+    val queryOptionsRead: Read[Config, QueryOptions]     = new QueryOptionsBuilder().buildRead
+    val socketOptionsRead: Read[Config, SocketOptions]   = new SocketOptionsBuilder().buildRead
 
     override def fields: List[FunctionField] = List(
       customField[ContactPoints]("contactPoints") {
@@ -203,7 +206,7 @@ class Decoders[Config] extends DatastaxReads[Config] {
         stringListRead[ProtocolVersion]),
       field[PoolingOptions]("poolingOptions", _.withPoolingOptions)(poolingOptionsRead),
       field[QueryOptions]("queryOptions", _.withQueryOptions)(queryOptionsRead),
-      field[SocketOptions]("socketOptions", _.withSocketOptions)(socketOptionsDecoder)
+      field[SocketOptions]("socketOptions", _.withSocketOptions)(socketOptionsRead)
     )
   }
 

@@ -79,6 +79,15 @@ object ClusterConfig {
          |}""".stripMargin
   }
 
+  case class MaxRequestsPerConnection(distance: HostDistance, newMaxRequests: Int)
+      extends ConfigObj {
+    override def print: String =
+      s"""{
+         |  distance = ${printEnum(hostDistances, distance)}
+         |  newMaxRequests = $newMaxRequests
+         |}""".stripMargin
+  }
+
   case class NewConnectionThreshold(distance: HostDistance, newValue: Int) extends ConfigObj {
     override def print: String =
       s"""{
@@ -91,6 +100,7 @@ object ClusterConfig {
       connectionsPerHost: Option[ConnectionsPerHost] = None,
       coreConnectionsPerHost: Option[CoreConnectionsPerHost] = None,
       maxConnectionsPerHost: Option[MaxConnectionsPerHost] = None,
+      maxRequestsPerConnection: Option[MaxRequestsPerConnection] = None,
       newConnectionThreshold: Option[NewConnectionThreshold] = None,
       heartbeatIntervalSeconds: Option[Int] = None,
       idleTimeoutSeconds: Option[Int] = None,
@@ -103,6 +113,7 @@ object ClusterConfig {
         "connectionsPerHost"       -> connectionsPerHost,
         "coreConnectionsPerHost"   -> coreConnectionsPerHost,
         "maxConnectionsPerHost"    -> maxConnectionsPerHost,
+        "maxRequestsPerConnection" -> maxRequestsPerConnection,
         "newConnectionThreshold"   -> newConnectionThreshold,
         "heartbeatIntervalSeconds" -> heartbeatIntervalSeconds,
         "idleTimeoutSeconds"       -> idleTimeoutSeconds,
@@ -172,65 +183,14 @@ object ClusterConfig {
     }
   }
 
-  case class ClusterConfig(
-      contactPoints: List[IpConfig],
-      credentials: Option[CredentialsConfig] = None,
-      name: Option[String] = None,
-      allowBetaProtocolVersion: Option[Boolean] = None,
-      enableSSL: Option[Boolean] = None,
-      addressTranslator: Option[String] = None,
-      authProvider: Option[String] = None,
-      loadBalancingPolicy: Option[String] = None,
-      reconnectionPolicy: Option[String] = None,
-      retryPolicy: Option[String] = None,
-      speculativeExecutionPolicy: Option[String] = None,
-      sslOptions: Option[String] = None,
-      threadingOptions: Option[String] = None,
-      timestampGenerator: Option[String] = None,
-      maxSchemaAgreementWaitSeconds: Option[Int] = None,
-      port: Option[Int] = None,
-      compression: Option[CompressionConfig] = None,
-      poolingOptionsConfig: Option[PoolingOptionsConfig] = None,
-      protocolVersion: Option[ProtocolVersionConfig] = None,
-      queryOptions: Option[QueryOptionsConfig] = None,
-      socketOptions: Option[SocketOptionsConfig] = None)
-      extends ConfigObj {
-    override def print: String = {
-      val fields = s""" contactPoints = [ ${contactPoints.map(_.print).mkString(",")} ] """ +:
-        List(
-        "credentials"                   -> credentials,
-        "name"                          -> name,
-        "allowBetaProtocolVersion"      -> allowBetaProtocolVersion,
-        "enableSSL"                     -> enableSSL,
-        "addressTranslator"             -> addressTranslator,
-        "authProvider"                  -> authProvider,
-        "loadBalancingPolicy"           -> loadBalancingPolicy,
-        "reconnectionPolicy"            -> reconnectionPolicy,
-        "retryPolicy"                   -> retryPolicy,
-        "speculativeExecutionPolicy"    -> speculativeExecutionPolicy,
-        "sslOptions"                    -> sslOptions,
-        "threadingOptions"              -> threadingOptions,
-        "timestampGenerator"            -> timestampGenerator,
-        "maxSchemaAgreementWaitSeconds" -> maxSchemaAgreementWaitSeconds,
-        "port"                          -> port,
-        "compression"                   -> compression,
-        "poolingOptionsConfig"          -> poolingOptionsConfig,
-        "protocolVersion"               -> protocolVersion,
-        "queryOptions"                  -> queryOptions,
-        "socketOptions"                 -> socketOptions
-      ).flatMap(printOpt(_).toList)
-      ("{" +: fields :+ "}") mkString "\n"
-    }
-  }
-
   private[this] def printOpt[T](t: (String, Option[T])): Option[String] = t match {
     case (l, Some(s: String))    => Some(s""" $l = "$s" """)
-    case (l, Some(o: ConfigObj)) => Some(s""" $l ${o.print} """)
+    case (l, Some(o: ConfigObj)) => Some(s""" $l = ${o.print} """)
     case (l, Some(a))            => Some(s""" $l = ${a.toString} """)
     case (_, None)               => None
   }
 
   private[this] def printEnum[T](map: Map[String, T], value: T): String =
-    map.find(_._2 == value).map(t => s""" = "${t._1}" """).getOrElse("")
+    map.find(_._2 == value).map(t => s""" "${t._1}" """).getOrElse("")
 
 }
