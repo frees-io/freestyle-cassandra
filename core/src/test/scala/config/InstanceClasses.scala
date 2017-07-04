@@ -17,8 +17,93 @@
 package freestyle.cassandra
 package config
 
+import java.net.InetSocketAddress
+import java.util
 import java.util.concurrent.Executor
+
+import com.datastax.driver.core._
+import com.datastax.driver.core.exceptions.DriverException
+import com.datastax.driver.core.policies._
+import io.netty.channel.socket.SocketChannel
+import io.netty.handler.ssl.SslHandler
 
 class MyJavaExecutor extends Executor {
   override def execute(command: Runnable): Unit = {}
+}
+
+class MyAddressTranslator extends AddressTranslator {
+  override def init(cluster: Cluster): Unit                             = {}
+  override def translate(address: InetSocketAddress): InetSocketAddress = null
+  override def close(): Unit                                            = {}
+}
+
+class MyAuthProvider extends AuthProvider {
+  override def newAuthenticator(host: InetSocketAddress, authenticator: String): Authenticator =
+    null
+}
+
+class MyLoadBalancingPolicy extends LoadBalancingPolicy {
+  override def newQueryPlan(loggedKeyspace: String, statement: Statement): util.Iterator[Host] =
+    null
+  override def init(cluster: Cluster, hosts: util.Collection[Host]): Unit = {}
+  override def distance(host: Host): HostDistance                         = null
+  override def onAdd(host: Host): Unit                                    = {}
+  override def onUp(host: Host): Unit                                     = {}
+  override def onDown(host: Host): Unit                                   = {}
+  override def onRemove(host: Host): Unit                                 = {}
+  override def close(): Unit                                              = {}
+}
+
+class MyReconnectionPolicy extends ReconnectionPolicy {
+  override def init(cluster: Cluster): Unit                           = {}
+  override def newSchedule(): ReconnectionPolicy.ReconnectionSchedule = null
+  override def close(): Unit                                          = {}
+}
+
+class MyRetryPolicy extends RetryPolicy {
+  override def init(cluster: Cluster): Unit = {}
+  override def onReadTimeout(
+      statement: Statement,
+      cl: ConsistencyLevel,
+      requiredResponses: Int,
+      receivedResponses: Int,
+      dataRetrieved: Boolean,
+      nbRetry: Int): RetryPolicy.RetryDecision = null
+  override def onWriteTimeout(
+      statement: Statement,
+      cl: ConsistencyLevel,
+      writeType: WriteType,
+      requiredAcks: Int,
+      receivedAcks: Int,
+      nbRetry: Int): RetryPolicy.RetryDecision = null
+  override def onUnavailable(
+      statement: Statement,
+      cl: ConsistencyLevel,
+      requiredReplica: Int,
+      aliveReplica: Int,
+      nbRetry: Int): RetryPolicy.RetryDecision = null
+  override def onRequestError(
+      statement: Statement,
+      cl: ConsistencyLevel,
+      e: DriverException,
+      nbRetry: Int): RetryPolicy.RetryDecision = null
+  override def close(): Unit                   = {}
+}
+
+class MySpeculativeExecutionPolicy extends SpeculativeExecutionPolicy {
+  override def init(cluster: Cluster): Unit = {}
+  override def newPlan(
+      loggedKeyspace: String,
+      statement: Statement): SpeculativeExecutionPolicy.SpeculativeExecutionPlan = null
+  override def close(): Unit                                                     = {}
+}
+
+class MySSLOptions extends SSLOptions {
+  override def newSSLHandler(channel: SocketChannel): SslHandler = null
+}
+
+class MyThreadingOptions extends ThreadingOptions
+
+class MyTimestampGenerator extends TimestampGenerator {
+  override def next(): Long = 0L
 }

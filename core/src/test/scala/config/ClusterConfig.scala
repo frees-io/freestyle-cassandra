@@ -52,11 +52,11 @@ object ClusterConfig {
     override def print: String = printEnum(consistencyLevels, consistency)
   }
 
-  case class ConnectionsPerHost(distance: HostDistance, code: Int, max: Int) extends ConfigObj {
+  case class ConnectionsPerHost(distance: HostDistance, core: Int, max: Int) extends ConfigObj {
     override def print: String =
       s"""{
          |  distance = ${printEnum(hostDistances, distance)}
-         |  code = $code
+         |  core = $core
          |  max = $max
          |}""".stripMargin
   }
@@ -167,7 +167,8 @@ object ClusterConfig {
       receiveBufferSize: Option[Int] = None,
       sendBufferSize: Option[Int] = None,
       reuseAddress: Option[Boolean] = None,
-      soLinger: Option[Int] = None
+      soLinger: Option[Int] = None,
+      tcpNoDelay: Option[Boolean] = None
   ) extends ConfigObj {
     override def print: String = {
       val fields = List(
@@ -177,7 +178,59 @@ object ClusterConfig {
         "receiveBufferSize"    -> receiveBufferSize,
         "sendBufferSize"       -> sendBufferSize,
         "reuseAddress"         -> reuseAddress,
-        "soLinger"             -> soLinger
+        "soLinger"             -> soLinger,
+        "tcpNoDelay"           -> tcpNoDelay
+      ).flatMap(printOpt(_).toList)
+      ("{" +: fields :+ "}") mkString "\n"
+    }
+  }
+
+  case class ClusterBuilderConfig(
+      contactPoints: List[IpConfig],
+      credentials: Option[CredentialsConfig] = None,
+      name: Option[String] = None,
+      allowBetaProtocolVersion: Option[Boolean] = None,
+      enableSSL: Option[Boolean] = None,
+      addressTranslator: Option[String] = None,
+      authProvider: Option[String] = None,
+      loadBalancingPolicy: Option[String] = None,
+      reconnectionPolicy: Option[String] = None,
+      retryPolicy: Option[String] = None,
+      speculativeExecutionPolicy: Option[String] = None,
+      sslOptions: Option[String] = None,
+      threadingOptions: Option[String] = None,
+      timestampGenerator: Option[String] = None,
+      maxSchemaAgreementWaitSeconds: Option[Int] = None,
+      port: Option[Int] = None,
+      compression: Option[CompressionConfig] = None,
+      poolingOptionsConfig: Option[PoolingOptionsConfig] = None,
+      protocolVersion: Option[ProtocolVersionConfig] = None,
+      queryOptions: Option[QueryOptionsConfig] = None,
+      socketOptions: Option[SocketOptionsConfig] = None)
+      extends ConfigObj {
+    override def print: String = {
+      val fields = s""" contactPoints = [ ${contactPoints.map(_.print).mkString(",")} ] """ +:
+        List(
+        "credentials"                   -> credentials,
+        "name"                          -> name,
+        "allowBetaProtocolVersion"      -> allowBetaProtocolVersion,
+        "enableSSL"                     -> enableSSL,
+        "addressTranslator"             -> addressTranslator,
+        "authProvider"                  -> authProvider,
+        "loadBalancingPolicy"           -> loadBalancingPolicy,
+        "reconnectionPolicy"            -> reconnectionPolicy,
+        "retryPolicy"                   -> retryPolicy,
+        "speculativeExecutionPolicy"    -> speculativeExecutionPolicy,
+        "sslOptions"                    -> sslOptions,
+        "threadingOptions"              -> threadingOptions,
+        "timestampGenerator"            -> timestampGenerator,
+        "maxSchemaAgreementWaitSeconds" -> maxSchemaAgreementWaitSeconds,
+        "port"                          -> port,
+        "compression"                   -> compression,
+        "poolingOptionsConfig"          -> poolingOptionsConfig,
+        "protocolVersion"               -> protocolVersion,
+        "queryOptions"                  -> queryOptions,
+        "socketOptions"                 -> socketOptions
       ).flatMap(printOpt(_).toList)
       ("{" +: fields :+ "}") mkString "\n"
     }

@@ -142,7 +142,7 @@ trait DatastaxReads[Config] {
     Read.instance[Config, Option[ConnectionsPerHost]] { path =>
       readOption3(
         ReadAndPath[HostDistance](s"$path.distance")(stringListRead[HostDistance]),
-        ReadAndPath[Int](s"$path.code"),
+        ReadAndPath[Int](s"$path.core"),
         ReadAndPath[Int](s"$path.max"))(ConnectionsPerHost.tupled)
     }
 

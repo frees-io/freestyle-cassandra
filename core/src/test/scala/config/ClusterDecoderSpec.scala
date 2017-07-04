@@ -17,12 +17,16 @@
 package freestyle.cassandra
 package config
 
+import java.net.InetSocketAddress
+
 import freestyle.cassandra.config.ClusterConfig.{
   PoolingOptionsConfig,
   QueryOptionsConfig,
   SocketOptionsConfig
 }
 import org.scalacheck.Prop._
+
+import scala.collection.JavaConverters._
 
 class ClusterDecoderSpec extends TestDecoderUtils {
 
@@ -78,6 +82,22 @@ class ClusterDecoderSpec extends TestDecoderUtils {
         }
       }
     }
+  }
+
+  "ClusterBuilder Decoder" should {
+
+    "parse a valid configuration and set the right values in the Cluster.Builder" in {
+
+      val decoder      = readConfig[Config]("cluster") andThen clusterBuilderDecoder
+      val configString = s"cluster = ${validClusterConfiguration.print}"
+      val rawConfig    = ConfigFactory.parseString(configString)
+      val result       = decoder(rawConfig)
+      result.isRight shouldBe true
+      val builder = result.right.get
+      Option(builder.getClusterName) shouldBe validClusterConfiguration.name
+      builder.getContactPoints.asScala.headOption.map(_.getHostString) shouldBe Some("127.0.0.1")
+    }
+
   }
 
 }

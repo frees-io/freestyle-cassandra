@@ -17,12 +17,11 @@
 package freestyle.cassandra
 package config
 
-import com.datastax.driver.core.{PoolingOptions, QueryOptions, SocketOptions}
-import freestyle.cassandra.config.ClusterConfig.{
-  PoolingOptionsConfig,
-  QueryOptionsConfig,
-  SocketOptionsConfig
-}
+import cats.syntax.option._
+import classy.Decoder
+import com.datastax.driver.core.ProtocolOptions.Compression
+import com.datastax.driver.core._
+import freestyle.cassandra.config.ClusterConfig._
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.prop.Checkers
 import org.scalatest.{Matchers, WordSpec}
@@ -44,7 +43,7 @@ class TestDecoderUtils extends WordSpec with Matchers with Checkers with MockFac
     val poolingOptionsMock: PoolingOptions = mock[PoolingOptions]
     poc.connectionsPerHost.foreach { v =>
       (poolingOptionsMock.setConnectionsPerHost _)
-        .expects(v.distance, v.code, v.max)
+        .expects(v.distance, v.core, v.max)
         .returns(poolingOptionsMock)
     }
     poc.coreConnectionsPerHost.foreach { v =>
@@ -176,6 +175,9 @@ class TestDecoderUtils extends WordSpec with Matchers with Checkers with MockFac
     soc.soLinger.foreach { v =>
       (soMock.setSoLinger _).expects(v).returns(soMock)
     }
+    soc.tcpNoDelay.foreach { v =>
+      (soMock.setTcpNoDelay _).expects(v).returns(soMock)
+    }
 
     val builder = new SocketOptionsBuilder() {
       override def empty: SocketOptions = soMock
@@ -184,4 +186,89 @@ class TestDecoderUtils extends WordSpec with Matchers with Checkers with MockFac
     (builder, soc)
   }
 
+  def clusterBuilderDecoder: Decoder[Config, Cluster.Builder] = new ClusterDecoderBuilder().build
+
+  val validClusterConfiguration: ClusterBuilderConfig = ClusterBuilderConfig(
+    contactPoints = List(IpConfig(127, 0, 0, 1)),
+    credentials = CredentialsConfig(username = "user", password = "pass").some,
+    name = "MyCluster".some,
+    allowBetaProtocolVersion = false.some,
+    enableSSL = true.some,
+    addressTranslator = "freestyle.cassandra.config.MyAddressTranslator".some,
+    authProvider = "freestyle.cassandra.config.MyAuthProvider".some,
+    loadBalancingPolicy = "freestyle.cassandra.config.MyLoadBalancingPolicy".some,
+    reconnectionPolicy = "freestyle.cassandra.config.MyReconnectionPolicy".some,
+    retryPolicy = "freestyle.cassandra.config.MyRetryPolicy".some,
+    speculativeExecutionPolicy = "freestyle.cassandra.config.MySpeculativeExecutionPolicy".some,
+    sslOptions = "freestyle.cassandra.config.MySSLOptions".some,
+    threadingOptions = "freestyle.cassandra.config.MyThreadingOptions".some,
+    timestampGenerator = "freestyle.cassandra.config.MyTimestampGenerator".some,
+    maxSchemaAgreementWaitSeconds = 10.some,
+    port = 9988.some,
+    compression = CompressionConfig(Compression.NONE).some,
+    poolingOptionsConfig = PoolingOptionsConfig(
+      connectionsPerHost = ClusterConfig
+        .ConnectionsPerHost(
+          distance = HostDistance.LOCAL,
+          core = 1,
+          max = 10
+        )
+        .some,
+      coreConnectionsPerHost = ClusterConfig
+        .CoreConnectionsPerHost(
+          distance = HostDistance.LOCAL,
+          newCoreConnections = 10
+        )
+        .some,
+      maxConnectionsPerHost = ClusterConfig
+        .MaxConnectionsPerHost(
+          distance = HostDistance.LOCAL,
+          maxCoreConnections = 10
+        )
+        .some,
+      maxRequestsPerConnection = ClusterConfig
+        .MaxRequestsPerConnection(
+          distance = HostDistance.LOCAL,
+          newMaxRequests = 10
+        )
+        .some,
+      newConnectionThreshold = ClusterConfig
+        .NewConnectionThreshold(
+          distance = HostDistance.LOCAL,
+          newValue = 10
+        )
+        .some,
+      heartbeatIntervalSeconds = 2.some,
+      idleTimeoutSeconds = 2.some,
+      maxQueueSize = 100.some,
+      poolTimeoutMillis = 9000.some,
+      initializationExecutor = "freestyle.cassandra.config.MyJavaExecutor".some
+    ).some,
+    protocolVersion = ProtocolVersionConfig(ProtocolVersion.V4).some,
+    queryOptions = QueryOptionsConfig(
+      consistencyLevel = ConsistencyLevelConfig(ConsistencyLevel.QUORUM).some,
+      serialConsistencyLevel = ConsistencyLevelConfig(ConsistencyLevel.ONE).some,
+      defaultIdempotence = true.some,
+      fetchSize = 50.some,
+      maxPendingRefreshNodeListRequests = 1.some,
+      maxPendingRefreshNodeRequests = 1.some,
+      maxPendingRefreshSchemaRequests = 1.some,
+      metadataEnabled = false.some,
+      prepareOnAllHosts = false.some,
+      refreshNodeIntervalMillis = 6000.some,
+      refreshNodeListIntervalMillis = 5000.some,
+      refreshSchemaIntervalMillis = 4000.some,
+      reprepareOnUp = false.some
+    ).some,
+    socketOptions = SocketOptionsConfig(
+      connectTimeoutMillis = 2000.some,
+      keepAlive = false.some,
+      readTimeoutMillis = 10000.some,
+      receiveBufferSize = 99999.some,
+      sendBufferSize = 99999.some,
+      reuseAddress = true.some,
+      soLinger = 10.some,
+      tcpNoDelay = true.some
+    ).some
+  )
 }
