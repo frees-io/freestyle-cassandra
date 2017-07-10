@@ -18,16 +18,15 @@ package freestyle.cassandra
 package mapper
 
 trait ByteBufferMapper[A] {
-  def map(a: A): List[(MappedField)]
+  def map(a: A): List[MappedField]
 }
 
 object ByteBufferMapper {
 
-  def apply[A](implicit sg: ByteBufferMapper[A]): ByteBufferMapper[A] =
-    sg
+  def apply[A](implicit ev: ByteBufferMapper[A]): ByteBufferMapper[A] = ev
 
   implicit def genericMapper[A](implicit fieldLister: FieldMapper[A]): ByteBufferMapper[A] =
     new ByteBufferMapper[A] {
-      override def map(a: A): List[(MappedField)] = fieldLister.map(a)
+      override def map(a: A): List[MappedField] = fieldLister.map(a)
     }
 }

@@ -27,23 +27,23 @@ package object mapper {
   type MappedField = (String, ByteBuffer)
 
   trait FieldMapper[A] {
-    def map(a: A): List[((MappedField))]
+    def map(a: A): List[MappedField]
   }
 
   trait FieldMapperPrimitive {
 
-    def createFieldMapper[A](f: A => List[((MappedField))]): FieldMapper[A] =
+    def createFieldMapper[A](f: A => List[MappedField]): FieldMapper[A] =
       new FieldMapper[A] {
-        override def map(a: A): List[((MappedField))] = f(a)
+        override def map(a: A): List[MappedField] = f(a)
       }
 
     implicit def primitiveFieldMapper[K <: Symbol, H, T <: HList](
         implicit witness: Witness.Aux[K],
         codec: Lazy[ByteBufferCodec[H]],
-        tLister: FieldMapper[T]): FieldMapper[FieldType[K, H] :: T] = {
+        tMapper: FieldMapper[T]): FieldMapper[FieldType[K, H] :: T] = {
       val fieldName = witness.value.name
       createFieldMapper { hlist =>
-        (fieldName -> codec.value.serialize(hlist.head)) :: tLister.map(hlist.tail)
+        (fieldName -> codec.value.serialize(hlist.head)) :: tMapper.map(hlist.tail)
       }
     }
   }
@@ -55,8 +55,8 @@ package object mapper {
         mapper: Lazy[FieldMapper[R]]): FieldMapper[A] =
       createFieldMapper(value => mapper.value.map(gen.to(value)))
 
-    implicit val hnilLister: FieldMapper[HNil] = new FieldMapper[HNil] {
-      override def map(a: HNil): List[((MappedField))] = Nil
+    implicit val hnilMapper: FieldMapper[HNil] = new FieldMapper[HNil] {
+      override def map(a: HNil): List[MappedField] = Nil
     }
 
   }
@@ -65,11 +65,11 @@ package object mapper {
 
   object FieldMapperExpanded extends FieldMapperGeneric {
 
-    implicit def hconsLister[K, H, T <: HList](
-        implicit hLister: Lazy[FieldMapper[H]],
-        tLister: FieldMapper[T]): FieldMapper[FieldType[K, H] :: T] =
+    implicit def hconsMapper[K, H, T <: HList](
+        implicit hMapper: Lazy[FieldMapper[H]],
+        tMapper: FieldMapper[T]): FieldMapper[FieldType[K, H] :: T] =
       createFieldMapper { hlist =>
-        hLister.value.map(hlist.head) ++ tLister.map(hlist.tail)
+        hMapper.value.map(hlist.head) ++ tMapper.map(hlist.tail)
       }
   }
 

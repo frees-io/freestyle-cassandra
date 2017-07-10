@@ -41,7 +41,7 @@ class ByteBufferMapperSpec extends WordSpec with Matchers with Checkers {
 
   val stringCodec: ByteBufferCodec[String] = implicitly[ByteBufferCodec[String]]
 
-  "map" should {
+  "ByteBufferMapper.map" should {
 
     "map the fields for a regular case class" in {
 

@@ -23,8 +23,7 @@ trait StatementGenerator[A] {
 }
 
 object StatementGenerator {
-  def apply[A](implicit sg: StatementGenerator[A]): StatementGenerator[A] =
-    sg
+  def apply[A](implicit ev: StatementGenerator[A]): StatementGenerator[A] = ev
 
   implicit def genericGenerator[A](implicit fieldLister: FieldLister[A]): StatementGenerator[A] =
     new StatementGenerator[A] {
