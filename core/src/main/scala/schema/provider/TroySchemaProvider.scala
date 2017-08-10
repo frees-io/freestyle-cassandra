@@ -15,28 +15,20 @@
  */
 
 package freestyle.cassandra
-package parser
+package schema.provider
 
-import freestyle.cassandra.schema.model.Keyspace
-import freestyle.cassandra.schema.parser.parsers
-import org.scalatest.{Matchers, WordSpec}
-import org.scalacheck.Prop._
-import org.scalatest.prop.Checkers._
+import freestyle.cassandra.schema.SchemaDefinition
+import troy.cql.ast.CqlParser
 
-class StrategyParserSpec extends WordSpec with Matchers with KeyspaceArbitraries {
+class TroySchemaProvider(cql: String) extends SchemaDefinitionProvider {
 
-  "keyspaceParser" should {
-
-    "parse all valid keySpace statements" in {
-      check {
-        forAll { tuple: (Keyspace, String) =>
-          val result = parsers.parse(parsers.keyspaceParser, tuple._2)
-          result.successful && result.get == tuple._1
-        }
-      }
-
+  override def schemaDefinition: Either[SchemaDefinitionProviderError, SchemaDefinition] =
+    CqlParser.parseSchema(cql) match {
+      case CqlParser.Success(res, _) => Right(res)
+      case CqlParser.Failure(msg, next) =>
+        Left(
+          SchemaDefinitionProviderError(
+            s"Parse Failure: $msg, line = ${next.pos.line}, column = ${next.pos.column}"))
+      case CqlParser.Error(msg, _) => Left(SchemaDefinitionProviderError(msg))
     }
-
-  }
-
 }
