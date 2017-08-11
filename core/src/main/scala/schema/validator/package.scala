@@ -17,14 +17,37 @@
 package freestyle.cassandra
 package schema
 
-import cats.data.ValidatedNel
+import cats.data.Validated._
+import cats.data.{NonEmptyList, ValidatedNel}
+import cats.syntax.either._
+import freestyle.cassandra.schema.provider.SchemaDefinitionProvider
 
 package object validator {
 
-  case class ValidatorError(msg: String) extends RuntimeException(msg)
-
   trait SchemaValidator {
-    def validateStatement(st: Statement): ValidatedNel[ValidatorError, Unit]
+
+    def validateStatement(
+        sdp: SchemaDefinitionProvider,
+        st: Statement): ValidatedNel[SchemaError, Unit]
+
+  }
+
+  object SchemaValidator {
+
+    def apply(
+        f: (SchemaDefinition, Statement) => Either[NonEmptyList[SchemaError], Unit]): SchemaValidator =
+      new SchemaValidator() {
+
+        override def validateStatement(
+            sdp: SchemaDefinitionProvider,
+            st: Statement): ValidatedNel[SchemaError, Unit] =
+          fromEither {
+            sdp.schemaDefinition
+              .leftMap(NonEmptyList(_, Nil))
+              .flatMap(f(_, st))
+          }
+      }
+
   }
 
 }

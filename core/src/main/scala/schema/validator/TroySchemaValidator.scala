@@ -17,37 +17,44 @@
 package freestyle.cassandra
 package schema.validator
 
-import cats.data.Validated._
-import cats.data.{NonEmptyList, ValidatedNel}
+import cats.data.NonEmptyList
 import cats.syntax.either._
-import freestyle.cassandra.schema.Statement
-import freestyle.cassandra.schema.provider.SchemaDefinitionProvider
+import freestyle.cassandra.schema._
 import troy.schema.{Message, Result, SchemaEngine, V}
 
-class TroySchemaValidator(sdp: SchemaDefinitionProvider) extends SchemaValidator {
+object TroySchemaValidator {
 
-  override def validateStatement(st: Statement): ValidatedNel[ValidatorError, Unit] = {
+  def validateStatement(
+      schema: SchemaDefinition,
+      st: Statement): Either[NonEmptyList[SchemaError], Unit] = {
 
-    def toValidatorErrorNel(errors: Seq[Message]): NonEmptyList[ValidatorError] =
-      errors.toList match {
-        case Nil => NonEmptyList(ValidatorError("Unknown error"), Nil)
-        case head :: tail =>
-          NonEmptyList(ValidatorError(head.message), tail.map(msg => ValidatorError(msg.message)))
-      }
+    implicit class MessageOps(message: Message) {
 
-    def parseResult[T](result: Result[T]): ValidatedNel[ValidatorError, T] =
-      result match {
-        case V.Success(res, _) => Valid(res)
-        case V.Error(es, _)    => Invalid(toValidatorErrorNel(es))
-      }
+      def toSchemaValidatorError: SchemaValidatorError = SchemaValidatorError(message.message)
 
-    fromEither {
-      for {
-        schema <- sdp.schemaDefinition.leftMap(e => NonEmptyList(ValidatorError(e.msg), Nil))
-        engine <- parseResult(SchemaEngine(schema)).toEither
-        _      <- parseResult(engine(st)).toEither
-      } yield ()
     }
+
+    implicit class ResultOps[T](result: Result[T]) {
+
+      def toEither: Either[Seq[Message], T] =
+        result match {
+          case V.Success(res, _) => res.asRight
+          case V.Error(es, _)    => es.asLeft
+        }
+
+    }
+
+    SchemaEngine(schema)
+      .flatMap(schemaEngine => schemaEngine(st))
+      .map(_ => (): Unit)
+      .toEither
+      .leftMap { seq =>
+        NonEmptyList
+          .fromList(seq.map(_.toSchemaValidatorError).toList)
+          .getOrElse(NonEmptyList(SchemaValidatorError("Unknown error"), Nil))
+      }
   }
+
+  implicit val instance: SchemaValidator = SchemaValidator(validateStatement)
 
 }

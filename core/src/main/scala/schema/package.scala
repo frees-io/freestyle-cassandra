@@ -20,6 +20,17 @@ import troy.cql.ast.{DataDefinition, DataManipulation}
 
 package object schema {
 
+  sealed abstract class SchemaError(msg: String, maybeCause: Option[Throwable] = None)
+      extends RuntimeException(msg) {
+    maybeCause foreach initCause
+  }
+
+  case class SchemaDefinitionProviderError(msg: String, maybeCause: Option[Throwable] = None)
+      extends SchemaError(msg, maybeCause)
+
+  case class SchemaValidatorError(msg: String, maybeCause: Option[Throwable] = None)
+      extends SchemaError(msg, maybeCause)
+
   type SchemaDefinition = Seq[DataDefinition]
   type Statement        = DataManipulation
 

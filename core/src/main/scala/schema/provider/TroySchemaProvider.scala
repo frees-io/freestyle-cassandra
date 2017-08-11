@@ -17,7 +17,7 @@
 package freestyle.cassandra
 package schema.provider
 
-import freestyle.cassandra.schema.SchemaDefinition
+import freestyle.cassandra.schema._
 import troy.cql.ast.CqlParser
 
 class TroySchemaProvider(cql: String) extends SchemaDefinitionProvider {

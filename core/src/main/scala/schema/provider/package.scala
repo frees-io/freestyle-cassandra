@@ -19,8 +19,6 @@ package schema
 
 package object provider {
 
-  case class SchemaDefinitionProviderError(msg: String) extends RuntimeException
-
   trait SchemaDefinitionProvider {
     def schemaDefinition: Either[SchemaDefinitionProviderError, SchemaDefinition]
   }
