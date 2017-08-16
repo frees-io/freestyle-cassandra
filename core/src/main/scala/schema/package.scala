@@ -28,6 +28,11 @@ package object schema {
   case class SchemaDefinitionProviderError(msg: String, maybeCause: Option[Throwable] = None)
       extends SchemaError(msg, maybeCause)
 
+  object SchemaDefinitionProviderError {
+    def apply(e: Throwable): SchemaDefinitionProviderError =
+      SchemaDefinitionProviderError(e.getMessage, Some(e))
+  }
+
   case class SchemaValidatorError(msg: String, maybeCause: Option[Throwable] = None)
       extends SchemaError(msg, maybeCause)
 
