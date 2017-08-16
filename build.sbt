@@ -13,7 +13,7 @@ lazy val commonDependencies: Seq[ModuleID] = Seq(
   %("cassandra-driver-core"),
   %("cassandra-driver-mapping"),
   %("cassandra-driver-extras"),
-  "org.scala-lang.modules" %% "scala-parser-combinators" % "1.0.6"
+  "io.github.cassandra-scala" %% "troy-schema" % "0.4.0"
 )
 
 lazy val testDependencies: Seq[ModuleID] =
@@ -35,5 +35,6 @@ lazy val core = project
   .in(file("core"))
   .settings(moduleName := "freestyle-cassandra-core")
   .settings(scalaMetaSettings)
+  .settings(resolvers += Resolver.bintrayRepo("tabdulradi", "maven"))
   .settings(libraryDependencies ++= commonDependencies)
   .settings(libraryDependencies ++= testDependencies)

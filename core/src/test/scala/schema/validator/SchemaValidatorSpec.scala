@@ -1,0 +1,64 @@
+/*
+ * Copyright 2017 47 Degrees, LLC. <http://www.47deg.com>
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package freestyle.cassandra
+package schema.validator
+
+import cats.data.NonEmptyList
+import cats.data.Validated.{Invalid, Valid}
+import freestyle.cassandra.schema.provider.SchemaDefinitionProvider
+import freestyle.cassandra.schema.{
+  SchemaDefinition,
+  SchemaDefinitionProviderError,
+  SchemaValidatorError
+}
+import org.scalatest.{Matchers, WordSpec}
+
+class SchemaValidatorSpec extends WordSpec with Matchers {
+
+  import freestyle.cassandra.schema.SchemaData._
+
+  "apply method" should {
+
+    "return Unit if the schema provider and the provided function works as expected" in {
+      SchemaValidator((_, _) => Right((): Unit))
+        .validateStatement(schemaDefinitionProvider, selectStatement) shouldBe Valid((): Unit)
+    }
+
+    "return an error if the schema provider return an error" in {
+
+      val exc = SchemaDefinitionProviderError("Test error")
+      val sdp = new SchemaDefinitionProvider {
+        override def schemaDefinition: Either[SchemaDefinitionProviderError, SchemaDefinition] =
+          Left(exc)
+      }
+
+      SchemaValidator((_, _) => Right((): Unit))
+        .validateStatement(sdp, selectStatement) shouldBe Invalid(NonEmptyList(exc, Nil))
+    }
+
+    "return an error if the provided function return an error" in {
+
+      val exc = SchemaValidatorError("Test error")
+
+      SchemaValidator((_, _) => Left(NonEmptyList(exc, Nil)))
+        .validateStatement(schemaDefinitionProvider, selectStatement) shouldBe Invalid(
+        NonEmptyList(exc, Nil))
+    }
+
+  }
+
+}
