@@ -26,19 +26,24 @@ class TroySchemaProviderSpec extends WordSpec with Matchers {
   "schemaDefinition" should {
 
     "return the keyspace definition for a valid keyspace cql" in {
-      new TroySchemaProvider(keyspaceCQL).schemaDefinition shouldBe Right(Seq(keyspaceDef))
+      TroySchemaProvider(keyspaceCQL).schemaDefinition shouldBe Right(Seq(keyspaceDef))
     }
 
     "return the keyspace definition for a valid table cql" in {
-      new TroySchemaProvider(tableCQL).schemaDefinition shouldBe Right(Seq(tableDef))
+      TroySchemaProvider(tableCQL).schemaDefinition shouldBe Right(Seq(tableDef))
     }
 
     "return the keyspace definition for a valid keyspace and table cql" in {
-      new TroySchemaProvider(CQL).schemaDefinition shouldBe Right(Seq(keyspaceDef, tableDef))
+      TroySchemaProvider(CQL).schemaDefinition shouldBe Right(Seq(keyspaceDef, tableDef))
+    }
+
+    "return the keyspace definition for a valid keyspace and table cql defined in an inputstream" in {
+      TroySchemaProvider(CQLInputStream).schemaDefinition shouldBe Right(
+        Seq(keyspaceDef, tableDef))
     }
 
     "return a left for an invalid cql" in {
-      new TroySchemaProvider("CREATE KEYSPACE WITH replication").schemaDefinition.isLeft shouldBe true
+      TroySchemaProvider("CREATE KEYSPACE WITH replication").schemaDefinition.isLeft shouldBe true
     }
 
   }

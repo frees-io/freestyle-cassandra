@@ -17,18 +17,38 @@
 package freestyle.cassandra
 package schema.provider
 
+import java.io.InputStream
+
+import cats.syntax.either._
 import freestyle.cassandra.schema._
 import troy.cql.ast.CqlParser
 
-class TroySchemaProvider(cql: String) extends SchemaDefinitionProvider {
+class TroySchemaProvider(cqlF: => Either[SchemaDefinitionProviderError, String])
+    extends SchemaDefinitionProvider {
 
   override def schemaDefinition: Either[SchemaDefinitionProviderError, SchemaDefinition] =
-    CqlParser.parseSchema(cql) match {
-      case CqlParser.Success(res, _) => Right(res)
-      case CqlParser.Failure(msg, next) =>
-        Left(
-          SchemaDefinitionProviderError(
-            s"Parse Failure: $msg, line = ${next.pos.line}, column = ${next.pos.column}"))
-      case CqlParser.Error(msg, _) => Left(SchemaDefinitionProviderError(msg))
+    cqlF.flatMap { cql =>
+      CqlParser.parseSchema(cql) match {
+        case CqlParser.Success(res, _) => Right(res)
+        case CqlParser.Failure(msg, next) =>
+          Left(
+            SchemaDefinitionProviderError(
+              s"Parse Failure: $msg, line = ${next.pos.line}, column = ${next.pos.column}"))
+        case CqlParser.Error(msg, _) => Left(SchemaDefinitionProviderError(msg))
+      }
     }
+}
+
+object TroySchemaProvider {
+
+  def apply(cql: String): TroySchemaProvider = new TroySchemaProvider(Right(cql))
+
+  def apply(is: InputStream): TroySchemaProvider = new TroySchemaProvider(
+    Either.catchNonFatal {
+      scala.io.Source.fromInputStream(is).mkString
+    } leftMap { e =>
+      SchemaDefinitionProviderError(e.getMessage, Some(e))
+    }
+  )
+
 }

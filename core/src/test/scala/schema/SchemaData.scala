@@ -17,6 +17,8 @@
 package freestyle.cassandra
 package schema
 
+import java.io.InputStream
+
 import freestyle.cassandra.schema.provider.SchemaDefinitionProvider
 import troy.cql.ast._
 import troy.cql.ast.ddl.{Keyspace, Table}
@@ -44,6 +46,8 @@ object SchemaData {
        |$keyspaceCQL
        |$tableCQL
     """.stripMargin
+
+  val CQLInputStream: InputStream = SchemaData.getClass.getResourceAsStream("/sampleSchema.sql")
 
   val keyspaceDef: DataDefinition = CreateKeyspace(
     ifNotExists = false,
