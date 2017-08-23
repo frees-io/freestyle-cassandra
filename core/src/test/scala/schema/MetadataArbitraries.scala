@@ -37,7 +37,9 @@ import com.datastax.driver.core.{
 import freestyle.cassandra.TestUtils.Null
 import org.scalacheck.{Arbitrary, Gen}
 import troy.cql.ast.ddl.{Field, Index, Keyspace, Table}
+import troy.cql.ast.dml.{Operator, Select, WhereClause}
 import troy.cql.ast.{
+  Constant,
   CreateIndex,
   CreateKeyspace,
   CreateTable,
@@ -92,10 +94,8 @@ trait MetadataArbitraries {
   case class GeneratedStatement(
       keyspace: CreateKeyspace,
       table: CreateTable,
-      validStatement: String,
-      validTroyStatement: SelectStatement,
-      invalidStatement: String,
-      invalidTroyStatement: SelectStatement)
+      validStatement: (String, SelectStatement),
+      invalidStatement: (String, SelectStatement))
 
   val identifierGen: Gen[String] =
     for {
@@ -208,7 +208,10 @@ trait MetadataArbitraries {
   implicit val dataTypeGen: Gen[ArbDataType] =
     Gen.oneOf(nativeDataTypeGen, mapDataTypeGen, setDataType, listDataType, tupleDataType)
 
-  implicit val generatedTableArb: Arbitrary[GeneratedTable] = {
+  implicit val generatedTableArbitrary: Arbitrary[GeneratedTable] = generatedTableArb()
+
+  def generatedTableArb(
+      maybeKeyspace: Option[GeneratedKeyspace] = None): Arbitrary[GeneratedTable] = {
 
     def tableCQL(
         keyspace: String,
@@ -252,7 +255,7 @@ trait MetadataArbitraries {
     Arbitrary {
 
       for {
-        keyspace <- generatedKeyspaceArb.arbitrary
+        keyspace <- maybeKeyspace map Gen.const getOrElse generatedKeyspaceArb.arbitrary
         keyspaceName = keyspace.createKeyspace.keyspaceName.name
         name      <- identifierGen
         pKey      <- namedGen(nativeDataTypeGen)
@@ -342,7 +345,10 @@ trait MetadataArbitraries {
 
   implicit val generatedUserTypeArb: Arbitrary[GeneratedUserType] = {
 
-    def userTypeCQL(keyspace: String, typeName: String, types: Seq[(String, ArbDataType)]): String = {
+    def userTypeCQL(
+        keyspace: String,
+        typeName: String,
+        types: Seq[(String, ArbDataType)]): String = {
 
       def typeDef(col: (String, ArbDataType)): String =
         s"${col._1} ${col._2.name}"
@@ -382,13 +388,61 @@ trait MetadataArbitraries {
 
   }
 
-//  implicit val generatedStatementArb: Arbitrary[GeneratedStatement] = {
-//
-//    Arbitrary {
-//
-//    }
-//
-//  }
+  implicit val generatedStatementArb: Arbitrary[GeneratedStatement] = {
+
+    def statementGen(
+        keyspaceName: Option[KeyspaceName],
+        tableName: TableName,
+        columnNames: Seq[String],
+        valid: Boolean): Gen[(String, SelectStatement)] = {
+
+      val cqlKeyspace = keyspaceName.map(n => s"${n.name}.").getOrElse("")
+
+      for {
+        columnName <- Gen.oneOf(columnNames)
+        selectColumn <- if (valid) Gen.oneOf(columnNames)
+        else identifierGen.filter(!columnNames.contains(_))
+        columnValue <- Gen.alphaStr
+      } yield
+        (
+          s"""
+           |SELECT $selectColumn FROM $cqlKeyspace${tableName.table}
+           |WHERE $columnName = '$columnValue'
+       """.stripMargin,
+          SelectStatement(
+            mod = None,
+            selection = Select.SelectClause(Seq(
+              Select.SelectionClauseItem(selector = Select.ColumnName(selectColumn), as = None))),
+            from = tableName,
+            where = Some(
+              WhereClause(
+                Seq(
+                  WhereClause.Relation
+                    .Simple(
+                      columnName = columnName,
+                      operator = Operator.Equals,
+                      term = Constant(columnValue))))),
+            orderBy = None,
+            perPartitionLimit = None,
+            limit = None,
+            allowFiltering = false
+          )
+        )
+
+    }
+
+    Arbitrary {
+      for {
+        keyspace <- generatedKeyspaceArb.arbitrary
+        table    <- generatedTableArb(Some(keyspace)).arbitrary
+        tableName = table.createTable.tableName
+        columns   = table.createTable.columns.map(_.name)
+        validSt   <- statementGen(tableName.keyspace, tableName, columns, valid = true)
+        invalidSt <- statementGen(tableName.keyspace, tableName, columns, valid = false)
+      } yield GeneratedStatement(keyspace.createKeyspace, table.createTable, validSt, invalidSt)
+    }
+
+  }
 
 }
 

@@ -45,16 +45,6 @@ class TroySchemaProviderSpec extends WordSpec with MatchersUtil with Checkers {
       }
     }
 
-    "return the keyspace definition for a valid keyspace and table cql" in {
-      check {
-        forAll { (keyspace: GeneratedKeyspace, tables: List[GeneratedTable]) =>
-          val cql = keyspace.cql ++ tables.map(_.cql).mkString("\n", "\n", "")
-          TroySchemaProvider(cql).schemaDefinition isEqualTo Right(
-            Seq(keyspace.createKeyspace) ++ tables.map(_.createTable))
-        }
-      }
-    }
-
     "return a left for an invalid cql" in {
       TroySchemaProvider("CREATE KEYSPACE WITH replication").schemaDefinition.isLeft shouldBe true
     }

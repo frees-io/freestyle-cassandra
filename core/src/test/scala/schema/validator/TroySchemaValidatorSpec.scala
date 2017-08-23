@@ -17,28 +17,35 @@
 package freestyle.cassandra
 package schema.validator
 
-import cats.data.NonEmptyList
-import cats.data.Validated.{Invalid, Valid}
-import freestyle.cassandra.schema.SchemaValidatorError
-import org.scalatest.{Matchers, WordSpec}
+import cats.data.Validated.Valid
+import freestyle.cassandra.TestUtils.MatchersUtil
+import freestyle.cassandra.schema.{SchemaDefinition, SchemaDefinitionProviderError}
+import freestyle.cassandra.schema.provider.SchemaDefinitionProvider
+import org.scalacheck.Prop.forAll
+import org.scalatest.WordSpec
+import org.scalatest.prop.Checkers
 
-class TroySchemaValidatorSpec extends WordSpec with Matchers {
+class TroySchemaValidatorSpec extends WordSpec with MatchersUtil with Checkers {
 
-  import freestyle.cassandra.schema.SchemaData._
+  import freestyle.cassandra.schema.MetadataArbitraries._
   import TroySchemaValidator._
 
   "validateStatement" should {
 
-    "return Unit for a valid query against the provided Schema" in {
-      instance.validateStatement(schemaDefinitionProvider, selectStatement) shouldBe Valid(
-        (): Unit)
-    }
+    "work as expected" in {
 
-    "return the errors for an invalid query against the provided Schema" in {
-      instance.validateStatement(schemaDefinitionProvider, invalidSelectStatement) shouldBe Invalid(
-        NonEmptyList(
-          SchemaValidatorError("Column 'unknown_column' not found in table 'test.posts'", None),
-          Nil))
+      check {
+        forAll { st: GeneratedStatement =>
+          val sdp = new SchemaDefinitionProvider {
+            override def schemaDefinition: Either[SchemaDefinitionProviderError, SchemaDefinition] =
+              Right(Seq(st.keyspace, st.table))
+          }
+
+          (instance.validateStatement(sdp, st.validStatement._2) isEqualTo Valid((): Unit)) &&
+          (instance.validateStatement(sdp, st.invalidStatement._2).isInvalid isEqualTo true)
+        }
+      }
+
     }
 
   }

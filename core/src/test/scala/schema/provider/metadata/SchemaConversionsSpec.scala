@@ -20,8 +20,8 @@ package schema.provider.metadata
 import com.datastax.driver.core._
 import freestyle.cassandra.TestUtils._
 import org.scalacheck.Prop.forAll
-import org.scalatest.WordSpec
 import org.scalamock.scalatest.MockFactory
+import org.scalatest.WordSpec
 import org.scalatest.prop.Checkers
 
 import scala.collection.JavaConverters._

@@ -105,11 +105,7 @@ trait SchemaConversions {
           typeName = TypeName(Some(KeyspaceName(userType.getKeyspace)), userType.getTypeName),
           fields = list)
       }
-//    } leftMap (SchemaDefinitionProviderError(_)) joinRight
-    } leftMap { e =>
-      e.printStackTrace()
-      SchemaDefinitionProviderError(e)
-    } joinRight
+    } leftMap (SchemaDefinitionProviderError(_)) joinRight
 
   private[this] def toField(
       name: String,

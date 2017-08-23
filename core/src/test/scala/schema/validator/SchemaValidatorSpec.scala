@@ -23,19 +23,37 @@ import freestyle.cassandra.schema.provider.SchemaDefinitionProvider
 import freestyle.cassandra.schema.{
   SchemaDefinition,
   SchemaDefinitionProviderError,
-  SchemaValidatorError
+  SchemaValidatorError,
+  Statement
 }
+import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, WordSpec}
+import troy.cql.ast.{SelectStatement, TableName}
+import troy.cql.ast.dml.Select
 
-class SchemaValidatorSpec extends WordSpec with Matchers {
+class SchemaValidatorSpec extends WordSpec with Matchers with MockFactory {
 
-  import freestyle.cassandra.schema.SchemaData._
+  val mockSdp = new SchemaDefinitionProvider {
+    override def schemaDefinition: Either[SchemaDefinitionProviderError, SchemaDefinition] =
+      Right(Seq.empty)
+  }
+
+  val mockStatement: Statement = SelectStatement(
+    mod = None,
+    selection = Select.SelectClause(Seq.empty),
+    from = TableName(None, ""),
+    where = None,
+    orderBy = None,
+    perPartitionLimit = None,
+    limit = None,
+    allowFiltering = false
+  )
 
   "apply method" should {
 
     "return Unit if the schema provider and the provided function works as expected" in {
       SchemaValidator((_, _) => Right((): Unit))
-        .validateStatement(schemaDefinitionProvider, selectStatement) shouldBe Valid((): Unit)
+        .validateStatement(mockSdp, mockStatement) shouldBe Valid((): Unit)
     }
 
     "return an error if the schema provider return an error" in {
@@ -47,7 +65,7 @@ class SchemaValidatorSpec extends WordSpec with Matchers {
       }
 
       SchemaValidator((_, _) => Right((): Unit))
-        .validateStatement(sdp, selectStatement) shouldBe Invalid(NonEmptyList(exc, Nil))
+        .validateStatement(sdp, mockStatement) shouldBe Invalid(NonEmptyList(exc, Nil))
     }
 
     "return an error if the provided function return an error" in {
@@ -55,8 +73,7 @@ class SchemaValidatorSpec extends WordSpec with Matchers {
       val exc = SchemaValidatorError("Test error")
 
       SchemaValidator((_, _) => Left(NonEmptyList(exc, Nil)))
-        .validateStatement(schemaDefinitionProvider, selectStatement) shouldBe Invalid(
-        NonEmptyList(exc, Nil))
+        .validateStatement(mockSdp, mockStatement) shouldBe Invalid(NonEmptyList(exc, Nil))
     }
 
   }
