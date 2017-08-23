@@ -19,43 +19,39 @@ package schema
 
 import java.io.InputStream
 
+import com.datastax.driver.core.DataType.Name
+import com.datastax.driver.core.{
+  CodecRegistry,
+  ProtocolVersion,
+  TupleType,
+  UserType,
+  UserTypeFieldTest,
+  DataType => DatastaxDataType
+}
+import freestyle.cassandra.TestUtils.Null
+import freestyle.cassandra.config.model.Credentials
 import freestyle.cassandra.schema.provider.SchemaDefinitionProvider
 import troy.cql.ast._
-import troy.cql.ast.ddl.{Keyspace, Table}
+import troy.cql.ast.ddl.{Field, Keyspace, Table}
 import troy.cql.ast.dml.{Operator, Select, WhereClause}
 
 object SchemaData {
 
-  val keyspaceCQL: String =
-    """
-      |CREATE KEYSPACE test WITH replication = {'class': 'SimpleStrategy' , 'replication_factor': '1'};
-    """.stripMargin
+  val keyspaceName: String = "test"
+  val keyspaceProperties: Seq[(String, String)] =
+    Seq(("class", "SimpleStrategy"), ("replication_factor", "1"))
 
-  val tableCQL: String =
-    """
-      |CREATE TABLE IF NOT EXISTS test.posts (
-      |  author_id text,
-      |  post_id timeuuid,
-      |  post_title text,
-      |  PRIMARY KEY ((author_id), post_id)
-      |);
-    """.stripMargin
-
-  val CQL: String =
-    s"""
-       |$keyspaceCQL
-       |$tableCQL
-    """.stripMargin
+  val userTypeName: String = "customUserType"
 
   val CQLInputStream: InputStream = SchemaData.getClass.getResourceAsStream("/sampleSchema.sql")
 
-  val keyspaceDef: DataDefinition = CreateKeyspace(
+  val keyspaceDef: CreateKeyspace = CreateKeyspace(
     ifNotExists = false,
-    keyspaceName = KeyspaceName("test"),
-    properties =
-      Seq(Keyspace.Replication(Seq(("class", "SimpleStrategy"), ("replication_factor", "1")))))
+    keyspaceName = KeyspaceName(keyspaceName),
+    properties = Seq(Keyspace.Replication(keyspaceProperties))
+  )
 
-  val tableDef = CreateTable(
+  val tableDef: CreateTable = CreateTable(
     ifNotExists = true,
     tableName = TableName(Some(KeyspaceName("test")), "posts"),
     columns = Seq(

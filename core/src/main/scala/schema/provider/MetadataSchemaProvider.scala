@@ -19,7 +19,14 @@ package schema.provider
 
 import cats.implicits._
 import cats.~>
-import com.datastax.driver.core.{Cluster, IndexMetadata, KeyspaceMetadata, Metadata, TableMetadata, UserType}
+import com.datastax.driver.core.{
+  Cluster,
+  IndexMetadata,
+  KeyspaceMetadata,
+  Metadata,
+  TableMetadata,
+  UserType
+}
 import freestyle._
 import freestyle.FreeS
 import freestyle.cassandra.schema.provider.metadata.SchemaConversions
@@ -63,7 +70,7 @@ class MetadataSchemaProvider(cluster: Cluster)
       for {
         keyspaces <- keyspaceList.traverse(toCreateKeyspace)
         tables    <- tableList.traverse(toCreateTable)
-        indexes   <- indexList.traverse(toCreateIndex)
+        indexes   <- indexList.traverse(toCreateIndex(_))
         userTypes <- userTypeList.traverse(toUserType)
       } yield keyspaces ++ tables ++ indexes ++ userTypes
 
@@ -73,6 +80,7 @@ class MetadataSchemaProvider(cluster: Cluster)
 
 object MetadataSchemaProvider {
 
-  implicit def metadataSchemaProvider(implicit cluster: Cluster): SchemaDefinitionProvider = new MetadataSchemaProvider(cluster)
+  implicit def metadataSchemaProvider(implicit cluster: Cluster): SchemaDefinitionProvider =
+    new MetadataSchemaProvider(cluster)
 
 }

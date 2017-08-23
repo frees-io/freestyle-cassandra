@@ -18,29 +18,22 @@ package freestyle.cassandra
 package schema.provider.metadata
 
 import cats.implicits._
-import cats.{~>, MonadError}
 import com.datastax.driver.core.{
-  Cluster,
+  AbstractTableMetadata,
   ColumnMetadata,
   IndexMetadata,
   KeyspaceMetadata,
-  Metadata,
-  TableMetadata,
   TupleType,
   UserType,
   DataType => DatastaxDataType
 }
-import freestyle._
-import freestyle.FreeS
-import freestyle.cassandra.schema.{SchemaDefinition, SchemaDefinitionProviderError}
+import freestyle.cassandra.schema.SchemaDefinitionProviderError
 import troy.cql.ast._
 import troy.cql.ast.ddl.Keyspace.Replication
-import troy.cql.ast.ddl.{Field, Index, Table}
 import troy.cql.ast.ddl.Table.PrimaryKey
+import troy.cql.ast.ddl.{Field, Index, Table}
 
 import scala.collection.JavaConverters._
-import scala.concurrent.duration._
-import scala.concurrent.{Await, Future}
 import scala.language.postfixOps
 
 trait SchemaConversions {
@@ -48,13 +41,21 @@ trait SchemaConversions {
   def toCreateKeyspace(
       keyspaceMetadata: KeyspaceMetadata): Either[SchemaDefinitionProviderError, CreateKeyspace] =
     Either.catchNonFatal {
+      val name: String = Option(keyspaceMetadata.getName)
+        .getOrElse(throw new NullPointerException("Schema name is null"))
+      val replication: Option[Replication] = Option(keyspaceMetadata.getReplication)
+        .flatMap { m =>
+          val seq = m.asScala.toSeq
+          if (seq.isEmpty) None else Option(Replication(seq.sortBy(_._1)))
+        }
       CreateKeyspace(
         ifNotExists = false,
-        keyspaceName = KeyspaceName(keyspaceMetadata.getName),
-        properties = Seq(Replication(keyspaceMetadata.getReplication.asScala.toSeq)))
+        keyspaceName = KeyspaceName(name),
+        properties = replication map (Seq(_)) getOrElse Seq.empty)
     } leftMap (SchemaDefinitionProviderError(_))
 
-  def toCreateTable(metadata: TableMetadata): Either[SchemaDefinitionProviderError, CreateTable] =
+  def toCreateTable(
+      metadata: AbstractTableMetadata): Either[SchemaDefinitionProviderError, CreateTable] =
     Either.catchNonFatal {
       for {
         columns <- metadata.getColumns.asScala.toList.traverse(toTableColumn)
@@ -71,19 +72,25 @@ trait SchemaConversions {
         )
     } leftMap (SchemaDefinitionProviderError(_)) joinRight
 
-  def toCreateIndex(metadata: IndexMetadata): Either[SchemaDefinitionProviderError, CreateIndex] =
+  def readTable(metadata: IndexMetadata): TableName =
+    TableName(Some(KeyspaceName(metadata.getTable.getKeyspace.getName)), metadata.getTable.getName)
+
+  def toCreateIndex(
+      metadata: IndexMetadata,
+      readTable: (IndexMetadata) => TableName = readTable): Either[
+    SchemaDefinitionProviderError,
+    CreateIndex] =
     Either.catchNonFatal {
       CreateIndex(
         isCustom = metadata.isCustomIndex,
         ifNotExists = false,
         indexName = Option(metadata.getName),
-        tableName = TableName(
-          Some(KeyspaceName(metadata.getTable.getKeyspace.getName)),
-          metadata.getTable.getName),
+        tableName = readTable(metadata),
         identifier = Index.Identifier(metadata.getTarget),
         using =
           if (metadata.isCustomIndex)
-            Some(Index.Using(metadata.getIndexClassName, toUsingOptions(metadata)))
+            // The options are not visible in the IndexMetadata class
+            Some(Index.Using(metadata.getIndexClassName, None))
           else None
       )
     } leftMap (SchemaDefinitionProviderError(_))
@@ -98,7 +105,11 @@ trait SchemaConversions {
           typeName = TypeName(Some(KeyspaceName(userType.getKeyspace)), userType.getTypeName),
           fields = list)
       }
-    } leftMap (SchemaDefinitionProviderError(_)) joinRight
+//    } leftMap (SchemaDefinitionProviderError(_)) joinRight
+    } leftMap { e =>
+      e.printStackTrace()
+      SchemaDefinitionProviderError(e)
+    } joinRight
 
   private[this] def toField(
       name: String,
@@ -146,7 +157,7 @@ trait SchemaConversions {
         case Name.VARCHAR   => DataType.Varchar.asRight
         case Name.VARINT    => DataType.Varint.asRight
         case _ =>
-          Left(SchemaDefinitionProviderError(s"DataType ${dataType.getName} not supported"))
+          Left(SchemaDefinitionProviderError(s"Native DataType ${dataType.getName} not supported"))
       }
 
     def toCollectionType(
@@ -155,9 +166,13 @@ trait SchemaConversions {
       val typeArgs: List[DatastaxDataType] = collectionType.getTypeArguments.asScala.toList
 
       val maybeCol = collectionType.getName match {
-        case Name.LIST | Name.SET =>
+        case Name.LIST =>
           typeArgs.headOption map { typeArg =>
             toDataTypeNative(typeArg) map DataType.List
+          }
+        case Name.SET =>
+          typeArgs.headOption map { typeArg =>
+            toDataTypeNative(typeArg) map DataType.Set
           }
         case Name.MAP =>
           typeArgs.headOption.flatMap(t1 => typeArgs.tail.headOption.map(t2 => (t1, t2))) map {
@@ -181,24 +196,12 @@ trait SchemaConversions {
       tupleType.getComponentTypes.asScala.toList traverse toDataTypeNative map DataType.Tuple
 
     dataType match {
-      case nativeType: NativeType =>
-        toDataTypeNative(nativeType) map (Right(_)) getOrElse {
-          Left(SchemaDefinitionProviderError(s"DataType ${dataType.getName} not supported"))
-        }
+      case nativeType: NativeType         => toDataTypeNative(nativeType)
       case customType: CustomType         => Right(DataType.Custom(customType.getCustomTypeClassName))
       case collectionType: CollectionType => toCollectionType(collectionType)
       case tupleType: TupleType           => toTupleType(tupleType)
       case userType: UserType =>
-        DataType.UserDefined(KeyspaceName(userType.getKeyspace), userType.getTypeName)
-    }
-
-    toDataTypeNative(dataType) map (Right(_)) getOrElse {
-      dataType match {
-        case customType: CustomType     => Right(DataType.Custom(customType.getCustomTypeClassName))
-        case collection: CollectionType => toCollectionType(collection)
-        case _ =>
-          Left(SchemaDefinitionProviderError(s"DataType ${dataType.getName} not supported"))
-      }
+        Right(DataType.UserDefined(KeyspaceName(userType.getKeyspace), userType.getTypeName))
     }
   }
 
@@ -206,16 +209,5 @@ trait SchemaConversions {
       partitionKeys: List[ColumnMetadata],
       clusteringColumns: List[ColumnMetadata]): Either[SchemaDefinitionProviderError, PrimaryKey] =
     PrimaryKey(partitionKeys.map(_.getName), clusteringColumns.map(_.getName)).asRight
-
-  private[this] def toUsingOptions(metadata: IndexMetadata): Option[MapLiteral] = {
-
-    def toTerm(key: String): Option[(Term, Term)] =
-      Option(metadata.getOption(key)) map (value => (Constant(key), Constant(value)))
-
-    val terms = toTerm(IndexMetadata.INDEX_KEYS_OPTION_NAME).toSeq ++
-      toTerm(IndexMetadata.INDEX_ENTRIES_OPTION_NAME).toSeq
-
-    if (terms.nonEmpty) Some(MapLiteral(terms)) else None
-  }
 
 }

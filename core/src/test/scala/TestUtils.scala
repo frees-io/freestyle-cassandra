@@ -23,6 +23,7 @@ import com.google.common.util.concurrent.{
   ListeningExecutorService,
   MoreExecutors
 }
+import org.scalatest.Matchers
 
 object TestUtils {
 
@@ -45,6 +46,21 @@ object TestUtils {
 
   object Null {
     def apply[A]: A = new Null[A].t
+  }
+
+  trait MatchersUtil extends Matchers {
+
+    final class AnyOps[T](value: T) {
+
+      def isEqualTo(other: T): Boolean = {
+        value shouldBe other
+        value == other
+      }
+
+    }
+
+    implicit def anyOps[T](value: T): AnyOps[T] = new AnyOps[T](value)
+
   }
 
 }

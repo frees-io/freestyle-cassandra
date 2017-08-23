@@ -17,29 +17,42 @@
 package freestyle.cassandra
 package schema.provider
 
-import org.scalatest.{Matchers, WordSpec}
+import freestyle.cassandra.TestUtils.MatchersUtil
+import org.scalacheck.Prop._
+import org.scalatest.WordSpec
+import org.scalatest.prop.Checkers
 
-class TroySchemaProviderSpec extends WordSpec with Matchers {
+class TroySchemaProviderSpec extends WordSpec with MatchersUtil with Checkers {
 
-  import freestyle.cassandra.schema.SchemaData._
+  import freestyle.cassandra.schema.MetadataArbitraries._
 
   "schemaDefinition" should {
 
     "return the keyspace definition for a valid keyspace cql" in {
-      TroySchemaProvider(keyspaceCQL).schemaDefinition shouldBe Right(Seq(keyspaceDef))
+      check {
+        forAll { keyspace: GeneratedKeyspace =>
+          TroySchemaProvider(keyspace.cql).schemaDefinition isEqualTo Right(
+            Seq(keyspace.createKeyspace))
+        }
+      }
     }
 
     "return the keyspace definition for a valid table cql" in {
-      TroySchemaProvider(tableCQL).schemaDefinition shouldBe Right(Seq(tableDef))
+      check {
+        forAll { table: GeneratedTable =>
+          TroySchemaProvider(table.cql).schemaDefinition isEqualTo Right(Seq(table.createTable))
+        }
+      }
     }
 
     "return the keyspace definition for a valid keyspace and table cql" in {
-      TroySchemaProvider(CQL).schemaDefinition shouldBe Right(Seq(keyspaceDef, tableDef))
-    }
-
-    "return the keyspace definition for a valid keyspace and table cql defined in an inputstream" in {
-      TroySchemaProvider(CQLInputStream).schemaDefinition shouldBe Right(
-        Seq(keyspaceDef, tableDef))
+      check {
+        forAll { (keyspace: GeneratedKeyspace, tables: List[GeneratedTable]) =>
+          val cql = keyspace.cql ++ tables.map(_.cql).mkString("\n", "\n", "")
+          TroySchemaProvider(cql).schemaDefinition isEqualTo Right(
+            Seq(keyspace.createKeyspace) ++ tables.map(_.createTable))
+        }
+      }
     }
 
     "return a left for an invalid cql" in {
