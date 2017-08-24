@@ -27,7 +27,7 @@ import com.datastax.driver.core.{
   UserType,
   DataType => DatastaxDataType
 }
-import freestyle.cassandra.schema.SchemaDefinitionProviderError
+import freestyle.cassandra.schema.{SchemaDefinitionProviderError, SchemaResult}
 import troy.cql.ast._
 import troy.cql.ast.ddl.Keyspace.Replication
 import troy.cql.ast.ddl.Table.PrimaryKey
@@ -38,8 +38,7 @@ import scala.language.postfixOps
 
 trait SchemaConversions {
 
-  def toCreateKeyspace(
-      keyspaceMetadata: KeyspaceMetadata): Either[SchemaDefinitionProviderError, CreateKeyspace] =
+  def toCreateKeyspace(keyspaceMetadata: KeyspaceMetadata): SchemaResult[CreateKeyspace] =
     Either.catchNonFatal {
       val name: String = Option(keyspaceMetadata.getName)
         .getOrElse(throw new NullPointerException("Schema name is null"))
@@ -54,8 +53,7 @@ trait SchemaConversions {
         properties = replication map (Seq(_)) getOrElse Seq.empty)
     } leftMap (SchemaDefinitionProviderError(_))
 
-  def toCreateTable(
-      metadata: AbstractTableMetadata): Either[SchemaDefinitionProviderError, CreateTable] =
+  def toCreateTable(metadata: AbstractTableMetadata): SchemaResult[CreateTable] =
     Either.catchNonFatal {
       for {
         columns <- metadata.getColumns.asScala.toList.traverse(toTableColumn)
@@ -95,7 +93,7 @@ trait SchemaConversions {
       )
     } leftMap (SchemaDefinitionProviderError(_))
 
-  def toUserType(userType: UserType): Either[SchemaDefinitionProviderError, CreateType] =
+  def toUserType(userType: UserType): SchemaResult[CreateType] =
     Either.catchNonFatal {
       userType.getFieldNames.asScala.toList.traverse { fieldName =>
         toField(fieldName, userType.getFieldType(fieldName))
@@ -109,13 +107,12 @@ trait SchemaConversions {
 
   private[this] def toField(
       name: String,
-      datastaxDataType: DatastaxDataType): Either[SchemaDefinitionProviderError, Field] =
+      datastaxDataType: DatastaxDataType): SchemaResult[Field] =
     toDataType(datastaxDataType) map { dataType =>
       Field(name, dataType)
     }
 
-  private[this] def toTableColumn(
-      metadata: ColumnMetadata): Either[SchemaDefinitionProviderError, Table.Column] =
+  private[this] def toTableColumn(metadata: ColumnMetadata): SchemaResult[Table.Column] =
     toDataType(metadata.getType).map { dataType =>
       Table.Column(
         name = metadata.getName,
@@ -124,13 +121,11 @@ trait SchemaConversions {
         isPrimaryKey = false)
     }
 
-  private[this] def toDataType(
-      dataType: DatastaxDataType): Either[SchemaDefinitionProviderError, DataType] = {
+  private[this] def toDataType(dataType: DatastaxDataType): SchemaResult[DataType] = {
 
     import DatastaxDataType._
 
-    def toDataTypeNative(
-        dataType: DatastaxDataType): Either[SchemaDefinitionProviderError, DataType.Native] =
+    def toDataTypeNative(dataType: DatastaxDataType): SchemaResult[DataType.Native] =
       dataType.getName match {
         case Name.ASCII     => DataType.Ascii.asRight
         case Name.BIGINT    => DataType.BigInt.asRight
@@ -156,8 +151,7 @@ trait SchemaConversions {
           Left(SchemaDefinitionProviderError(s"Native DataType ${dataType.getName} not supported"))
       }
 
-    def toCollectionType(
-        collectionType: CollectionType): Either[SchemaDefinitionProviderError, DataType] = {
+    def toCollectionType(collectionType: CollectionType): SchemaResult[DataType] = {
 
       val typeArgs: List[DatastaxDataType] = collectionType.getTypeArguments.asScala.toList
 
@@ -171,13 +165,10 @@ trait SchemaConversions {
             toDataTypeNative(typeArg) map DataType.Set
           }
         case Name.MAP =>
-          typeArgs.headOption.flatMap(t1 => typeArgs.tail.headOption.map(t2 => (t1, t2))) map {
-            tupleArgs =>
-              for {
-                dataNative1 <- toDataTypeNative(tupleArgs._1)
-                dataNative2 <- toDataTypeNative(tupleArgs._2)
-              } yield DataType.Map(dataNative1, dataNative2)
-          }
+          for {
+            t1 <- typeArgs.headOption
+            t2 <- typeArgs.tail.headOption
+          } yield (toDataTypeNative(t1) |@| toDataTypeNative(t2)).map(DataType.Map)
         case _ => None
       }
 
@@ -188,7 +179,7 @@ trait SchemaConversions {
       }
     }
 
-    def toTupleType(tupleType: TupleType): Either[SchemaDefinitionProviderError, DataType] =
+    def toTupleType(tupleType: TupleType): SchemaResult[DataType] =
       tupleType.getComponentTypes.asScala.toList traverse toDataTypeNative map DataType.Tuple
 
     dataType match {
@@ -203,7 +194,7 @@ trait SchemaConversions {
 
   private[this] def toPrimaryKey(
       partitionKeys: List[ColumnMetadata],
-      clusteringColumns: List[ColumnMetadata]): Either[SchemaDefinitionProviderError, PrimaryKey] =
+      clusteringColumns: List[ColumnMetadata]): SchemaResult[PrimaryKey] =
     PrimaryKey(partitionKeys.map(_.getName), clusteringColumns.map(_.getName)).asRight
 
 }

@@ -19,7 +19,7 @@ package schema.validator
 
 import cats.data.Validated.Valid
 import freestyle.cassandra.TestUtils.MatchersUtil
-import freestyle.cassandra.schema.{SchemaDefinition, SchemaDefinitionProviderError}
+import freestyle.cassandra.schema.{SchemaDefinition, SchemaResult}
 import freestyle.cassandra.schema.provider.SchemaDefinitionProvider
 import org.scalacheck.Prop.forAll
 import org.scalatest.WordSpec
@@ -37,7 +37,7 @@ class TroySchemaValidatorSpec extends WordSpec with MatchersUtil with Checkers {
       check {
         forAll { st: GeneratedStatement =>
           val sdp = new SchemaDefinitionProvider {
-            override def schemaDefinition: Either[SchemaDefinitionProviderError, SchemaDefinition] =
+            override def schemaDefinition: SchemaResult[SchemaDefinition] =
               Right(Seq(st.keyspace, st.table))
           }
 

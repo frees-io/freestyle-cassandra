@@ -20,12 +20,7 @@ package schema.validator
 import cats.data.NonEmptyList
 import cats.data.Validated.{Invalid, Valid}
 import freestyle.cassandra.schema.provider.SchemaDefinitionProvider
-import freestyle.cassandra.schema.{
-  SchemaDefinition,
-  SchemaDefinitionProviderError,
-  SchemaValidatorError,
-  Statement
-}
+import freestyle.cassandra.schema._
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, WordSpec}
 import troy.cql.ast.{SelectStatement, TableName}
@@ -34,7 +29,7 @@ import troy.cql.ast.dml.Select
 class SchemaValidatorSpec extends WordSpec with Matchers with MockFactory {
 
   val mockSdp = new SchemaDefinitionProvider {
-    override def schemaDefinition: Either[SchemaDefinitionProviderError, SchemaDefinition] =
+    override def schemaDefinition: SchemaResult[SchemaDefinition] =
       Right(Seq.empty)
   }
 
@@ -60,7 +55,7 @@ class SchemaValidatorSpec extends WordSpec with Matchers with MockFactory {
 
       val exc = SchemaDefinitionProviderError("Test error")
       val sdp = new SchemaDefinitionProvider {
-        override def schemaDefinition: Either[SchemaDefinitionProviderError, SchemaDefinition] =
+        override def schemaDefinition: SchemaResult[SchemaDefinition] =
           Left(exc)
       }
 

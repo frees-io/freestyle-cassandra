@@ -18,12 +18,12 @@ package freestyle.cassandra
 package schema.provider
 
 import cats.implicits._
-import cats.~>
+import cats.{~>, MonadError}
 import com.datastax.driver.core._
-import freestyle._
-import freestyle.FreeS
+import freestyle.{FreeS, _}
 import freestyle.cassandra.schema.provider.metadata.SchemaConversions
-import freestyle.cassandra.schema.{SchemaDefinition, SchemaDefinitionProviderError}
+import freestyle.cassandra.schema.{SchemaDefinition, SchemaDefinitionProviderError, SchemaResult}
+import troy.cql.ast.DataDefinition
 
 import scala.collection.JavaConverters._
 import scala.concurrent.duration._
@@ -46,40 +46,46 @@ class MetadataSchemaProvider(cluster: Cluster)
   def extractUserTypes(keyspaceMetadata: KeyspaceMetadata): List[UserType] =
     keyspaceMetadata.getUserTypes.asScala.toList
 
-  override def schemaDefinition: Either[SchemaDefinitionProviderError, SchemaDefinition] = {
-
-    import scala.concurrent.ExecutionContext.Implicits.global
+  override def schemaDefinition: SchemaResult[SchemaDefinition] = {
 
     import freestyle.async.implicits._
     import freestyle.cassandra.api._
     import freestyle.cassandra.handlers.implicits._
 
+    import scala.concurrent.ExecutionContext.Implicits.global
+
     implicit val clusterAPIInterpreter: ClusterAPI.Op ~> Future =
       clusterAPIHandler[Future] andThen apiInterpreter[Future, Cluster](cluster)
 
+    def guarantee[F[_], A](fa: F[A], finalizer: F[Unit])(
+        implicit M: MonadError[F, Throwable]): F[A] =
+      M.flatMap(M.attempt(fa)) { e =>
+        M.flatMap(finalizer)(_ => e.fold(M.raiseError, M.pure))
+      }
+
     def metadataF[F[_]](implicit clusterAPI: ClusterAPI[F]): FreeS[F, Metadata] =
-      for {
-        _        <- clusterAPI.connect
-        metadata <- clusterAPI.metadata
-        _        <- clusterAPI.close
-      } yield metadata
+      clusterAPI.connect *> clusterAPI.metadata
 
-    Either.catchNonFatal {
-      Await.result(metadataF[ClusterAPI.Op].interpret[Future], 10.seconds)
-    } leftMap (SchemaDefinitionProviderError(_)) flatMap { metadata =>
-      val keyspaceList: List[KeyspaceMetadata]   = metadata.getKeyspaces.asScala.toList
-      val tableList: List[AbstractTableMetadata] = keyspaceList.flatMap(extractTables)
-      val indexList: List[IndexMetadata]         = extractIndexes(tableList)
-      val userTypeList: List[UserType]           = keyspaceList.flatMap(extractUserTypes)
+    def closeF[F[_]](implicit clusterAPI: ClusterAPI[F]): FreeS[F, Unit] =
+      clusterAPI.close
 
-      for {
-        keyspaces <- keyspaceList.traverse(toCreateKeyspace)
-        tables    <- tableList.traverse(toCreateTable)
-        indexes   <- indexList.traverse(toCreateIndex(_))
-        userTypes <- userTypeList.traverse(toUserType)
-      } yield keyspaces ++ tables ++ indexes ++ userTypes
+    val fut: Future[SchemaResult[SchemaDefinition]] =
+      guarantee(
+        metadataF[ClusterAPI.Op].interpret[Future],
+        closeF[ClusterAPI.Op].interpret[Future]).attempt.map {
+        _.leftMap(SchemaDefinitionProviderError(_)) flatMap { metadata =>
+          val keyspaceList: List[KeyspaceMetadata]   = metadata.getKeyspaces.asScala.toList
+          val tableList: List[AbstractTableMetadata] = keyspaceList.flatMap(extractTables)
+          val indexList: List[IndexMetadata]         = extractIndexes(tableList)
+          val userTypeList: List[UserType]           = keyspaceList.flatMap(extractUserTypes)
 
-    }
+          keyspaceList.traverse[SchemaResult, DataDefinition](toCreateKeyspace) |+|
+            tableList.traverse(toCreateTable) |+|
+            indexList.traverse(toCreateIndex(_)) |+|
+            userTypeList.traverse(toUserType)
+        }
+      }
+    Await.result(fut, 10.seconds)
   }
 }
 

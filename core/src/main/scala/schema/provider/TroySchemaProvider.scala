@@ -23,10 +23,9 @@ import cats.syntax.either._
 import freestyle.cassandra.schema._
 import troy.cql.ast.CqlParser
 
-class TroySchemaProvider(cqlF: => Either[SchemaDefinitionProviderError, String])
-    extends SchemaDefinitionProvider {
+class TroySchemaProvider(cqlF: => SchemaResult[String]) extends SchemaDefinitionProvider {
 
-  override def schemaDefinition: Either[SchemaDefinitionProviderError, SchemaDefinition] =
+  override def schemaDefinition: SchemaResult[SchemaDefinition] =
     cqlF.flatMap { cql =>
       CqlParser.parseSchema(cql) match {
         case CqlParser.Success(res, _) => Right(res)

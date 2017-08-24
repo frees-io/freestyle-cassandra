@@ -20,7 +20,7 @@ package schema
 package object provider {
 
   trait SchemaDefinitionProvider {
-    def schemaDefinition: Either[SchemaDefinitionProviderError, SchemaDefinition]
+    def schemaDefinition: SchemaResult[SchemaDefinition]
   }
 
 }

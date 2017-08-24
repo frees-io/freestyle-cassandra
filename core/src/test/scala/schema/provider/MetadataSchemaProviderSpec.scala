@@ -92,6 +92,7 @@ class MetadataSchemaProviderSpec
       val exception: Throwable              = new RuntimeException("Test exception")
       (clusterMock.connectAsync _: () => ListenableFuture[Session]).expects().returns(result)
       (clusterMock.getMetadata _).expects().throws(exception)
+      (clusterMock.closeAsync _).expects().returns(CloseFutureTest)
 
       MetadataSchemaProvider.metadataSchemaProvider.schemaDefinition.isLeft
     }
