@@ -112,7 +112,7 @@ trait MetadataArbitraries {
 
   def namedGen[T](implicit gen: Gen[T]): Gen[(String, T)] =
     for {
-      name   <- identifierGen.filter(name => !reservedKeywords.contains(name.toUpperCase))
+      name   <- identifierGen.filter(name => !TestUtils.reservedKeywords.contains(name.toUpperCase))
       native <- gen
     } yield (name.toLowerCase, native)
 
