@@ -31,6 +31,7 @@ class ClusterAPISpec extends WordSpec with Matchers with OneInstancePerTest with
   val configuration: Configuration = new Configuration.Builder().build()
   val unit: Unit                   = ()
   val keyspace: String             = "keyspace"
+  val metadataTest: Metadata       = MetadataTest()
 
   implicit val clusterAPIHandler: ClusterAPI.Op ~> Id = new (ClusterAPI.Op ~> Id) {
     override def apply[A](fa: ClusterAPI.Op[A]): Id[A] = fa match {
@@ -38,7 +39,7 @@ class ClusterAPISpec extends WordSpec with Matchers with OneInstancePerTest with
       case ClusterAPI.ConnectKeyspaceOP(_) => sessionMock
       case ClusterAPI.CloseOP()            => unit
       case ClusterAPI.ConfigurationOP()    => configuration
-      case ClusterAPI.MetadataOP()         => MetadataTest
+      case ClusterAPI.MetadataOP()         => metadataTest
       case ClusterAPI.MetricsOP()          => MetricsTest
     }
   }
@@ -61,7 +62,7 @@ class ClusterAPISpec extends WordSpec with Matchers with OneInstancePerTest with
       }
 
       val result = program[ClusterAPI.Op].interpret[Id]
-      result shouldBe ((sessionMock, sessionMock, unit, configuration, MetadataTest, MetricsTest))
+      result shouldBe ((sessionMock, sessionMock, unit, configuration, metadataTest, MetricsTest))
     }
 
   }

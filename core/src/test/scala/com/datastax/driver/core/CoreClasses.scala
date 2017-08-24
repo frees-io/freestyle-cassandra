@@ -15,11 +15,18 @@
  */
 
 package com.datastax.driver.core
+import java.net.InetSocketAddress
 import java.nio.ByteBuffer
 import java.util.concurrent.{Executor, TimeUnit}
 
 import com.google.common.util.concurrent.ListenableFuture
 import freestyle.cassandra.TestUtils._
+
+class ClusterTest
+    extends Cluster(
+      "",
+      new java.util.ArrayList[InetSocketAddress],
+      new Configuration.Builder().build())
 
 object CloseFutureTest extends CloseFuture {
   override def force(): CloseFuture = this
@@ -72,7 +79,7 @@ class StatementTest extends Statement {
   override def getKeyspace: String = Null[String]
 }
 
-object MetadataTest extends Metadata(null)
+case class MetadataTest() extends Metadata(null)
 
 object MetricsTest
     extends Metrics(new Cluster.Builder().addContactPoint("127.0.0.1").build().manager)

@@ -17,6 +17,7 @@
 package freestyle.cassandra
 package schema
 
+import cats.data.NonEmptyList
 import com.datastax.driver.core.{
   AbstractTableMetadata,
   CodecRegistry,
@@ -65,6 +66,11 @@ trait MetadataArbitraries {
       cql: String,
       createTable: CreateTable,
       tableMetadata: AbstractTableMetadata)
+
+  case class GeneratedKeyspaceAndTable(
+      cql: String,
+      generatedKeyspace: GeneratedKeyspace,
+      generatedTable: GeneratedTable)
 
   case class GeneratedIndex(cql: String, createIndex: CreateIndex, indexMetadata: IndexMetadata)
 
@@ -305,6 +311,19 @@ trait MetadataArbitraries {
     }
   }
 
+  implicit val generatedTableList: Arbitrary[GeneratedKeyspaceAndTable] = Arbitrary {
+    for {
+      keyspace <- generatedKeyspaceArb.arbitrary
+      table    <- generatedTableArb(Some(keyspace)).arbitrary
+    } yield
+      GeneratedKeyspaceAndTable(
+        s"""${keyspace.cql}
+           |${table.cql}""".stripMargin,
+        keyspace,
+        table
+      )
+  }
+
   implicit val generatedIndexArb: Arbitrary[GeneratedIndex] = {
 
     def indexCQL(
@@ -443,6 +462,23 @@ trait MetadataArbitraries {
     }
 
   }
+
+  val schemaGen: Gen[
+    (
+        GeneratedKeyspace,
+        NonEmptyList[GeneratedTable],
+        List[GeneratedIndex],
+        List[GeneratedUserType])] =
+    for {
+      keyspace     <- generatedKeyspaceArb.arbitrary
+      headTable    <- generatedTableArb(Some(keyspace)).arbitrary
+      numTables    <- Gen.chooseNum[Int](0, 2)
+      tables       <- Gen.listOfN(numTables, generatedTableArb(Some(keyspace)).arbitrary)
+      numIndexes   <- Gen.chooseNum[Int](0, 2)
+      indexes      <- Gen.listOfN(numIndexes, generatedIndexArb.arbitrary)
+      numUserTypes <- Gen.chooseNum[Int](0, 3)
+      userTypes    <- Gen.listOfN(numUserTypes, generatedUserTypeArb.arbitrary)
+    } yield (keyspace, NonEmptyList(headTable, tables), indexes, userTypes)
 
 }
 

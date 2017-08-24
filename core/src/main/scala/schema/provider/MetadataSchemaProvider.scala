@@ -19,14 +19,7 @@ package schema.provider
 
 import cats.implicits._
 import cats.~>
-import com.datastax.driver.core.{
-  Cluster,
-  IndexMetadata,
-  KeyspaceMetadata,
-  Metadata,
-  TableMetadata,
-  UserType
-}
+import com.datastax.driver.core._
 import freestyle._
 import freestyle.FreeS
 import freestyle.cassandra.schema.provider.metadata.SchemaConversions
@@ -40,6 +33,18 @@ import scala.language.postfixOps
 class MetadataSchemaProvider(cluster: Cluster)
     extends SchemaDefinitionProvider
     with SchemaConversions {
+
+  def extractTables(keyspaceMetadata: KeyspaceMetadata): List[AbstractTableMetadata] =
+    keyspaceMetadata.getTables.asScala.toList
+
+  def extractIndexes(tableMetadataList: List[AbstractTableMetadata]): List[IndexMetadata] =
+    tableMetadataList.flatMap {
+      case (t: TableMetadata) => t.getIndexes.asScala.toList
+      case _                  => Nil
+    }
+
+  def extractUserTypes(keyspaceMetadata: KeyspaceMetadata): List[UserType] =
+    keyspaceMetadata.getUserTypes.asScala.toList
 
   override def schemaDefinition: Either[SchemaDefinitionProviderError, SchemaDefinition] = {
 
@@ -62,10 +67,10 @@ class MetadataSchemaProvider(cluster: Cluster)
     Either.catchNonFatal {
       Await.result(metadataF[ClusterAPI.Op].interpret[Future], 10.seconds)
     } leftMap (SchemaDefinitionProviderError(_)) flatMap { metadata =>
-      val keyspaceList: List[KeyspaceMetadata] = metadata.getKeyspaces.asScala.toList
-      val tableList: List[TableMetadata]       = keyspaceList.flatMap(_.getTables.asScala.toList)
-      val indexList: List[IndexMetadata]       = tableList.flatMap(_.getIndexes.asScala.toList)
-      val userTypeList: List[UserType]         = keyspaceList.flatMap(_.getUserTypes.asScala.toList)
+      val keyspaceList: List[KeyspaceMetadata]   = metadata.getKeyspaces.asScala.toList
+      val tableList: List[AbstractTableMetadata] = keyspaceList.flatMap(extractTables)
+      val indexList: List[IndexMetadata]         = extractIndexes(tableList)
+      val userTypeList: List[UserType]           = keyspaceList.flatMap(extractUserTypes)
 
       for {
         keyspaces <- keyspaceList.traverse(toCreateKeyspace)
