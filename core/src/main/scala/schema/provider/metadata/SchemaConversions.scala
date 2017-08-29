@@ -41,7 +41,7 @@ trait SchemaConversions {
   def toCreateKeyspace(keyspaceMetadata: KeyspaceMetadata): SchemaResult[CreateKeyspace] =
     Either.catchNonFatal {
       val name: String = Option(keyspaceMetadata.getName)
-        .getOrElse(throw new NullPointerException("Schema name is null"))
+        .getOrElse(throw new IllegalArgumentException("Schema name is null"))
       val replication: Option[Replication] = Option(keyspaceMetadata.getReplication)
         .flatMap { m =>
           val seq = m.asScala.toSeq
