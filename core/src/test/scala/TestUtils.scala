@@ -23,6 +23,7 @@ import com.google.common.util.concurrent.{
   ListeningExecutorService,
   MoreExecutors
 }
+import org.scalatest.Matchers
 
 object TestUtils {
 
@@ -46,5 +47,133 @@ object TestUtils {
   object Null {
     def apply[A]: A = new Null[A].t
   }
+
+  trait MatchersUtil extends Matchers {
+
+    final class AnyOps[T](value: T) {
+
+      def isEqualTo(other: T): Boolean = {
+        value shouldBe other
+        value == other
+      }
+
+    }
+
+    implicit def anyOps[T](value: T): AnyOps[T] = new AnyOps[T](value)
+
+  }
+
+  val reservedKeywords = List(
+    "ADD",
+    "AGGREGATE",
+    "ALL",
+    "ALLOW",
+    "ALTER",
+    "AND",
+    "ANY",
+    "APPLY",
+    "AS",
+    "ASC",
+    "ASCII",
+    "AUTHORIZE",
+    "BATCH",
+    "BEGIN",
+    "BIGINT",
+    "BLOB",
+    "BOOLEAN",
+    "BY",
+    "CLUSTERING",
+    "COLUMNFAMILY",
+    "COMPACT",
+    "CONSISTENCY",
+    "COUNT",
+    "COUNTER",
+    "CREATE",
+    "CUSTOM",
+    "DECIMAL",
+    "DELETE",
+    "DESC",
+    "DISTINCT",
+    "DOUBLE",
+    "DROP",
+    "EACH_QUORUM",
+    "ENTRIES",
+    "EXISTS",
+    "FILTERING",
+    "FLOAT",
+    "FROM",
+    "FROZEN",
+    "FULL",
+    "GRANT",
+    "IF",
+    "IN",
+    "INDEX",
+    "INET",
+    "INFINITY",
+    "INSERT",
+    "INT",
+    "INTO",
+    "KEY",
+    "KEYSPACE",
+    "KEYSPACES",
+    "LEVEL",
+    "LIMIT",
+    "LIST",
+    "LOCAL_ONE",
+    "LOCAL_QUORUM",
+    "MAP",
+    "MATERIALIZED",
+    "MODIFY",
+    "NAN",
+    "NORECURSIVE",
+    "NOSUPERUSER",
+    "NOT",
+    "OF",
+    "ON",
+    "ONE",
+    "ORDER",
+    "PARTITION",
+    "PASSWORD",
+    "PER",
+    "PERMISSION",
+    "PERMISSIONS",
+    "PRIMARY",
+    "QUORUM",
+    "RENAME",
+    "REVOKE",
+    "SCHEMA",
+    "SELECT",
+    "SET",
+    "STATIC",
+    "STORAGE",
+    "SUPERUSER",
+    "TABLE",
+    "TEXT",
+    "TIME",
+    "TIMESTAMP",
+    "TIMEUUID",
+    "THREE",
+    "TO",
+    "TOKEN",
+    "TRUNCATE",
+    "TTL",
+    "TUPLE",
+    "TWO",
+    "TYPE",
+    "UNLOGGED",
+    "UPDATE",
+    "USE",
+    "USER",
+    "USERS",
+    "USING",
+    "UUID",
+    "VALUES",
+    "VARCHAR",
+    "VARINT",
+    "VIEW",
+    "WHERE",
+    "WITH",
+    "WRITETIME"
+  )
 
 }

@@ -36,6 +36,7 @@ class ClusterAPIHandlerSpec
   val sessionMock: Session         = mock[Session]
   val keyspace: String             = "keyspace"
   val configuration: Configuration = new Configuration.Builder().build()
+  val metadataTest: Metadata       = MetadataTest()
 
   import cats.instances.future._
   import freestyle.async.implicits._
@@ -83,8 +84,8 @@ class ClusterAPIHandlerSpec
     "call to getMetadata when calling metadata method" in {
       (clusterMock.getMetadata _)
         .expects()
-        .returns(MetadataTest)
-      run(handler.metadata) shouldBe MetadataTest
+        .returns(metadataTest)
+      run(handler.metadata) shouldBe metadataTest
     }
 
     "throw the exception when calling metadata method" in {

@@ -17,28 +17,56 @@
 package freestyle.cassandra
 package schema.provider
 
-import org.scalatest.{Matchers, WordSpec}
+import java.io.{ByteArrayInputStream, InputStream}
 
-class TroySchemaProviderSpec extends WordSpec with Matchers {
+import freestyle.cassandra.TestUtils.{MatchersUtil, Null}
+import org.scalacheck.Prop._
+import org.scalatest.WordSpec
+import org.scalatest.prop.Checkers
 
-  import freestyle.cassandra.schema.SchemaData._
+class TroySchemaProviderSpec extends WordSpec with MatchersUtil with Checkers {
+
+  import freestyle.cassandra.schema.MetadataArbitraries._
 
   "schemaDefinition" should {
 
     "return the keyspace definition for a valid keyspace cql" in {
-      new TroySchemaProvider(keyspaceCQL).schemaDefinition shouldBe Right(Seq(keyspaceDef))
+      check {
+        forAll { keyspace: GeneratedKeyspace =>
+          val is: InputStream = new ByteArrayInputStream(keyspace.cql.getBytes)
+          val fromString      = TroySchemaProvider(keyspace.cql).schemaDefinition
+          val fromInputStream = TroySchemaProvider(is).schemaDefinition
+          (fromString isEqualTo Right(Seq(keyspace.createKeyspace))) &&
+          (fromInputStream isEqualTo Right(Seq(keyspace.createKeyspace)))
+        }
+      }
     }
 
     "return the keyspace definition for a valid table cql" in {
-      new TroySchemaProvider(tableCQL).schemaDefinition shouldBe Right(Seq(tableDef))
+      check {
+        forAll { table: GeneratedTable =>
+          TroySchemaProvider(table.cql).schemaDefinition isEqualTo Right(Seq(table.createTable))
+        }
+      }
     }
 
     "return the keyspace definition for a valid keyspace and table cql" in {
-      new TroySchemaProvider(CQL).schemaDefinition shouldBe Right(Seq(keyspaceDef, tableDef))
+      check {
+        forAll { keyspaceAndTable: GeneratedKeyspaceAndTable =>
+          TroySchemaProvider(keyspaceAndTable.cql).schemaDefinition isEqualTo Right(
+            Seq(
+              keyspaceAndTable.generatedKeyspace.createKeyspace,
+              keyspaceAndTable.generatedTable.createTable))
+        }
+      }
     }
 
     "return a left for an invalid cql" in {
-      new TroySchemaProvider("CREATE KEYSPACE WITH replication").schemaDefinition.isLeft shouldBe true
+      TroySchemaProvider("CREATE KEYSPACE WITH replication").schemaDefinition.isLeft shouldBe true
+    }
+
+    "return a left for an invalid inputstream" in {
+      TroySchemaProvider(Null[InputStream]).schemaDefinition.isLeft shouldBe true
     }
 
   }
