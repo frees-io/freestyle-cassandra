@@ -58,25 +58,20 @@ class MetadataSchemaProvider[M[_]](cluster: Cluster)(implicit H: ClusterAPI.Op ~
     def closeF[F[_]](implicit clusterAPI: ClusterAPI[F]): FreeS[F, Unit] =
       clusterAPI.close
 
-    val m: M[SchemaDefinition] =
-      M.flatMap(
-        guarantee(metadataF[ClusterAPI.Op].interpret[M], closeF[ClusterAPI.Op].interpret[M])) {
-        metadata =>
-          val keyspaceList: List[KeyspaceMetadata]   = metadata.getKeyspaces.asScala.toList
-          val tableList: List[AbstractTableMetadata] = keyspaceList.flatMap(extractTables)
-          val indexList: List[IndexMetadata]         = extractIndexes(tableList)
-          val userTypeList: List[UserType]           = keyspaceList.flatMap(extractUserTypes)
+    M.flatMap(guarantee(metadataF[ClusterAPI.Op].interpret[M], closeF[ClusterAPI.Op].interpret[M])) {
+      metadata =>
+        val keyspaceList: List[KeyspaceMetadata]   = metadata.getKeyspaces.asScala.toList
+        val tableList: List[AbstractTableMetadata] = keyspaceList.flatMap(extractTables)
+        val indexList: List[IndexMetadata]         = extractIndexes(tableList)
+        val userTypeList: List[UserType]           = keyspaceList.flatMap(extractUserTypes)
 
-          M.map4(
-            keyspaceList.traverse(toCreateKeyspace[M]),
-            tableList.traverse(toCreateTable[M]),
-            indexList.traverse(toCreateIndex[M](_)),
-            userTypeList.traverse(toUserType[M])
-          ) { (a0, a1, a2, a3) =>
-            a0 ++ a1 ++ a2 ++ a3
-          }
-      }
-    m
+        M.map4(
+          keyspaceList.traverse(toCreateKeyspace[M]),
+          tableList.traverse(toCreateTable[M]),
+          indexList.traverse(toCreateIndex[M](_)),
+          userTypeList.traverse(toUserType[M])
+        )(_ ++ _ ++ _ ++ _)
+    }
   }
 }
 
