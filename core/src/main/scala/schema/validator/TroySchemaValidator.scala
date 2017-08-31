@@ -17,16 +17,15 @@
 package freestyle.cassandra
 package schema.validator
 
-import cats.data.NonEmptyList
-import cats.syntax.either._
+import cats.MonadError
+import cats.data.{NonEmptyList, Validated, ValidatedNel}
 import freestyle.cassandra.schema._
 import troy.schema.{Message, Result, SchemaEngine, V}
 
 object TroySchemaValidator {
 
-  def validateStatement(
-      schema: SchemaDefinition,
-      st: Statement): Either[NonEmptyList[SchemaError], Unit] = {
+  def validateStatement[M[_]](schema: SchemaDefinition, st: Statement)(
+      implicit M: MonadError[M, Throwable]): M[ValidatedNel[SchemaError, Unit]] = {
 
     implicit class MessageOps(message: Message) {
 
@@ -36,25 +35,27 @@ object TroySchemaValidator {
 
     implicit class ResultOps[T](result: Result[T]) {
 
-      def toEither: Either[Seq[Message], T] =
+      def toValidatedNel: ValidatedNel[SchemaError, T] =
         result match {
-          case V.Success(res, _) => res.asRight
-          case V.Error(es, _)    => es.asLeft
+          case V.Success(res, _) => Validated.valid(res)
+          case V.Error(es, _) =>
+            Validated.invalid(
+              NonEmptyList
+                .fromList(es.map(_.toSchemaValidatorError).toList)
+                .getOrElse(NonEmptyList(SchemaValidatorError("Unknown error"), Nil)))
         }
 
     }
 
-    SchemaEngine(schema)
-      .flatMap(schemaEngine => schemaEngine(st))
-      .map(_ => (): Unit)
-      .toEither
-      .leftMap { seq =>
-        NonEmptyList
-          .fromList(seq.map(_.toSchemaValidatorError).toList)
-          .getOrElse(NonEmptyList(SchemaValidatorError("Unknown error"), Nil))
-      }
+    M.catchNonFatal {
+      SchemaEngine(schema)
+        .flatMap(schemaEngine => schemaEngine(st))
+        .map(_ => (): Unit)
+        .toValidatedNel
+    }
   }
 
-  implicit val instance: SchemaValidator = SchemaValidator(validateStatement)
+  implicit def instance[M[_]](implicit M: MonadError[M, Throwable]): SchemaValidator[M] =
+    SchemaValidator[M](validateStatement[M])
 
 }

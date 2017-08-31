@@ -17,37 +17,30 @@
 package freestyle.cassandra
 package schema
 
-import cats.data.Validated._
-import cats.data.{NonEmptyList, ValidatedNel}
-import cats.syntax.either._
+import cats.MonadError
+import cats.data.ValidatedNel
 import freestyle.cassandra.schema.provider.SchemaDefinitionProvider
 
 package object validator {
 
-  trait SchemaValidator {
+  trait SchemaValidator[M[_]] {
 
-    def validateStatement(
-        sdp: SchemaDefinitionProvider,
-        st: Statement): ValidatedNel[SchemaError, Unit]
+    def validateStatement(sdp: SchemaDefinitionProvider[M], st: Statement)(
+        implicit M: MonadError[M, Throwable]): M[ValidatedNel[SchemaError, Unit]]
 
   }
 
   object SchemaValidator {
 
-    def apply(
-        f: (SchemaDefinition, Statement) => Either[NonEmptyList[SchemaError], Unit]): SchemaValidator =
-      new SchemaValidator() {
+    def apply[M[_]](
+        f: (SchemaDefinition, Statement) => M[ValidatedNel[SchemaError, Unit]]): SchemaValidator[M] =
+      new SchemaValidator[M]() {
 
-        override def validateStatement(
-            sdp: SchemaDefinitionProvider,
-            st: Statement): ValidatedNel[SchemaError, Unit] =
-          fromEither {
-            sdp.schemaDefinition
-              .leftMap(NonEmptyList(_, Nil))
-              .flatMap(f(_, st))
-          }
+        override def validateStatement(sdp: SchemaDefinitionProvider[M], st: Statement)(
+            implicit M: MonadError[M, Throwable]): M[ValidatedNel[SchemaError, Unit]] =
+          M.flatMap(sdp.schemaDefinition)(f(_, st))
+
       }
-
   }
 
 }

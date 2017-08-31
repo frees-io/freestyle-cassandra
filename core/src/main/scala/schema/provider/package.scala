@@ -17,10 +17,12 @@
 package freestyle.cassandra
 package schema
 
+import cats.MonadError
+
 package object provider {
 
-  trait SchemaDefinitionProvider {
-    def schemaDefinition: SchemaResult[SchemaDefinition]
+  trait SchemaDefinitionProvider[M[_]] {
+    def schemaDefinition(implicit M: MonadError[M, Throwable]): M[SchemaDefinition]
   }
 
 }
