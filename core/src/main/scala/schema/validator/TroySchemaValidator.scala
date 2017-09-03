@@ -47,7 +47,7 @@ object TroySchemaValidator {
 
     }
 
-    M.catchNonFatal {
+    catchNonFatalAsSchemaError {
       SchemaEngine(schema)
         .flatMap(schemaEngine => schemaEngine(st))
         .map(_ => (): Unit)

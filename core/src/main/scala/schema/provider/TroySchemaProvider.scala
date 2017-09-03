@@ -44,8 +44,7 @@ object TroySchemaProvider {
     new TroySchemaProvider(M.pure(cql))
 
   def apply[M[_]](is: InputStream)(implicit M: MonadError[M, Throwable]): TroySchemaProvider[M] =
-    new TroySchemaProvider[M](M.handleErrorWith {
-      M.catchNonFatal(scala.io.Source.fromInputStream(is).mkString)
-    }(e => M.raiseError(SchemaDefinitionProviderError(e))))
+    new TroySchemaProvider[M](
+      catchNonFatalAsSchemaError(scala.io.Source.fromInputStream(is).mkString))
 
 }

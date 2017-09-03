@@ -29,7 +29,7 @@ import com.datastax.driver.core.{
   UserType,
   DataType => DatastaxDataType
 }
-import freestyle.cassandra.schema.SchemaDefinitionProviderError
+import freestyle.cassandra.schema._
 import troy.cql.ast._
 import troy.cql.ast.ddl.Keyspace.Replication
 import troy.cql.ast.ddl.Table.PrimaryKey
@@ -42,45 +42,41 @@ trait SchemaConversions {
 
   def toCreateKeyspace[M[_]](keyspaceMetadata: KeyspaceMetadata)(
       implicit M: MonadError[M, Throwable]): M[CreateKeyspace] =
-    M.handleErrorWith {
-      M.catchNonFatal {
-        val name: String = Option(keyspaceMetadata.getName)
-          .getOrElse(throw new IllegalArgumentException("Schema name is null"))
-        val replication: Option[Replication] = Option(keyspaceMetadata.getReplication)
-          .flatMap { m =>
-            val seq = m.asScala.toSeq
-            if (seq.isEmpty) None else Option(Replication(seq.sortBy(_._1)))
-          }
-        CreateKeyspace(
-          ifNotExists = false,
-          keyspaceName = KeyspaceName(name),
-          properties = replication map (Seq(_)) getOrElse Seq.empty)
-      }
-    }(e => M.raiseError(SchemaDefinitionProviderError(e)))
+    catchNonFatalAsSchemaError {
+      val name: String = Option(keyspaceMetadata.getName)
+        .getOrElse(throw new IllegalArgumentException("Schema name is null"))
+      val replication: Option[Replication] = Option(keyspaceMetadata.getReplication)
+        .flatMap { m =>
+          val seq = m.asScala.toSeq
+          if (seq.isEmpty) None else Option(Replication(seq.sortBy(_._1)))
+        }
+      CreateKeyspace(
+        ifNotExists = false,
+        keyspaceName = KeyspaceName(name),
+        properties = replication map (Seq(_)) getOrElse Seq.empty)
+    }
 
   def toCreateTable[M[_]](metadata: AbstractTableMetadata)(
       implicit M: MonadError[M, Throwable]): M[CreateTable] =
-    M.handleErrorWith {
-      val columnsM: M[List[Table.Column]] =
-        M.traverse(metadata.getColumns.asScala.toList)(toTableColumn[M](_)(M))
-      val pKeyM: M[PrimaryKey] = toPrimaryKey(
-        metadata.getPartitionKey.asScala.toList,
-        metadata.getClusteringColumns.asScala.toList)
+    M.flatten {
+      catchNonFatalAsSchemaError {
+        val columnsM: M[List[Table.Column]] =
+          M.traverse(metadata.getColumns.asScala.toList)(toTableColumn[M](_)(M))
+        val pKeyM: M[PrimaryKey] = toPrimaryKey(
+          metadata.getPartitionKey.asScala.toList,
+          metadata.getClusteringColumns.asScala.toList)
 
-      val f: M[(List[Table.Column], PrimaryKey) => CreateTable] = M.catchNonFatal {
-        (columns: List[Table.Column], pKey: PrimaryKey) =>
+        M.map2(columnsM, pKeyM) { (columns, pKey) =>
           CreateTable(
             ifNotExists = false,
-            tableName =
-              TableName(Some(KeyspaceName(metadata.getKeyspace.getName)), metadata.getName),
+            tableName = TableName(Some(KeyspaceName(metadata.getKeyspace.getName)), metadata.getName),
             columns = columns,
             primaryKey = Some(pKey),
             options = Seq.empty
           )
+        }
       }
-
-      M.ap2(f)(columnsM, pKeyM)
-    }(e => M.raiseError(SchemaDefinitionProviderError(e)))
+    }
 
   def readTable(metadata: IndexMetadata): TableName =
     TableName(Some(KeyspaceName(metadata.getTable.getKeyspace.getName)), metadata.getTable.getName)
@@ -89,46 +85,40 @@ trait SchemaConversions {
       metadata: IndexMetadata,
       readTable: (IndexMetadata) => TableName = readTable)(
       implicit M: MonadError[M, Throwable]): M[CreateIndex] =
-    M.handleErrorWith {
-      M.catchNonFatal {
-        CreateIndex(
-          isCustom = metadata.isCustomIndex,
-          ifNotExists = false,
-          indexName = Option(metadata.getName),
-          tableName = readTable(metadata),
-          identifier = Index.Identifier(metadata.getTarget),
-          using =
-            if (metadata.isCustomIndex)
-              // The options are not visible in the IndexMetadata class
-              Some(Index.Using(metadata.getIndexClassName, None))
-            else None
-        )
-      }
-    }(e => M.raiseError(SchemaDefinitionProviderError(e)))
+    catchNonFatalAsSchemaError {
+      CreateIndex(
+        isCustom = metadata.isCustomIndex,
+        ifNotExists = false,
+        indexName = Option(metadata.getName),
+        tableName = readTable(metadata),
+        identifier = Index.Identifier(metadata.getTarget),
+        using =
+          if (metadata.isCustomIndex)
+            // The options are not visible in the IndexMetadata class
+            Some(Index.Using(metadata.getIndexClassName, None))
+          else None
+      )
+    }
 
   def toUserType[M[_]](userType: UserType)(implicit M: MonadError[M, Throwable]): M[CreateType] =
-    M.handleErrorWith {
-      val fieldsM: M[List[Field]] =
-        M.flatMap(M.catchNonFatal(userType.getFieldNames.asScala.toList)) { list =>
-          list.traverse { fieldName =>
+    M.flatten {
+      catchNonFatalAsSchemaError {
+        val fieldsM: M[List[Field]] =
+          userType.getFieldNames.asScala.toList.traverse { fieldName =>
             toField(fieldName, userType.getFieldType(fieldName))
           }
+
+        val typeName = TypeName(Some(KeyspaceName(userType.getKeyspace)), userType.getTypeName)
+
+        M.map(fieldsM) { list =>
+          CreateType(ifNotExists = false, typeName = typeName, fields = list)
         }
-
-      val typeNameM = M.catchNonFatal {
-        TypeName(Some(KeyspaceName(userType.getKeyspace)), userType.getTypeName)
       }
-
-      M.map2(fieldsM, typeNameM) { (list, tpeName) =>
-        CreateType(ifNotExists = false, typeName = tpeName, fields = list)
-      }
-    }(e => M.raiseError(SchemaDefinitionProviderError(e)))
+    }
 
   private[this] def toField[M[_]](name: String, datastaxDataType: DatastaxDataType)(
       implicit M: MonadError[M, Throwable]): M[Field] =
-    M.map(toDataType(datastaxDataType)) { dataType =>
-      Field(name, dataType)
-    }
+    M.map(toDataType(datastaxDataType))(Field(name, _))
 
   private[this] def toTableColumn[M[_]](metadata: ColumnMetadata)(
       implicit M: MonadError[M, Throwable]): M[Table.Column] =
@@ -211,7 +201,8 @@ trait SchemaConversions {
       M.map(tupleType.getComponentTypes.asScala.toList.traverse(toDataTypeNative))(DataType.Tuple)
 
     dataType match {
-      case nativeType: NativeType         => M.widen[DataType.Native, DataType](toDataTypeNative(dataType))
+      case nativeType: NativeType =>
+        M.widen[DataType.Native, DataType](toDataTypeNative(nativeType))
       case customType: CustomType         => toCustomType(customType.getCustomTypeClassName)
       case collectionType: CollectionType => toCollectionType(collectionType)
       case tupleType: TupleType           => toTupleType(tupleType)
