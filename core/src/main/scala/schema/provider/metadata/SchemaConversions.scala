@@ -69,8 +69,7 @@ trait SchemaConversions {
         M.map2(columnsM, pKeyM) { (columns, pKey) =>
           CreateTable(
             ifNotExists = false,
-            tableName =
-              TableName(Some(KeyspaceName(metadata.getKeyspace.getName)), metadata.getName),
+            tableName = TableName(Some(KeyspaceName(metadata.getKeyspace.getName)), metadata.getName),
             columns = columns,
             primaryKey = Some(pKey),
             options = Seq.empty
