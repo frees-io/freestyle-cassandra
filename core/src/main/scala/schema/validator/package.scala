@@ -19,28 +19,14 @@ package schema
 
 import cats.MonadError
 import cats.data.ValidatedNel
-import freestyle.cassandra.schema.provider.SchemaDefinitionProvider
 
 package object validator {
 
   trait SchemaValidator[M[_]] {
 
-    def validateStatement(sdp: SchemaDefinitionProvider[M], st: Statement)(
+    def validateStatement(st: Statement)(
         implicit M: MonadError[M, Throwable]): M[ValidatedNel[SchemaError, Unit]]
 
-  }
-
-  object SchemaValidator {
-
-    def apply[M[_]](
-        f: (SchemaDefinition, Statement) => M[ValidatedNel[SchemaError, Unit]]): SchemaValidator[M] =
-      new SchemaValidator[M]() {
-
-        override def validateStatement(sdp: SchemaDefinitionProvider[M], st: Statement)(
-            implicit M: MonadError[M, Throwable]): M[ValidatedNel[SchemaError, Unit]] =
-          M.flatMap(sdp.schemaDefinition)(f(_, st))
-
-      }
   }
 
 }

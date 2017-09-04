@@ -18,7 +18,7 @@ package freestyle.cassandra
 package schema.validator
 
 import cats.MonadError
-import cats.data.{NonEmptyList, Validated}
+import cats.data.{NonEmptyList, Validated, ValidatedNel}
 import cats.instances.either._
 import freestyle.cassandra.TestUtils.EitherM
 import freestyle.cassandra.schema.provider.SchemaDefinitionProvider
@@ -29,12 +29,6 @@ import troy.cql.ast.{SelectStatement, TableName}
 import troy.cql.ast.dml.Select
 
 class SchemaValidatorSpec extends WordSpec with Matchers with MockFactory {
-
-  val mockSdp = new SchemaDefinitionProvider[EitherM] {
-    override def schemaDefinition(
-        implicit M: MonadError[EitherM, Throwable]): EitherM[SchemaDefinition] =
-      Right(Seq.empty)
-  }
 
   val mockStatement: Statement = SelectStatement(
     mod = None,
@@ -50,29 +44,27 @@ class SchemaValidatorSpec extends WordSpec with Matchers with MockFactory {
   "apply method" should {
 
     "return Unit if the schema provider and the provided function works as expected" in {
-      SchemaValidator[EitherM]((_, _) => Right(Validated.valid((): Unit)))
-        .validateStatement(mockSdp, mockStatement) shouldBe Right(Validated.valid((): Unit))
+      val sv: SchemaValidator[EitherM] = new SchemaValidator[EitherM] {
+        override def validateStatement(st: Statement)(
+            implicit M: MonadError[EitherM, Throwable]): Either[
+          Throwable,
+          ValidatedNel[SchemaError, Unit]] = Right(Validated.valid((): Unit))
+      }
+
+      sv.validateStatement(mockStatement) shouldBe Right(Validated.valid((): Unit))
     }
 
     "return an error if the schema provider return an error" in {
 
       val exc = SchemaDefinitionProviderError("Test error")
-      val sdp = new SchemaDefinitionProvider[EitherM] {
-        override def schemaDefinition(
-            implicit M: MonadError[EitherM, Throwable]): EitherM[SchemaDefinition] =
-          Left(exc)
+      val sv: SchemaValidator[EitherM] = new SchemaValidator[EitherM] {
+        override def validateStatement(st: Statement)(
+            implicit M: MonadError[EitherM, Throwable]): Either[
+          Throwable,
+          ValidatedNel[SchemaError, Unit]] = Left(exc)
       }
 
-      SchemaValidator[EitherM]((_, _) => Right(Validated.valid((): Unit)))
-        .validateStatement(sdp, mockStatement) shouldBe Left(exc)
-    }
-
-    "return an error if the provided function return an error" in {
-
-      val exc = SchemaValidatorError("Test error")
-
-      SchemaValidator[EitherM]((_, _) => Left(exc))
-        .validateStatement(mockSdp, mockStatement) shouldBe Left(exc)
+      sv.validateStatement(mockStatement) shouldBe Left(exc)
     }
 
   }

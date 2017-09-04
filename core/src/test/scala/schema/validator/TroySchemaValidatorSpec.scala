@@ -38,15 +38,16 @@ class TroySchemaValidatorSpec extends WordSpec with MatchersUtil with Checkers {
 
       check {
         forAll { st: GeneratedStatement =>
-          val sdp = new SchemaDefinitionProvider[EitherM] {
-            override def schemaDefinition(
-                implicit M: MonadError[EitherM, Throwable]): EitherM[SchemaDefinition] =
-              Right(Seq(st.keyspace, st.table))
-          }
+          implicit val sdp: SchemaDefinitionProvider[EitherM] =
+            new SchemaDefinitionProvider[EitherM] {
+              override def schemaDefinition(
+                  implicit M: MonadError[EitherM, Throwable]): EitherM[SchemaDefinition] =
+                Right(Seq(st.keyspace, st.table))
+            }
 
-          (instance[EitherM].validateStatement(sdp, st.validStatement._2) isEqualTo Right(
+          (instance[EitherM].validateStatement(st.validStatement._2) isEqualTo Right(
             Valid((): Unit))) &&
-          (instance[EitherM].validateStatement(sdp, st.invalidStatement._2) isLikeTo { either =>
+          (instance[EitherM].validateStatement(st.invalidStatement._2) isLikeTo { either =>
             either.isRight && either.right.get.isInvalid
           })
         }
