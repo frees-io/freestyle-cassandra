@@ -186,8 +186,6 @@ class TestDecoderUtils extends WordSpec with Matchers with Checkers with MockFac
     (builder, soc)
   }
 
-  def clusterBuilderDecoder: Decoder[Config, Cluster.Builder] = new ClusterDecoderBuilder().build
-
   val validClusterConfiguration: ClusterBuilderConfig = ClusterBuilderConfig(
     contactPoints = List(IpConfig(127, 0, 0, 1)),
     credentials = CredentialsConfig(username = "user", password = "pass").some,

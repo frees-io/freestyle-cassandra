@@ -17,8 +17,6 @@
 package freestyle.cassandra
 package config
 
-import java.net.InetSocketAddress
-
 import freestyle.cassandra.config.ClusterConfig.{
   PoolingOptionsConfig,
   QueryOptionsConfig,
@@ -88,7 +86,7 @@ class ClusterDecoderSpec extends TestDecoderUtils {
 
     "parse a valid configuration and set the right values in the Cluster.Builder" in {
 
-      val decoder      = readConfig[Config]("cluster") andThen clusterBuilderDecoder
+      val decoder      = readConfig[Config]("cluster") andThen decoders.clusterBuilderDecoder
       val configString = s"cluster = ${validClusterConfiguration.print}"
       val rawConfig    = ConfigFactory.parseString(configString)
       val result       = decoder(rawConfig)
