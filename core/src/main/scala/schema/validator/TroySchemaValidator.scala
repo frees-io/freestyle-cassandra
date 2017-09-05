@@ -31,35 +31,29 @@ class TroySchemaValidator[M[_]](
   override def validateStatement(st: Statement)(
       implicit M: MonadError[M, Throwable]): M[ValidatedNel[SchemaError, Unit]] = {
 
+    def toSchemaValidatorError(message: Message): SchemaValidatorError =
+      SchemaValidatorError(message.message)
+
+    def toValidatedNel[T](result: Result[T]): ValidatedNel[SchemaError, T] =
+      result match {
+        case V.Success(res, _) => Validated.valid(res)
+        case V.Error(es, _) =>
+          Validated.invalid(
+            NonEmptyList
+              .fromList(es.map(toSchemaValidatorError).toList)
+              .getOrElse(NonEmptyList(SchemaValidatorError("Unknown error"), Nil)))
+      }
+
     def validateStatement(
         schema: SchemaDefinition,
         st: Statement): M[ValidatedNel[SchemaError, Unit]] = {
 
-      implicit class MessageOps(message: Message) {
-
-        def toSchemaValidatorError: SchemaValidatorError = SchemaValidatorError(message.message)
-
-      }
-
-      implicit class ResultOps[T](result: Result[T]) {
-
-        def toValidatedNel: ValidatedNel[SchemaError, T] =
-          result match {
-            case V.Success(res, _) => Validated.valid(res)
-            case V.Error(es, _) =>
-              Validated.invalid(
-                NonEmptyList
-                  .fromList(es.map(_.toSchemaValidatorError).toList)
-                  .getOrElse(NonEmptyList(SchemaValidatorError("Unknown error"), Nil)))
-          }
-
-      }
-
       catchNonFatalAsSchemaError {
-        SchemaEngine(schema)
-          .flatMap(schemaEngine => schemaEngine(st))
-          .map(_ => (): Unit)
-          .toValidatedNel
+        toValidatedNel {
+          SchemaEngine(schema)
+            .flatMap(schemaEngine => schemaEngine(st))
+            .map(_ => (): Unit)
+        }
       }
     }
 
