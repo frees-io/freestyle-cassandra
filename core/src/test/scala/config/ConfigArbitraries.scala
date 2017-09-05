@@ -95,6 +95,52 @@ trait ConfigArbitraries {
     )
   }
 
+  case class PathValue(path: String, value: Option[String]) {
+    def print: String = value.map(s => s"""$path = "$s" """).getOrElse("")
+  }
+
+  case class OptionalValues2(v1: PathValue, v2: PathValue, config: String)
+
+  case class OptionalValues3(v1: PathValue, v2: PathValue, v3: PathValue, config: String)
+
+  def pathValueGen(pos: Int): Gen[PathValue] =
+    Gen.option(Gen.identifier).map(v => PathValue(s"path$pos", v))
+
+  implicit val optionalValues2Arbitrary: Arbitrary[OptionalValues2] = Arbitrary {
+    for {
+      v1 <- pathValueGen(1)
+      v2 <- pathValueGen(2)
+    } yield
+      OptionalValues2(
+        v1,
+        v2,
+        s"""
+           |config = {
+           |  ${v1.print}
+           |  ${v2.print}
+           |}""".stripMargin
+      )
+  }
+
+  implicit val optionalValues3Arbitrary: Arbitrary[OptionalValues3] = Arbitrary {
+    for {
+      v1 <- pathValueGen(1)
+      v2 <- pathValueGen(2)
+      v3 <- pathValueGen(3)
+    } yield
+      OptionalValues3(
+        v1,
+        v2,
+        v3,
+        s"""
+           |config = {
+           |  ${v1.print}
+           |  ${v2.print}
+           |  ${v3.print}
+           |}""".stripMargin
+      )
+  }
+
 }
 
 object ConfigArbitraries extends ConfigArbitraries

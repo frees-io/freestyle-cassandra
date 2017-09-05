@@ -23,14 +23,15 @@ import java.util.concurrent.Executor
 import cats.implicits._
 import classy.DecodeError.{AtPath, Missing, Underlying, WrongType}
 import classy.{DecodeError, Decoder, Read}
-import com.datastax.driver.core.ProtocolOptions.Compression
 import com.datastax.driver.core._
+import com.datastax.driver.core.ProtocolOptions.Compression
 import com.datastax.driver.core.policies._
 import freestyle.cassandra.config.model._
 
+import scala.util.matching.Regex
 import scala.util.{Failure, Success, Try}
 
-trait DatastaxReads[Config] {
+trait DatastaxReads[Config] extends InetBuilderWrapper {
 
   import maps._
 
@@ -53,6 +54,21 @@ trait DatastaxReads[Config] {
   def read[A, B](f: A => Decoder[Config, B])(implicit R: Read[Config, A]): Read[Config, B] =
     Read.instance[Config, B](path => R.apply(path).flatMap(f))
 
+  def inetAddressParser(s: String): Either[DecodeError, InetAddress] =
+    Either.catchNonFatal(inetAddress(s)).leftMap(_ => WrongType("X.X.X.X", Some(s)))
+
+  def inetSocketAddressParser(s: String): Either[DecodeError, InetSocketAddress] = {
+    val SockedAddress: Regex             = "([^:]+):([0-9]+)".r
+    val wrongType: (String) => WrongType = s => WrongType("<hostName>:<port>", Option(s))
+    s match {
+      case SockedAddress(host, port) =>
+        Either
+          .catchNonFatal(inetSocketAddress(host, java.lang.Integer.parseInt(port)))
+          .leftMap(_ => wrongType(s))
+      case _ => Left(wrongType(s))
+    }
+  }
+
   def contactPointListRead(
       implicit R: Read[Config, List[String]]): Read[Config, Option[ContactPoints]] = {
 
@@ -61,17 +77,6 @@ trait DatastaxReads[Config] {
         f: (String) => Either[DecodeError, T],
         apply: List[T] => ContactPoints): Either[DecodeError, ContactPoints] =
       l.traverse(f).map(apply)
-
-    def inetAddressParser(s: String): Either[DecodeError, InetAddress] =
-      Either.catchNonFatal(InetAddress.getByName(s)).leftMap(_ => WrongType("X.X.X.X", Some(s)))
-
-    def inetSocketAddressParser(s: String): Either[DecodeError, InetSocketAddress] = {
-      val SockedAddress = "([^:]+):([0-9]+)".r
-      s match {
-        case SockedAddress(host, port) => Right(new InetSocketAddress(host, port.toInt))
-        case _                         => Left(WrongType("<hostName>:<port>", Some(s)))
-      }
-    }
 
     read[List[String], Option[ContactPoints]] { list =>
       trav[InetSocketAddress](list, inetSocketAddressParser, ContactPointWithPortList)
@@ -181,6 +186,15 @@ trait DatastaxReads[Config] {
         ReadAndPath[HostDistance](s"$path.distance")(stringListRead[HostDistance]),
         ReadAndPath[Int](s"$path.newValue"))(NewConnectionThreshold.tupled)
     }
+
+}
+
+trait InetBuilderWrapper {
+
+  def inetAddress(address: String): InetAddress = InetAddress.getByName(address)
+
+  def inetSocketAddress(host: String, port: Int): InetSocketAddress =
+    new InetSocketAddress(host, port)
 
 }
 
