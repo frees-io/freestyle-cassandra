@@ -46,7 +46,7 @@ class MetadataSchemaProviderSpec
 
   import scala.concurrent.ExecutionContext.Implicits.global
 
-  implicit def clusterAPIInterpreter(implicit C: Cluster): ClusterAPI.Op ~> Future =
+  implicit def futureClusterAPIHanlder(implicit C: Cluster): ClusterAPI.Op ~> Future =
     clusterAPIHandler[Future] andThen apiInterpreter[Future, Cluster](C)
 
   "schemaDefinition" should {

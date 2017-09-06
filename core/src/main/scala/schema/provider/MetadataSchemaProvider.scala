@@ -28,7 +28,7 @@ import freestyle.cassandra.schema.SchemaDefinition
 import scala.collection.JavaConverters._
 import scala.language.postfixOps
 
-class MetadataSchemaProvider[M[_]](cluster: Cluster)(implicit H: ClusterAPI.Op ~> M)
+class MetadataSchemaProvider[M[_]](cluster: Cluster)(implicit H: FSHandler[ClusterAPI.Op, M])
     extends SchemaDefinitionProvider[M]
     with SchemaConversions {
 
