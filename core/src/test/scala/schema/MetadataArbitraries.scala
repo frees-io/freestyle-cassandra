@@ -53,6 +53,7 @@ import troy.cql.ast.{
 }
 
 import scala.collection.JavaConverters._
+import scala.collection.mutable.ListBuffer
 import scala.util.Random
 
 trait MetadataArbitraries {
@@ -112,9 +113,24 @@ trait MetadataArbitraries {
 
   def namedGen[T](implicit gen: Gen[T]): Gen[(String, T)] =
     for {
-      name   <- identifierGen.filter(name => !TestUtils.reservedKeywords.contains(name.toUpperCase))
-      native <- gen
-    } yield (name.toLowerCase, native)
+      name  <- identifierGen.filter(name => !TestUtils.reservedKeywords.contains(name.toUpperCase))
+      value <- gen
+    } yield (name.toLowerCase, value)
+
+  def distinctListOfGen[T](gen: Gen[T], genSize: Gen[Int], maxDiscarded: Int = 1000)(
+      comp: (T) => Any): Gen[List[T]] = genSize.map { size =>
+    val seen: ListBuffer[T] = new ListBuffer[T]
+    var discarded           = 0
+    if (size == seen.size) seen.toList
+    else {
+      while (seen.size <= size && discarded < maxDiscarded) gen.sample match {
+        case Some(t) if !seen.exists(comp(_) == comp(t)) =>
+          seen.+=:(t)
+        case _ => discarded += 1
+      }
+      seen.toList
+    }
+  }
 
   implicit val generatedKeyspaceArb: Arbitrary[GeneratedKeyspace] = {
 
@@ -263,21 +279,28 @@ trait MetadataArbitraries {
       for {
         keyspace <- maybeKeyspace map Gen.const getOrElse generatedKeyspaceArb.arbitrary
         keyspaceName = keyspace.createKeyspace.keyspaceName.name
-        name      <- identifierGen
-        pKey      <- namedGen(nativeDataTypeGen)
-        otherKeys <- Gen.listOf(namedGen(nativeDataTypeGen))
-        partitions = pKey :: otherKeys
-        clustering <- Gen.listOf(namedGen(nativeDataTypeGen))
-        columns    <- Gen.listOf(namedGen(dataTypeGen))
+        name         <- identifierGen
+        numPartKeys  <- Gen.chooseNum(1, 5)
+        numClustKeys <- Gen.chooseNum(0, 5)
+        numColumns   <- Gen.chooseNum(0, 10)
+        columnNames <- distinctListOfGen(
+          identifierGen,
+          Gen.const(numPartKeys + numClustKeys + numColumns))(v => v)
+        part    <- Gen.listOfN(numPartKeys, nativeDataTypeGen)
+        clust   <- Gen.listOfN(numClustKeys, nativeDataTypeGen)
+        columns <- Gen.listOfN(numColumns, dataTypeGen)
+        namedPart  = columnNames.take(numPartKeys).zip(part)
+        namedClust = columnNames.slice(numPartKeys, numPartKeys + numClustKeys).zip(clust)
+        namedCol   = columnNames.takeRight(numColumns).zip(columns)
       } yield {
 
-        val partitionsWithStatic = partitions.map(sampleStatic(_, 0))
-        val clusteringWithStatic = clustering.map(sampleStatic(_, 0))
-        val columnsWithStatic    = columns.map(sampleStatic(_, 0.2))
+        val partitionsWithStatic = namedPart.map(sampleStatic(_, 0))
+        val clusteringWithStatic = namedClust.map(sampleStatic(_, 0))
+        val columnsWithStatic    = namedCol.map(sampleStatic(_, 0.2))
 
         val troyColumns = (partitionsWithStatic ++ clusteringWithStatic).map(toTroyColumns) ++ columnsWithStatic
           .map(toTroyColumns)
-        val troyPrimaryKey = Table.PrimaryKey(partitions.map(_._1), clustering.map(_._1))
+        val troyPrimaryKey = Table.PrimaryKey(namedPart.map(_._1), namedClust.map(_._1))
 
         val datastaxPartitions = partitionsWithStatic.map(toDatastaxColumns)
         val datastaxClustering = clusteringWithStatic.map(toDatastaxColumns)
@@ -430,8 +453,9 @@ trait MetadataArbitraries {
        """.stripMargin,
           SelectStatement(
             mod = None,
-            selection = Select.SelectClause(Seq(
-              Select.SelectionClauseItem(selector = Select.ColumnName(selectColumn), as = None))),
+            selection = Select.SelectClause(
+              Seq(
+                Select.SelectionClauseItem(selector = Select.ColumnName(selectColumn), as = None))),
             from = tableName,
             where = Some(
               WhereClause(
@@ -463,21 +487,23 @@ trait MetadataArbitraries {
 
   }
 
-  val schemaGen: Gen[
-    (
-        GeneratedKeyspace,
-        NonEmptyList[GeneratedTable],
-        List[GeneratedIndex],
-        List[GeneratedUserType])] =
+  val schemaGen: Gen[(
+      GeneratedKeyspace,
+      NonEmptyList[GeneratedTable],
+      List[GeneratedIndex],
+      List[GeneratedUserType])] =
     for {
-      keyspace     <- generatedKeyspaceArb.arbitrary
-      headTable    <- generatedTableArb(Some(keyspace)).arbitrary
-      numTables    <- Gen.chooseNum[Int](0, 2)
-      tables       <- Gen.listOfN(numTables, generatedTableArb(Some(keyspace)).arbitrary)
-      numIndexes   <- Gen.chooseNum[Int](0, 2)
-      indexes      <- Gen.listOfN(numIndexes, generatedIndexArb.arbitrary)
-      numUserTypes <- Gen.chooseNum[Int](0, 3)
-      userTypes    <- Gen.listOfN(numUserTypes, generatedUserTypeArb.arbitrary)
+      keyspace  <- generatedKeyspaceArb.arbitrary
+      headTable <- generatedTableArb(Some(keyspace)).arbitrary
+      tables <- distinctListOfGen[GeneratedTable](
+        generatedTableArb(Some(keyspace)).arbitrary,
+        Gen.chooseNum[Int](0, 2))(_.createTable.tableName)
+      indexes <- distinctListOfGen[GeneratedIndex](
+        generatedIndexArb.arbitrary,
+        Gen.chooseNum[Int](0, 2))(_.createIndex.indexName)
+      userTypes <- distinctListOfGen[GeneratedUserType](
+        generatedUserTypeArb.arbitrary,
+        Gen.chooseNum[Int](0, 3))(_.createType.typeName)
     } yield (keyspace, NonEmptyList(headTable, tables), indexes, userTypes)
 
 }
