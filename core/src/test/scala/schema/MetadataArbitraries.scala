@@ -105,16 +105,17 @@ trait MetadataArbitraries {
       invalidStatement: (String, SelectStatement))
 
   val identifierGen: Gen[String] =
-    for {
+    (for {
       size <- Gen.chooseNum[Int](2, 15)
       c    <- Gen.alphaLowerChar
       cs   <- Gen.listOfN(size, Gen.alphaNumChar)
-    } yield (c :: cs).mkString
+    } yield (c :: cs).mkString).filter(name =>
+      !TestUtils.reservedKeywords.contains(name.toUpperCase))
 
   def namedGen[T](implicit gen: Gen[T]): Gen[(String, T)] =
     for {
-      name  <- identifierGen.filter(name => !TestUtils.reservedKeywords.contains(name.toUpperCase))
-      value <- gen
+      name   <- identifierGen
+      value  <- gen
     } yield (name.toLowerCase, value)
 
   def distinctListOfGen[T](gen: Gen[T], genSize: Gen[Int], maxDiscarded: Int = 1000)(

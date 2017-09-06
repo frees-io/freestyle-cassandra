@@ -17,9 +17,9 @@
 package freestyle.cassandra
 package schema.provider
 
+import cats.instances.either._
+import freestyle.cassandra.TestUtils.{EitherM, MatchersUtil, Null}
 import java.io.{ByteArrayInputStream, InputStream}
-
-import freestyle.cassandra.TestUtils.{MatchersUtil, Null}
 import org.scalacheck.Prop._
 import org.scalatest.WordSpec
 import org.scalatest.prop.Checkers
@@ -34,8 +34,8 @@ class TroySchemaProviderSpec extends WordSpec with MatchersUtil with Checkers {
       check {
         forAll { keyspace: GeneratedKeyspace =>
           val is: InputStream = new ByteArrayInputStream(keyspace.cql.getBytes)
-          val fromString      = TroySchemaProvider(keyspace.cql).schemaDefinition
-          val fromInputStream = TroySchemaProvider(is).schemaDefinition
+          val fromString      = TroySchemaProvider[EitherM](keyspace.cql).schemaDefinition
+          val fromInputStream = TroySchemaProvider[EitherM](is).schemaDefinition
           (fromString isEqualTo Right(Seq(keyspace.createKeyspace))) &&
           (fromInputStream isEqualTo Right(Seq(keyspace.createKeyspace)))
         }
@@ -45,7 +45,8 @@ class TroySchemaProviderSpec extends WordSpec with MatchersUtil with Checkers {
     "return the keyspace definition for a valid table cql" in {
       check {
         forAll { table: GeneratedTable =>
-          TroySchemaProvider(table.cql).schemaDefinition isEqualTo Right(Seq(table.createTable))
+          TroySchemaProvider[EitherM](table.cql).schemaDefinition isEqualTo Right(
+            Seq(table.createTable))
         }
       }
     }
@@ -53,7 +54,7 @@ class TroySchemaProviderSpec extends WordSpec with MatchersUtil with Checkers {
     "return the keyspace definition for a valid keyspace and table cql" in {
       check {
         forAll { keyspaceAndTable: GeneratedKeyspaceAndTable =>
-          TroySchemaProvider(keyspaceAndTable.cql).schemaDefinition isEqualTo Right(
+          TroySchemaProvider[EitherM](keyspaceAndTable.cql).schemaDefinition isEqualTo Right(
             Seq(
               keyspaceAndTable.generatedKeyspace.createKeyspace,
               keyspaceAndTable.generatedTable.createTable))
@@ -62,11 +63,11 @@ class TroySchemaProviderSpec extends WordSpec with MatchersUtil with Checkers {
     }
 
     "return a left for an invalid cql" in {
-      TroySchemaProvider("CREATE KEYSPACE WITH replication").schemaDefinition.isLeft shouldBe true
+      TroySchemaProvider[EitherM]("CREATE KEYSPACE WITH replication").schemaDefinition.isLeft shouldBe true
     }
 
     "return a left for an invalid inputstream" in {
-      TroySchemaProvider(Null[InputStream]).schemaDefinition.isLeft shouldBe true
+      TroySchemaProvider[EitherM](Null[InputStream]).schemaDefinition.isLeft shouldBe true
     }
 
   }

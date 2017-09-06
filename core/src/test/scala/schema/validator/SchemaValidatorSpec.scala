@@ -17,8 +17,10 @@
 package freestyle.cassandra
 package schema.validator
 
-import cats.data.NonEmptyList
-import cats.data.Validated.{Invalid, Valid}
+import cats.MonadError
+import cats.data.{NonEmptyList, Validated, ValidatedNel}
+import cats.instances.either._
+import freestyle.cassandra.TestUtils.EitherM
 import freestyle.cassandra.schema.provider.SchemaDefinitionProvider
 import freestyle.cassandra.schema._
 import org.scalamock.scalatest.MockFactory
@@ -27,11 +29,6 @@ import troy.cql.ast.{SelectStatement, TableName}
 import troy.cql.ast.dml.Select
 
 class SchemaValidatorSpec extends WordSpec with Matchers with MockFactory {
-
-  val mockSdp = new SchemaDefinitionProvider {
-    override def schemaDefinition: SchemaResult[SchemaDefinition] =
-      Right(Seq.empty)
-  }
 
   val mockStatement: Statement = SelectStatement(
     mod = None,
@@ -47,28 +44,27 @@ class SchemaValidatorSpec extends WordSpec with Matchers with MockFactory {
   "apply method" should {
 
     "return Unit if the schema provider and the provided function works as expected" in {
-      SchemaValidator((_, _) => Right((): Unit))
-        .validateStatement(mockSdp, mockStatement) shouldBe Valid((): Unit)
+      val sv: SchemaValidator[EitherM] = new SchemaValidator[EitherM] {
+        override def validateStatement(st: Statement)(
+            implicit M: MonadError[EitherM, Throwable]): Either[
+          Throwable,
+          ValidatedNel[SchemaError, Unit]] = Right(Validated.valid((): Unit))
+      }
+
+      sv.validateStatement(mockStatement) shouldBe Right(Validated.valid((): Unit))
     }
 
     "return an error if the schema provider return an error" in {
 
       val exc = SchemaDefinitionProviderError("Test error")
-      val sdp = new SchemaDefinitionProvider {
-        override def schemaDefinition: SchemaResult[SchemaDefinition] =
-          Left(exc)
+      val sv: SchemaValidator[EitherM] = new SchemaValidator[EitherM] {
+        override def validateStatement(st: Statement)(
+            implicit M: MonadError[EitherM, Throwable]): Either[
+          Throwable,
+          ValidatedNel[SchemaError, Unit]] = Left(exc)
       }
 
-      SchemaValidator((_, _) => Right((): Unit))
-        .validateStatement(sdp, mockStatement) shouldBe Invalid(NonEmptyList(exc, Nil))
-    }
-
-    "return an error if the provided function return an error" in {
-
-      val exc = SchemaValidatorError("Test error")
-
-      SchemaValidator((_, _) => Left(NonEmptyList(exc, Nil)))
-        .validateStatement(mockSdp, mockStatement) shouldBe Invalid(NonEmptyList(exc, Nil))
+      sv.validateStatement(mockStatement) shouldBe Left(exc)
     }
 
   }

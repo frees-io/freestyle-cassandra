@@ -17,6 +17,7 @@
 package freestyle.cassandra
 package schema.provider.metadata
 
+import cats.instances.either._
 import com.datastax.driver.core._
 import freestyle.cassandra.TestUtils._
 import org.scalacheck.Prop.forAll
@@ -37,7 +38,7 @@ class SchemaConversionsSpec extends WordSpec with MatchersUtil with MockFactory 
     "return the right keyspace definition for a valid KeyspaceMetadata object" in {
       check {
         forAll { keyspace: GeneratedKeyspace =>
-          converter.toCreateKeyspace(keyspace.keyspaceMetadata) isEqualTo Right(
+          converter.toCreateKeyspace[EitherM](keyspace.keyspaceMetadata) isEqualTo Right(
             keyspace.createKeyspace)
         }
       }

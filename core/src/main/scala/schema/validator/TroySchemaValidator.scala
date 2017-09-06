@@ -17,44 +17,54 @@
 package freestyle.cassandra
 package schema.validator
 
-import cats.data.NonEmptyList
-import cats.syntax.either._
+import cats.MonadError
+import cats.data.{NonEmptyList, Validated, ValidatedNel}
 import freestyle.cassandra.schema._
+import freestyle.cassandra.schema.provider.SchemaDefinitionProvider
 import troy.schema.{Message, Result, SchemaEngine, V}
+
+class TroySchemaValidator[M[_]](
+    implicit M: MonadError[M, Throwable],
+    SDP: SchemaDefinitionProvider[M])
+    extends SchemaValidator[M] {
+
+  override def validateStatement(st: Statement)(
+      implicit M: MonadError[M, Throwable]): M[ValidatedNel[SchemaError, Unit]] = {
+
+    def toSchemaValidatorError(message: Message): SchemaValidatorError =
+      SchemaValidatorError(message.message)
+
+    def toValidatedNel[T](result: Result[T]): ValidatedNel[SchemaError, T] =
+      result match {
+        case V.Success(res, _) => Validated.valid(res)
+        case V.Error(es, _) =>
+          Validated.invalid(
+            NonEmptyList
+              .fromList(es.map(toSchemaValidatorError).toList)
+              .getOrElse(NonEmptyList(SchemaValidatorError("Unknown error"), Nil)))
+      }
+
+    def validateStatement(
+        schema: SchemaDefinition,
+        st: Statement): M[ValidatedNel[SchemaError, Unit]] = {
+
+      catchNonFatalAsSchemaError {
+        toValidatedNel {
+          SchemaEngine(schema)
+            .flatMap(schemaEngine => schemaEngine(st))
+            .map(_ => (): Unit)
+        }
+      }
+    }
+
+    M.flatMap(SDP.schemaDefinition)(validateStatement(_, st))
+  }
+
+}
 
 object TroySchemaValidator {
 
-  def validateStatement(
-      schema: SchemaDefinition,
-      st: Statement): Either[NonEmptyList[SchemaError], Unit] = {
-
-    implicit class MessageOps(message: Message) {
-
-      def toSchemaValidatorError: SchemaValidatorError = SchemaValidatorError(message.message)
-
-    }
-
-    implicit class ResultOps[T](result: Result[T]) {
-
-      def toEither: Either[Seq[Message], T] =
-        result match {
-          case V.Success(res, _) => res.asRight
-          case V.Error(es, _)    => es.asLeft
-        }
-
-    }
-
-    SchemaEngine(schema)
-      .flatMap(schemaEngine => schemaEngine(st))
-      .map(_ => (): Unit)
-      .toEither
-      .leftMap { seq =>
-        NonEmptyList
-          .fromList(seq.map(_.toSchemaValidatorError).toList)
-          .getOrElse(NonEmptyList(SchemaValidatorError("Unknown error"), Nil))
-      }
-  }
-
-  implicit val instance: SchemaValidator = SchemaValidator(validateStatement)
-
+  implicit def instance[M[_]](
+      implicit M: MonadError[M, Throwable],
+      SDP: SchemaDefinitionProvider[M]): SchemaValidator[M] = new TroySchemaValidator[M]
 }

@@ -16,6 +16,7 @@
 
 package freestyle.cassandra
 
+import cats.MonadError
 import troy.cql.ast.{DataDefinition, DataManipulation}
 
 package object schema {
@@ -33,12 +34,16 @@ package object schema {
       SchemaDefinitionProviderError(e.getMessage, Some(e))
   }
 
-  type SchemaResult[T] = Either[SchemaDefinitionProviderError, T]
-
   case class SchemaValidatorError(msg: String, maybeCause: Option[Throwable] = None)
       extends SchemaError(msg, maybeCause)
 
   type SchemaDefinition = Seq[DataDefinition]
   type Statement        = DataManipulation
+
+  def catchNonFatalAsSchemaError[M[_], A](value: => A)(
+      implicit M: MonadError[M, Throwable]): M[A] =
+    M.handleErrorWith(M.catchNonFatal(value)) { e =>
+      M.raiseError(SchemaDefinitionProviderError(e))
+    }
 
 }

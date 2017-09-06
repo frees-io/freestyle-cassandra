@@ -43,7 +43,7 @@ package object query {
     }
 
     implicit val hnilLister: FieldLister[HNil] = new FieldLister[HNil] {
-      override val list = Nil
+      override val list: List[String] = Nil
     }
 
   }

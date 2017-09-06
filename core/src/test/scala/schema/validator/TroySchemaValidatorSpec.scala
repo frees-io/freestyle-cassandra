@@ -17,9 +17,11 @@
 package freestyle.cassandra
 package schema.validator
 
+import cats.MonadError
+import cats.instances.either._
 import cats.data.Validated.Valid
-import freestyle.cassandra.TestUtils.MatchersUtil
-import freestyle.cassandra.schema.{SchemaDefinition, SchemaResult}
+import freestyle.cassandra.TestUtils.{EitherM, MatchersUtil}
+import freestyle.cassandra.schema.SchemaDefinition
 import freestyle.cassandra.schema.provider.SchemaDefinitionProvider
 import org.scalacheck.Prop.forAll
 import org.scalatest.WordSpec
@@ -36,13 +38,18 @@ class TroySchemaValidatorSpec extends WordSpec with MatchersUtil with Checkers {
 
       check {
         forAll { st: GeneratedStatement =>
-          val sdp = new SchemaDefinitionProvider {
-            override def schemaDefinition: SchemaResult[SchemaDefinition] =
-              Right(Seq(st.keyspace, st.table))
-          }
+          implicit val sdp: SchemaDefinitionProvider[EitherM] =
+            new SchemaDefinitionProvider[EitherM] {
+              override def schemaDefinition(
+                  implicit M: MonadError[EitherM, Throwable]): EitherM[SchemaDefinition] =
+                Right(Seq(st.keyspace, st.table))
+            }
 
-          (instance.validateStatement(sdp, st.validStatement._2) isEqualTo Valid((): Unit)) &&
-          (instance.validateStatement(sdp, st.invalidStatement._2).isInvalid isEqualTo true)
+          (instance[EitherM].validateStatement(st.validStatement._2) isEqualTo Right(
+            Valid((): Unit))) &&
+          (instance[EitherM].validateStatement(st.invalidStatement._2) isLikeTo { either =>
+            either.isRight && either.right.get.isInvalid
+          })
         }
       }
 

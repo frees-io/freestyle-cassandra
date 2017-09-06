@@ -57,11 +57,16 @@ object TestUtils {
         value == other
       }
 
+      def isLikeTo(f: T => Boolean): Boolean =
+        f(value)
+
     }
 
     implicit def anyOps[T](value: T): AnyOps[T] = new AnyOps[T](value)
 
   }
+
+  type EitherM[T] = Either[Throwable, T]
 
   val reservedKeywords = List(
     "ADD",

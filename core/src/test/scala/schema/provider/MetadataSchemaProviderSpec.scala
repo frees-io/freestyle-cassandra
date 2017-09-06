@@ -17,9 +17,10 @@
 package freestyle.cassandra
 package schema.provider
 
+import cats.~>
 import com.datastax.driver.core._
 import com.google.common.util.concurrent.ListenableFuture
-import freestyle.cassandra.TestUtils.{successfulFuture, MatchersUtil}
+import freestyle.cassandra.TestUtils.{successfulFuture, EitherM, MatchersUtil}
 import freestyle.cassandra.schema.SchemaDefinition
 import org.scalacheck.Prop._
 import org.scalamock.scalatest.MockFactory
@@ -28,6 +29,7 @@ import org.scalatest.prop.Checkers
 import troy.cql.ast.TableName
 
 import scala.collection.JavaConverters._
+import scala.concurrent.{Await, Future}
 
 class MetadataSchemaProviderSpec
     extends WordSpec
@@ -37,13 +39,23 @@ class MetadataSchemaProviderSpec
 
   import freestyle.cassandra.schema.MetadataArbitraries._
 
+  import cats.instances.future._
+  import freestyle.async.implicits._
+  import freestyle.cassandra.api._
+  import freestyle.cassandra.handlers.implicits._
+
+  import scala.concurrent.ExecutionContext.Implicits.global
+
+  implicit def futureClusterAPIHanlder(implicit C: Cluster): ClusterAPI.Op ~> Future =
+    clusterAPIHandler[Future] andThen apiInterpreter[Future, Cluster](C)
+
   "schemaDefinition" should {
 
     "return the right schema definition for valid values" in {
       check {
         forAll(schemaGen) {
           case (keyspace, tables, indexes, userTypes) =>
-            val clusterMock: Cluster              = mock[ClusterTest]
+            implicit val clusterMock: Cluster     = mock[ClusterTest]
             val sessionMock: Session              = mock[Session]
             val metadataMock: Metadata            = mock[MetadataTest]
             val result: ListenableFuture[Session] = successfulFuture(sessionMock)
@@ -58,7 +70,7 @@ class MetadataSchemaProviderSpec
               genIndex.copy(createIndex = createIndex)
             }
 
-            val metadataSchemaProvider = new MetadataSchemaProvider(clusterMock) {
+            val metadataSchemaProvider = new MetadataSchemaProvider[Future](clusterMock) {
 
               override def readTable(metadata: IndexMetadata): TableName =
                 tables.head.createTable.tableName
@@ -80,7 +92,9 @@ class MetadataSchemaProviderSpec
               indexedWithTableName.map(_.createIndex) ++
               userTypes.map(_.createType)
 
-            metadataSchemaProvider.schemaDefinition isEqualTo Right(expected)
+            Await.result(
+              metadataSchemaProvider.schemaDefinition,
+              scala.concurrent.duration.Duration.Inf) isEqualTo expected
         }
       }
     }
@@ -94,7 +108,9 @@ class MetadataSchemaProviderSpec
       (clusterMock.getMetadata _).expects().throws(exception)
       (clusterMock.closeAsync _).expects().returns(CloseFutureTest)
 
-      MetadataSchemaProvider.metadataSchemaProvider.schemaDefinition.isLeft
+      Await.result(MetadataSchemaProvider.metadataSchemaProvider[Future].schemaDefinition.recover {
+        case _ => Seq.empty
+      }, scala.concurrent.duration.Duration.Inf) isEqualTo Seq.empty
     }
 
   }
