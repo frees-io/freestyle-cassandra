@@ -109,14 +109,15 @@ trait MetadataArbitraries {
       size <- Gen.chooseNum[Int](2, 15)
       c    <- Gen.alphaLowerChar
       cs   <- Gen.listOfN(size, Gen.alphaNumChar)
-    } yield (c :: cs).mkString).filter(name =>
-      !TestUtils.reservedKeywords.contains(name.toUpperCase))
+    } yield (c :: cs).mkString)
+      .map(_.toLowerCase)
+      .filter(name => !TestUtils.reservedKeywords.contains(name.toUpperCase))
 
   def namedGen[T](implicit gen: Gen[T]): Gen[(String, T)] =
     for {
-      name   <- identifierGen
-      value  <- gen
-    } yield (name.toLowerCase, value)
+      name  <- identifierGen
+      value <- gen
+    } yield (name, value)
 
   def distinctListOfGen[T](gen: Gen[T], genSize: Gen[Int], maxDiscarded: Int = 1000)(
       comp: (T) => Any): Gen[List[T]] = genSize.map { size =>
@@ -405,10 +406,13 @@ trait MetadataArbitraries {
 
     Arbitrary {
       for {
-        keyspaceName <- identifierGen
-        typeName     <- identifierGen
-        types        <- Gen.nonEmptyListOf(namedGen(dataTypeGen))
+        keyspaceName   <- identifierGen
+        typeName       <- identifierGen
+        innerTypeNames <- distinctListOfGen(identifierGen, Gen.chooseNum(1, 10))(name => name)
+        innerTypes     <- Gen.listOfN(innerTypeNames.size, dataTypeGen)
       } yield {
+
+        val types = innerTypeNames.zip(innerTypes)
 
         val (troyFields, datastaxFields): (List[Field], List[UserType.Field]) = types.map {
           case (name, arbDataType) =>
@@ -454,9 +458,8 @@ trait MetadataArbitraries {
        """.stripMargin,
           SelectStatement(
             mod = None,
-            selection = Select.SelectClause(
-              Seq(
-                Select.SelectionClauseItem(selector = Select.ColumnName(selectColumn), as = None))),
+            selection = Select.SelectClause(Seq(
+              Select.SelectionClauseItem(selector = Select.ColumnName(selectColumn), as = None))),
             from = tableName,
             where = Some(
               WhereClause(
@@ -488,24 +491,24 @@ trait MetadataArbitraries {
 
   }
 
-  val schemaGen: Gen[(
-      GeneratedKeyspace,
-      NonEmptyList[GeneratedTable],
-      List[GeneratedIndex],
-      List[GeneratedUserType])] =
+  val schemaGen: Gen[
+    (
+        GeneratedKeyspace,
+        NonEmptyList[GeneratedTable],
+        List[GeneratedIndex],
+        List[GeneratedUserType])] =
     for {
-      keyspace  <- generatedKeyspaceArb.arbitrary
-      headTable <- generatedTableArb(Some(keyspace)).arbitrary
+      keyspace <- generatedKeyspaceArb.arbitrary
       tables <- distinctListOfGen[GeneratedTable](
         generatedTableArb(Some(keyspace)).arbitrary,
-        Gen.chooseNum[Int](0, 2))(_.createTable.tableName)
+        Gen.chooseNum[Int](1, 3))(_.createTable.tableName)
       indexes <- distinctListOfGen[GeneratedIndex](
         generatedIndexArb.arbitrary,
         Gen.chooseNum[Int](0, 2))(_.createIndex.indexName)
       userTypes <- distinctListOfGen[GeneratedUserType](
         generatedUserTypeArb.arbitrary,
         Gen.chooseNum[Int](0, 3))(_.createType.typeName)
-    } yield (keyspace, NonEmptyList(headTable, tables), indexes, userTypes)
+    } yield (keyspace, NonEmptyList(tables.head, tables.tail), indexes, userTypes)
 
 }
 
