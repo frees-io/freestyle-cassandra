@@ -13,7 +13,8 @@ lazy val commonDependencies: Seq[ModuleID] = Seq(
   %("cassandra-driver-core"),
   %("cassandra-driver-mapping"),
   %("cassandra-driver-extras"),
-  "io.github.cassandra-scala" %% "troy-schema" % "0.4.0"
+  "io.github.cassandra-scala" %% "troy-schema" % "0.4.0",
+  "com.propensive" %% "contextual" % "1.0.1"
 )
 
 lazy val testDependencies: Seq[ModuleID] =
@@ -38,3 +39,15 @@ lazy val core = project
   .settings(resolvers += Resolver.bintrayRepo("tabdulradi", "maven"))
   .settings(libraryDependencies ++= commonDependencies)
   .settings(libraryDependencies ++= testDependencies)
+
+lazy val testMacro = project
+  .in(file("testMacro"))
+  .settings(moduleName := "freestyle-cassandra-test-macro")
+  .settings(scalaMetaSettings)
+  .dependsOn(core)
+
+lazy val test = project
+  .in(file("test"))
+  .settings(moduleName := "freestyle-cassandra-test")
+  .settings(scalaMetaSettings)
+  .dependsOn(core, testMacro)
