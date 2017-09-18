@@ -21,6 +21,7 @@ import cats.MonadError
 import cats.data.Validated.Valid
 import cats.data.ValidatedNel
 import contextual.{Case, Prefix}
+import freestyle.cassandra.codecs.ByteBufferCodec
 import freestyle.cassandra.schema.validator.SchemaValidator
 import freestyle.cassandra.schema.{SchemaError, Statement}
 
@@ -36,8 +37,8 @@ object RuntimeCQLInterpolator {
 
   object cqlInterpolator extends CQLInterpolator(schemaValidator)
 
-  implicit def embedArgsNamesInCql[T] = cqlInterpolator.embed[T](
-    Case(CQLLiteral, CQLLiteral)(_ => "?")
+  implicit def embedArgsNamesInCql[T](implicit C: ByteBufferCodec[T]) = cqlInterpolator.embed[T](
+    Case(CQLLiteral, CQLLiteral)(v => () => C.serialize(v))
   )
 
   final class CQLStringContext(sc: StringContext) {

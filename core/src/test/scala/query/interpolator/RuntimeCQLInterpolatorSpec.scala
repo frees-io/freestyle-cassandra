@@ -18,6 +18,7 @@ package freestyle.cassandra
 package query.interpolator
 
 import cats.MonadError
+import com.datastax.driver.core.{ProtocolVersion, TypeCodec}
 import org.scalatest.{Matchers, WordSpec}
 
 import scala.util.{Success, Try}
@@ -31,7 +32,7 @@ class RuntimeCQLInterpolatorSpec extends WordSpec with Matchers {
       import RuntimeCQLInterpolator._
       implicit val M: MonadError[Try, Throwable] = cats.instances.try_.catsStdInstancesForTry
 
-      cql"SELECT * FROM users" shouldBe Success("SELECT * FROM users")
+      cql"SELECT * FROM users" shouldBe Success(("SELECT * FROM users", Nil))
     }
 
     "return a success for a query with params" in {
@@ -39,11 +40,26 @@ class RuntimeCQLInterpolatorSpec extends WordSpec with Matchers {
       import RuntimeCQLInterpolator._
       implicit val M: MonadError[Try, Throwable] = cats.instances.try_.catsStdInstancesForTry
 
-      val id = 1
-      cql"SELECT * FROM users WHERE id = $id" shouldBe Success("SELECT * FROM users WHERE id = ?")
+      implicit val protocolVersion: ProtocolVersion   = ProtocolVersion.V4
+      implicit val stringTypeCodec: TypeCodec[String] = TypeCodec.ascii()
+      import freestyle.cassandra.codecs._
+      val stringByteBufferCodec: ByteBufferCodec[String] = implicitly[ByteBufferCodec[String]]
+
+      val id: Int      = 1
+      val name: String = "username"
+
+      val result: Try[(String, List[OutputValue])] =
+        cql"SELECT * FROM users WHERE id = $id AND name = $name"
+      result.isSuccess shouldBe true
+      result.get._1 shouldBe "SELECT * FROM users WHERE id = ? AND name = ?"
+      result.get._2.size shouldBe 2
+      result.get._2.head.index shouldBe 0
+      result.get._2.head.toByteBuffer() shouldBe intCodec.serialize(id)
+      result.get._2(1).index shouldBe 1
+      result.get._2(1).toByteBuffer() shouldBe stringByteBufferCodec.serialize(name)
     }
 
-    "not compile" in {
+    "not compile for a wrong statement" in {
 
       import RuntimeCQLInterpolator._
       implicit val M: MonadError[Try, Throwable] = cats.instances.try_.catsStdInstancesForTry

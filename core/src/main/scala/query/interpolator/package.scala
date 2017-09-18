@@ -17,11 +17,17 @@
 package freestyle.cassandra
 package query
 
+import java.nio.ByteBuffer
+
 import contextual.Context
 
 package object interpolator {
 
   sealed trait CQLContext extends Context
   case object CQLLiteral  extends CQLContext
+
+  type ValueConversion = () => ByteBuffer
+
+  case class OutputValue(index: Int, toByteBuffer: () => ByteBuffer)
 
 }
