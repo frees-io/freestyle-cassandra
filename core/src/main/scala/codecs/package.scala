@@ -18,31 +18,34 @@ package freestyle.cassandra
 
 import java.nio.ByteBuffer
 
+import cats.MonadError
 import com.datastax.driver.core.{DataType, ProtocolVersion, TypeCodec}
 import com.datastax.driver.core.exceptions.InvalidTypeException
 
 package object codecs {
 
   trait ByteBufferCodec[T] {
-    def deserialize(bytes: ByteBuffer): T
-    def serialize(value: T): ByteBuffer
+    def deserialize[M[_]](bytes: ByteBuffer)(implicit M: MonadError[M, Throwable]): M[T]
+    def serialize[M[_]](value: T)(implicit M: MonadError[M, Throwable]): M[ByteBuffer]
   }
 
   abstract class PrimitiveByteBufferCodec[T](dataType: DataType, byteSize: Int, defaultValue: T)
       extends ByteBufferCodec[T] {
 
-    def deserialize(bytes: ByteBuffer): T =
-      Option(bytes) match {
-        case None                                 => defaultValue
-        case Some(b) if b.remaining() == 0        => defaultValue
-        case Some(b) if b.remaining() == byteSize => getValue(b)
-        case Some(b) =>
-          throw new InvalidTypeException(
-            s"Invalid value, expecting $byteSize but got ${b.remaining}")
-      }
+    override def deserialize[M[_]](bytes: ByteBuffer)(implicit M: MonadError[M, Throwable]): M[T] =
+      Option(bytes) map { b =>
+        M.flatMap(M.catchNonFatal(b.remaining())) {
+          case 0          => M.pure(defaultValue)
+          case `byteSize` => M.catchNonFatal(getValue(b))
+          case _ =>
+            M.raiseError[T](
+              new InvalidTypeException(
+                s"Invalid value, expecting $byteSize but got ${b.remaining}"))
+        }
+      } getOrElse M.pure(defaultValue)
 
-    def serialize(value: T): ByteBuffer =
-      setValue(ByteBuffer.allocate(byteSize), value)
+    override def serialize[M[_]](value: T)(implicit M: MonadError[M, Throwable]): M[ByteBuffer] =
+      M.catchNonFatal(setValue(ByteBuffer.allocate(byteSize), value))
 
     protected def getValue(byteBuffer: ByteBuffer): T
 
@@ -110,11 +113,11 @@ package object codecs {
   implicit def byteBufferCodec[T](
       implicit tc: TypeCodec[T],
       pv: ProtocolVersion): ByteBufferCodec[T] = new ByteBufferCodec[T] {
-    override def deserialize(bytes: ByteBuffer): T =
-      tc.deserialize(bytes, pv)
+    override def deserialize[M[_]](bytes: ByteBuffer)(implicit M: MonadError[M, Throwable]): M[T] =
+      M.catchNonFatal(tc.deserialize(bytes, pv))
 
-    override def serialize(value: T): ByteBuffer =
-      tc.serialize(value, pv)
+    override def serialize[M[_]](value: T)(implicit M: MonadError[M, Throwable]): M[ByteBuffer] =
+      M.catchNonFatal(tc.serialize(value, pv))
   }
 
 }

@@ -45,7 +45,7 @@ class ByteBufferMapperSpec extends WordSpec with Matchers with Checkers {
 
     "map the fields for a regular case class" in {
 
-      import FieldMapper._
+      import FieldListMapper._
 
       check {
         forAll { a: A =>
@@ -62,7 +62,7 @@ class ByteBufferMapperSpec extends WordSpec with Matchers with Checkers {
 
     "map the fields for a case class with another embedded case class and his decoder" in {
 
-      import FieldMapper._
+      import FieldListMapper._
 
       implicit val decoder: ByteBufferCodec[B] = new ByteBufferCodec[B] {
 

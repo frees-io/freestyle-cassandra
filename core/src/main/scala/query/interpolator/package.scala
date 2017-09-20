@@ -19,6 +19,7 @@ package query
 
 import java.nio.ByteBuffer
 
+import cats.MonadError
 import contextual.Context
 
 package object interpolator {
@@ -26,8 +27,10 @@ package object interpolator {
   sealed trait CQLContext extends Context
   case object CQLLiteral  extends CQLContext
 
-  type ValueConversion = () => ByteBuffer
+  abstract class ValueEncoder {
+    def encode[M[_]](implicit M: MonadError[M, Throwable]): M[ByteBuffer]
+  }
 
-  case class OutputValue(index: Int, toByteBuffer: () => ByteBuffer)
+  case class OutputValue(index: Int, encoder: ValueEncoder)
 
 }

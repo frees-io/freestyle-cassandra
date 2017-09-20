@@ -18,32 +18,39 @@ package freestyle.cassandra
 
 import java.nio.ByteBuffer
 
+import cats.MonadError
 import freestyle.cassandra.codecs.ByteBufferCodec
 import shapeless._
 import shapeless.labelled.FieldType
 
 package object mapper {
 
-  type MappedField = (String, ByteBuffer)
+  abstract class FieldMapper(val name: String) {
+    def serialize[M[_]](implicit M: MonadError[M, Throwable]): M[ByteBuffer]
+  }
 
-  trait FieldMapper[A] {
-    def map(a: A): List[MappedField]
+  trait FieldListMapper[A] {
+    def map(a: A): List[FieldMapper]
   }
 
   trait FieldMapperPrimitive {
 
-    def createFieldMapper[A](f: A => List[MappedField]): FieldMapper[A] =
-      new FieldMapper[A] {
-        override def map(a: A): List[MappedField] = f(a)
+    def createFieldMapper[A](f: A => List[FieldMapper]): FieldListMapper[A] =
+      new FieldListMapper[A] {
+        override def map(a: A): List[FieldMapper] = f(a)
       }
 
     implicit def primitiveFieldMapper[K <: Symbol, H, T <: HList](
         implicit witness: Witness.Aux[K],
         codec: Lazy[ByteBufferCodec[H]],
-        tMapper: FieldMapper[T]): FieldMapper[FieldType[K, H] :: T] = {
+        tMapper: FieldListMapper[T]): FieldListMapper[FieldType[K, H] :: T] = {
       val fieldName = witness.value.name
       createFieldMapper { hlist =>
-        (fieldName -> codec.value.serialize(hlist.head)) :: tMapper.map(hlist.tail)
+        val fieldMapper = new FieldMapper(fieldName) {
+          override def serialize[M[_]](implicit M: MonadError[M, Throwable]): M[ByteBuffer] =
+            codec.value.serialize(hlist.head)
+        }
+        fieldMapper :: tMapper.map(hlist.tail)
       }
     }
   }
@@ -52,22 +59,22 @@ package object mapper {
 
     implicit def genericMapper[A, R](
         implicit gen: LabelledGeneric.Aux[A, R],
-        mapper: Lazy[FieldMapper[R]]): FieldMapper[A] =
+        mapper: Lazy[FieldListMapper[R]]): FieldListMapper[A] =
       createFieldMapper(value => mapper.value.map(gen.to(value)))
 
-    implicit val hnilMapper: FieldMapper[HNil] = new FieldMapper[HNil] {
-      override def map(a: HNil): List[MappedField] = Nil
+    implicit val hnilMapper: FieldListMapper[HNil] = new FieldListMapper[HNil] {
+      override def map(a: HNil): List[FieldMapper] = Nil
     }
 
   }
 
-  object FieldMapper extends FieldMapperGeneric
+  object FieldListMapper extends FieldMapperGeneric
 
   object FieldMapperExpanded extends FieldMapperGeneric {
 
     implicit def hconsMapper[K, H, T <: HList](
-        implicit hMapper: Lazy[FieldMapper[H]],
-        tMapper: FieldMapper[T]): FieldMapper[FieldType[K, H] :: T] =
+        implicit hMapper: Lazy[FieldListMapper[H]],
+        tMapper: FieldListMapper[T]): FieldListMapper[FieldType[K, H] :: T] =
       createFieldMapper { hlist =>
         hMapper.value.map(hlist.head) ++ tMapper.map(hlist.tail)
       }
