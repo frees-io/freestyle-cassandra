@@ -31,8 +31,7 @@ class CQLInterpolator(V: SchemaValidator[Try]) extends Interpolator {
   import cats.instances.try_._
 
   override type ContextType = CQLContext
-  override type Input       = String
-  type Out                  = Statement
+  override type Input       = ValueConversion
 
   override def contextualize(interpolation: StaticInterpolation): Seq[ContextType] = {
 
@@ -59,6 +58,13 @@ class CQLInterpolator(V: SchemaValidator[Try]) extends Interpolator {
   }
 
   def evaluate[M[_]](interpolation: RuntimeInterpolation)(
-      implicit M: MonadError[M, Throwable]): M[String] =
-    M.pure(interpolation.parts.map(_.toString).mkString(""))
+      implicit M: MonadError[M, Throwable]): M[(String, List[OutputValue])] =
+    M.pure {
+      interpolation.parts.foldLeft(("", List.empty[OutputValue])) {
+        case ((cql, values), Literal(_, string)) =>
+          (cql + string, values)
+        case ((cql, values), Substitution(index, value)) =>
+          (cql + "?", values :+ OutputValue(index, value))
+      }
+    }
 }
