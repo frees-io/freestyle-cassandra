@@ -27,7 +27,7 @@ package object interpolator {
   sealed trait CQLContext extends Context
   case object CQLLiteral  extends CQLContext
 
-  abstract class ValueEncoder {
+  trait ValueEncoder {
     def encode[M[_]](implicit M: MonadError[M, Throwable]): M[ByteBuffer]
   }
 
