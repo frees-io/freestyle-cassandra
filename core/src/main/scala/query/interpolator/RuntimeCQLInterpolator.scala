@@ -41,8 +41,8 @@ object RuntimeCQLInterpolator {
 
   implicit def embedArgsNamesInCql[T](implicit C: ByteBufferCodec[T]) = cqlInterpolator.embed[T](
     Case(CQLLiteral, CQLLiteral) { v =>
-      new ValueEncoder {
-        override def encode[M[_]](implicit M: MonadError[M, Throwable]): M[ByteBuffer] =
+      new ValueSerializer {
+        override def serialize[M[_]](implicit M: MonadError[M, Throwable]): M[ByteBuffer] =
           C.serialize(v)
       }
     }

@@ -31,7 +31,7 @@ class CQLInterpolator(V: SchemaValidator[Try]) extends Interpolator {
   import cats.instances.try_._
 
   override type ContextType = CQLContext
-  override type Input       = ValueEncoder
+  override type Input       = ValueSerializer
 
   override def contextualize(interpolation: StaticInterpolation): Seq[ContextType] = {
 

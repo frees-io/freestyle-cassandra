@@ -54,9 +54,9 @@ class RuntimeCQLInterpolatorSpec extends WordSpec with Matchers {
       result.get._1 shouldBe "SELECT * FROM users WHERE id = ? AND name = ?"
       result.get._2.size shouldBe 2
       result.get._2.head.index shouldBe 0
-      result.get._2.head.encoder.encode shouldBe intCodec.serialize(id)
+      result.get._2.head.serializer.serialize shouldBe intCodec.serialize(id)
       result.get._2(1).index shouldBe 1
-      result.get._2(1).encoder.encode shouldBe stringByteBufferCodec.serialize(name)
+      result.get._2(1).serializer.serialize shouldBe stringByteBufferCodec.serialize(name)
     }
 
     "not compile for a wrong statement" in {

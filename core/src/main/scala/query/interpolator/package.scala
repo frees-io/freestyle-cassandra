@@ -27,10 +27,10 @@ package object interpolator {
   sealed trait CQLContext extends Context
   case object CQLLiteral  extends CQLContext
 
-  trait ValueEncoder {
-    def encode[M[_]](implicit M: MonadError[M, Throwable]): M[ByteBuffer]
+  trait ValueSerializer {
+    def serialize[M[_]](implicit M: MonadError[M, Throwable]): M[ByteBuffer]
   }
 
-  case class OutputValue(index: Int, encoder: ValueEncoder)
+  case class OutputValue(index: Int, serializer: ValueSerializer)
 
 }
