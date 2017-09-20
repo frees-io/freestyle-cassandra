@@ -17,6 +17,8 @@
 package freestyle.cassandra
 package query.interpolator
 
+import java.nio.ByteBuffer
+
 import cats.MonadError
 import cats.data.Validated.Valid
 import cats.data.ValidatedNel
@@ -38,7 +40,12 @@ object RuntimeCQLInterpolator {
   object cqlInterpolator extends CQLInterpolator(schemaValidator)
 
   implicit def embedArgsNamesInCql[T](implicit C: ByteBufferCodec[T]) = cqlInterpolator.embed[T](
-    Case(CQLLiteral, CQLLiteral)(v => () => C.serialize(v))
+    Case(CQLLiteral, CQLLiteral) { v =>
+      new ValueSerializer {
+        override def serialize[M[_]](implicit M: MonadError[M, Throwable]): M[ByteBuffer] =
+          C.serialize(v)
+      }
+    }
   )
 
   final class CQLStringContext(sc: StringContext) {

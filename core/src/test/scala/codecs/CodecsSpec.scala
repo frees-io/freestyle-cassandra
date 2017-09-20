@@ -19,6 +19,7 @@ package codecs
 
 import java.nio.ByteBuffer
 
+import cats.instances.try_._
 import cats.syntax.either._
 import com.datastax.driver.core.exceptions.InvalidTypeException
 import com.datastax.driver.core.{DataType, ProtocolVersion, TypeCodec}
@@ -29,6 +30,8 @@ import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Assertion, Matchers, WordSpec}
 import org.scalatest.prop.Checkers
 
+import scala.util.{Success, Try}
+
 class CodecsSpec extends WordSpec with Matchers with Checkers with MockFactory {
 
   import codecs._
@@ -37,7 +40,10 @@ class CodecsSpec extends WordSpec with Matchers with Checkers with MockFactory {
   def checkInverseCodec[T](codec: ByteBufferCodec[T])(implicit A: Arbitrary[T]): Assertion =
     check {
       forAll { v: T =>
-        codec.deserialize(codec.serialize(v)) == v
+        codec.serialize(v) match {
+          case Success(result) => codec.deserialize(result) == Success(v)
+          case _               => false
+        }
       }
     }
 
@@ -49,7 +55,7 @@ class CodecsSpec extends WordSpec with Matchers with Checkers with MockFactory {
     def codecGen: Gen[(ByteBuffer, T)] =
       for {
         value <- A.arbitrary
-        bb = codec.serialize(value)
+        bb = codec.serialize(value).get
         remaining <- Gen.chooseNum[Int](0, bb.limit())
         _ = bb.position(bb.limit() - remaining)
       } yield (bb, value)
@@ -61,14 +67,14 @@ class CodecsSpec extends WordSpec with Matchers with Checkers with MockFactory {
       implicit A: Arbitrary[T]): Assertion = {
     val prop = forAll(byteBufferGen(codec, defaultValue)) {
       case (bb, v) =>
-        val deserialized = Either.catchNonFatal(codec.deserialize(bb))
+        val deserialized = codec.deserialize(bb)
         val remaining    = Option(bb).map(_.remaining()).getOrElse(0)
         if (remaining == 0) {
-          deserialized == Right(defaultValue)
+          deserialized == Success(defaultValue)
         } else if (remaining == byteSize) {
-          deserialized == Right(v)
+          deserialized == Success(v)
         } else {
-          deserialized.isLeft && deserialized.left.get.isInstanceOf[InvalidTypeException]
+          deserialized.isFailure && deserialized.failed.get.isInstanceOf[InvalidTypeException]
         }
     }
     check(prop, minSuccessful(500))
@@ -195,7 +201,7 @@ class CodecsSpec extends WordSpec with Matchers with Checkers with MockFactory {
 
           (tcMock.serialize _).expects(value, pc).returns(bb)
           (tcMock.deserialize _).expects(bb, pc).returns(value)
-          codec.serialize(value) == bb && codec.deserialize(bb) == value
+          codec.serialize(value) == Success(bb) && codec.deserialize(bb) == Success(value)
         }
       }
     }
