@@ -22,7 +22,7 @@ import com.datastax.driver.core.{Cluster, Session}
 
 package object api {
 
-  type LowLevelAPIOps[F[_], A] = Kleisli[F, Session, A]
+  type SessionAPIOps[F[_], A] = Kleisli[F, Session, A]
 
   type ClusterAPIOps[F[_], A] = Kleisli[F, Cluster, A]
 

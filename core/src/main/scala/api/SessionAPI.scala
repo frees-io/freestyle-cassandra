@@ -17,11 +17,11 @@
 package freestyle.cassandra
 package api
 
-import freestyle._
 import com.datastax.driver.core._
+import freestyle._
 
 @free
-trait LowLevelAPI {
+trait SessionAPI {
 
   def init: FS[Session]
 
