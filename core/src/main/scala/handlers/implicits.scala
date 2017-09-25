@@ -26,7 +26,8 @@ import collection.JavaConverters._
 import com.datastax.driver.core._
 import com.google.common.util.concurrent.{AsyncFunction, Futures, ListenableFuture, MoreExecutors}
 import freestyle.async.AsyncContext
-import freestyle.cassandra.api.{ClusterAPI, ClusterAPIOps, SessionAPI, SessionAPIOps}
+import freestyle.cassandra.api.{ClusterAPI, ClusterAPIOps, SessionAPI, SessionAPIOps, StatementAPI}
+import freestyle.cassandra.codecs.ByteBufferCodec
 
 object implicits {
 
@@ -39,6 +40,25 @@ object implicits {
       implicit AC: AsyncContext[M],
       E: MonadError[M, Throwable]): ClusterAPIHandler[M] =
     new ClusterAPIHandler[M]
+
+  class StatementAPIHandler[M[_]](implicit E: MonadError[M, Throwable])
+      extends StatementAPI.Handler[M] {
+
+    def bind(preparedStatement: PreparedStatement): M[BoundStatement] =
+      E.catchNonFatal(preparedStatement.bind())
+
+    def setBytesUnsafeIndex(
+        boundStatement: BoundStatement,
+        index: Int,
+        value: ByteBuffer): M[BoundStatement] =
+      E.catchNonFatal(boundStatement.setBytesUnsafe(index, value))
+
+    def setBytesUnsafeName(
+        boundStatement: BoundStatement,
+        name: String,
+        value: ByteBuffer): M[BoundStatement] =
+      E.catchNonFatal(boundStatement.setBytesUnsafe(name, value))
+  }
 
   class SessionAPIHandler[M[_]](implicit H: ListenableFuture[?] ~> M)
       extends SessionAPI.Handler[SessionAPIOps[M, ?]] {

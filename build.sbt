@@ -27,14 +27,14 @@ lazy val testDependencies: Seq[ModuleID] =
 
 lazy val root = project
   .in(file("."))
-  .settings(name := "frees-cassandra")
+  .settings(name := "freestyle-cassandra")
   .settings(noPublishSettings)
   .dependsOn(core)
   .aggregate(core)
 
 lazy val core = project
   .in(file("core"))
-  .settings(moduleName := "frees-cassandra-core")
+  .settings(moduleName := "freestyle-cassandra-core")
   .settings(scalaMetaSettings)
   .settings(resolvers += Resolver.bintrayRepo("tabdulradi", "maven"))
   .settings(libraryDependencies ++= commonDependencies)
