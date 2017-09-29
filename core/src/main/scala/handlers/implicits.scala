@@ -41,24 +41,9 @@ object implicits {
       E: MonadError[M, Throwable]): ClusterAPIHandler[M] =
     new ClusterAPIHandler[M]
 
-  class StatementAPIHandler[M[_]](implicit E: MonadError[M, Throwable])
-      extends StatementAPI.Handler[M] {
-
-    def bind(preparedStatement: PreparedStatement): M[BoundStatement] =
-      E.catchNonFatal(preparedStatement.bind())
-
-    def setBytesUnsafeIndex(
-        boundStatement: BoundStatement,
-        index: Int,
-        value: ByteBuffer): M[BoundStatement] =
-      E.catchNonFatal(boundStatement.setBytesUnsafe(index, value))
-
-    def setBytesUnsafeName(
-        boundStatement: BoundStatement,
-        name: String,
-        value: ByteBuffer): M[BoundStatement] =
-      E.catchNonFatal(boundStatement.setBytesUnsafe(name, value))
-  }
+  implicit def statementAPIHandler[M[_]](
+      implicit E: MonadError[M, Throwable]): StatementAPIHandler[M] =
+    new StatementAPIHandler[M]
 
   class SessionAPIHandler[M[_]](implicit H: ListenableFuture[?] ~> M)
       extends SessionAPI.Handler[SessionAPIOps[M, ?]] {
@@ -105,6 +90,28 @@ object implicits {
 
     def metrics: ClusterAPIOps[M, Metrics] =
       Kleisli(c => E.catchNonFatal(c.getMetrics))
+
+  }
+
+  class StatementAPIHandler[M[_]](implicit E: MonadError[M, Throwable])
+      extends StatementAPI.Handler[M] {
+
+    def bind(preparedStatement: PreparedStatement): M[BoundStatement] =
+      E.catchNonFatal(preparedStatement.bind())
+
+    def setBytesUnsafeIndex[A](
+        boundStatement: BoundStatement,
+        index: Int,
+        value: A,
+        byteBufferCodec: ByteBufferCodec[A]): M[BoundStatement] =
+      E.catchNonFatal(boundStatement.setBytesUnsafe(index, byteBufferCodec.serialize(value)))
+
+    def setBytesUnsafeName[A](
+        boundStatement: BoundStatement,
+        name: String,
+        value: A,
+        byteBufferCodec: ByteBufferCodec[A]): M[BoundStatement] =
+      E.catchNonFatal(boundStatement.setBytesUnsafe(name, byteBufferCodec.serialize(value)))
 
   }
 

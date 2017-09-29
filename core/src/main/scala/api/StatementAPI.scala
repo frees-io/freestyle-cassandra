@@ -17,18 +17,23 @@
 package freestyle.cassandra
 package api
 
-import java.nio.ByteBuffer
-
 import com.datastax.driver.core._
 import freestyle._
+import freestyle.cassandra.codecs.ByteBufferCodec
 
 @free
 trait StatementAPI {
   def bind(preparedStatement: PreparedStatement): FS[BoundStatement]
 
-  def setBytesUnsafeIndex(boundStatement: BoundStatement, index: Int, value: ByteBuffer): FS[BoundStatement]
+  def setBytesUnsafeIndex[A](
+      boundStatement: BoundStatement,
+      index: Int,
+      value: A,
+      byteBufferCodec: ByteBufferCodec[A]): FS[BoundStatement]
 
-  def setBytesUnsafeName(boundStatement: BoundStatement, name: String, value: ByteBuffer): FS[BoundStatement]
+  def setBytesUnsafeName[A](
+      boundStatement: BoundStatement,
+      name: String,
+      value: A,
+      byteBufferCodec: ByteBufferCodec[A]): FS[BoundStatement]
 }
-
-
