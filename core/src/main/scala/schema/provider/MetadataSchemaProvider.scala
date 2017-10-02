@@ -17,21 +17,24 @@
 package freestyle.cassandra
 package schema.provider
 
+import java.io.Reader
+
+import cats.MonadError
 import cats.implicits._
-import cats.{~>, MonadError}
 import com.datastax.driver.core._
 import freestyle.async.AsyncContext
 import freestyle.cassandra.api.{apiInterpreter, ClusterAPI}
+import freestyle.cassandra.config.Decoders
 import freestyle.cassandra.handlers.implicits.clusterAPIHandler
-import freestyle.{FreeS, _}
-import freestyle.cassandra.schema.provider.metadata.SchemaConversions
 import freestyle.cassandra.schema.SchemaDefinition
+import freestyle.cassandra.schema.provider.metadata.SchemaConversions
+import freestyle.{FreeS, _}
 
 import scala.collection.JavaConverters._
 import scala.language.postfixOps
 
 class MetadataSchemaProvider[M[_]](
-    clusterProvider: => M[Cluster])(implicit AC: AsyncContext[M], API: ClusterAPI[ClusterAPI.Op])
+    val clusterProvider: M[Cluster])(implicit AC: AsyncContext[M], API: ClusterAPI[ClusterAPI.Op])
     extends SchemaDefinitionProvider[M]
     with SchemaConversions {
 
@@ -88,5 +91,31 @@ object MetadataSchemaProvider {
       M: MonadError[M, Throwable],
       API: ClusterAPI[ClusterAPI.Op]): SchemaDefinitionProvider[M] =
     new MetadataSchemaProvider[M](M.pure(cluster))
+
+  def clusterProvider[M[_]](configReader: Reader)(
+      implicit M: MonadError[M, Throwable]): M[Cluster] = {
+    import classy.config._
+    import classy.{DecodeError, Decoder}
+    import com.datastax.driver.core.Cluster
+    import com.typesafe.config.{Config, ConfigFactory}
+
+    def decodeConfig: M[Either[DecodeError, Cluster]] =
+      M.catchNonFatal {
+        val decoders: Decoders[Config]                = new Decoders[Config]
+        val decoder: Decoder[Config, Cluster.Builder] = readConfig[Config]("cluster") andThen decoders.clusterBuilderDecoder
+        decoder(ConfigFactory.parseReader(configReader)).map(_.build())
+      }
+
+    M.flatMap(decodeConfig) {
+      case Right(cluster) => M.pure(cluster)
+      case Left(error)    => M.raiseError(new IllegalArgumentException(error.toPrettyString))
+    }
+  }
+
+  def metadataSchemaProvider[M[_]](configReader: Reader)(
+      implicit AC: AsyncContext[M],
+      M: MonadError[M, Throwable],
+      API: ClusterAPI[ClusterAPI.Op]): SchemaDefinitionProvider[M] =
+    new MetadataSchemaProvider[M](clusterProvider[M](configReader))
 
 }

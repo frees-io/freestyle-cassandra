@@ -17,38 +17,26 @@
 package freestyle.cassandra
 package schema.provider
 
-import cats.~>
+import java.io.{Reader, StringReader}
+
 import com.datastax.driver.core._
 import com.google.common.util.concurrent.ListenableFuture
-import freestyle.FSHandler
-import freestyle.cassandra.TestUtils.{successfulFuture, EitherM, MatchersUtil}
+import freestyle.cassandra.TestUtils.successfulFuture
+import freestyle.cassandra.config.TestDecoderUtils
 import freestyle.cassandra.schema.SchemaDefinition
 import org.scalacheck.Prop._
-import org.scalamock.scalatest.MockFactory
-import org.scalatest.WordSpec
-import org.scalatest.prop.Checkers
 import troy.cql.ast.TableName
 
 import scala.collection.JavaConverters._
 import scala.concurrent.{Await, Future}
 
-class MetadataSchemaProviderSpec
-    extends WordSpec
-    with MatchersUtil
-    with Checkers
-    with MockFactory {
-
-  import freestyle.cassandra.schema.MetadataArbitraries._
+class MetadataSchemaProviderSpec extends TestDecoderUtils {
 
   import cats.instances.future._
   import freestyle.async.implicits._
-  import freestyle.cassandra.api._
-  import freestyle.cassandra.handlers.implicits._
+  import freestyle.cassandra.schema.MetadataArbitraries._
 
   import scala.concurrent.ExecutionContext.Implicits.global
-
-  implicit def futureClusterAPIHanlder(implicit C: Cluster): FSHandler[ClusterAPI.Op, Future] =
-    clusterAPIHandler[Future] andThen apiInterpreter[Future, Cluster](C)
 
   "schemaDefinition" should {
 
@@ -113,9 +101,41 @@ class MetadataSchemaProviderSpec
 
       Await.result(MetadataSchemaProvider.metadataSchemaProvider[Future].schemaDefinition.recover {
         case _ => Seq.empty
-      }, scala.concurrent.duration.Duration.Inf) isEqualTo Seq.empty
+      }, scala.concurrent.duration.Duration.Inf) shouldBe Seq.empty
     }
 
+    "clusterProvider" should {
+
+      "return an error if the cluster configuration is not valid" in {
+        val reader: Reader = new StringReader("cluster = {}")
+
+        val clusterProvider = MetadataSchemaProvider.clusterProvider[Future](reader)
+
+        Await.result(clusterProvider.recover {
+          case _ => Seq.empty
+        }, scala.concurrent.duration.Duration.Inf) shouldBe Seq.empty
+      }
+
+      "return the valid configuration" in {
+        val reader: Reader = new StringReader(s"cluster = ${validClusterConfiguration.print}")
+
+        val cluster = Await.result(
+          MetadataSchemaProvider.clusterProvider[Future](reader),
+          scala.concurrent.duration.Duration.Inf)
+
+        Option(cluster.getClusterName) shouldBe validClusterConfiguration.name
+      }
+
+    }
+
+    "create a metadataSchemaProvider from a Reader with the configuration" in {
+      val reader: Reader = new StringReader("cluster = {}")
+
+      type SchemaProviderFuture = SchemaDefinitionProvider[Future]
+
+      MetadataSchemaProvider.metadataSchemaProvider[Future](reader) shouldBe a[
+        SchemaProviderFuture]
+    }
   }
 
 }

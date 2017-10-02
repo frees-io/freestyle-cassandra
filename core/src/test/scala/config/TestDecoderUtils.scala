@@ -21,12 +21,13 @@ import cats.syntax.option._
 import classy.Decoder
 import com.datastax.driver.core.ProtocolOptions.Compression
 import com.datastax.driver.core._
+import freestyle.cassandra.TestUtils.MatchersUtil
 import freestyle.cassandra.config.ClusterConfig._
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.prop.Checkers
 import org.scalatest.{Matchers, WordSpec}
 
-class TestDecoderUtils extends WordSpec with Matchers with Checkers with MockFactory {
+class TestDecoderUtils extends WordSpec with MatchersUtil with Checkers with MockFactory {
 
   import classy.config._
   import com.typesafe.config.Config

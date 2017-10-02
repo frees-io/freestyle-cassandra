@@ -10,6 +10,7 @@ lazy val commonDependencies: Seq[ModuleID] = Seq(
   %%("circe-parser"),
   %%("circe-generic"),
   %%("classy-core"),
+  %%("classy-config-typesafe"),
   %("cassandra-driver-core"),
   %("cassandra-driver-mapping"),
   %("cassandra-driver-extras"),
@@ -22,8 +23,7 @@ lazy val testDependencies: Seq[ModuleID] =
     %%("scalatest"),
     %%("scalamockScalatest"),
     %%("scalacheck"),
-    %%("scheckShapeless"),
-    %%("classy-config-typesafe")) map (_  % "test")
+    %%("scheckShapeless")) map (_  % "test")
 
 lazy val root = project
   .in(file("."))
