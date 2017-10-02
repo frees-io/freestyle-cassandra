@@ -20,7 +20,9 @@ package schema.provider
 import cats.implicits._
 import cats.{~>, MonadError}
 import com.datastax.driver.core._
-import freestyle.cassandra.api.ClusterAPI
+import freestyle.async.AsyncContext
+import freestyle.cassandra.api.{apiInterpreter, ClusterAPI}
+import freestyle.cassandra.handlers.implicits.clusterAPIHandler
 import freestyle.{FreeS, _}
 import freestyle.cassandra.schema.provider.metadata.SchemaConversions
 import freestyle.cassandra.schema.SchemaDefinition
@@ -28,7 +30,8 @@ import freestyle.cassandra.schema.SchemaDefinition
 import scala.collection.JavaConverters._
 import scala.language.postfixOps
 
-class MetadataSchemaProvider[M[_]](cluster: Cluster)(implicit H: FSHandler[ClusterAPI.Op, M])
+class MetadataSchemaProvider[M[_]](
+    clusterProvider: => M[Cluster])(implicit AC: AsyncContext[M], API: ClusterAPI[ClusterAPI.Op])
     extends SchemaDefinitionProvider[M]
     with SchemaConversions {
 
@@ -52,14 +55,15 @@ class MetadataSchemaProvider[M[_]](cluster: Cluster)(implicit H: FSHandler[Clust
         M.flatMap(finalizer)(_ => e.fold(M.raiseError, M.pure))
       }
 
-    def metadataF[F[_]](implicit clusterAPI: ClusterAPI[F]): FreeS[F, Metadata] =
-      clusterAPI.connect *> clusterAPI.metadata
+    def metadataF: FreeS[ClusterAPI.Op, Metadata] = API.connect *> API.metadata
 
-    def closeF[F[_]](implicit clusterAPI: ClusterAPI[F]): FreeS[F, Unit] =
-      clusterAPI.close
+    def closeF: FreeS[ClusterAPI.Op, Unit] = API.close
 
-    M.flatMap(guarantee(metadataF[ClusterAPI.Op].interpret[M], closeF[ClusterAPI.Op].interpret[M])) {
-      metadata =>
+    M.flatMap(clusterProvider) { cluster =>
+      implicit val H: FSHandler[ClusterAPI.Op, M] =
+        clusterAPIHandler[M] andThen apiInterpreter[M, Cluster](cluster)
+
+      M.flatMap(guarantee(metadataF.interpret[M], closeF.interpret[M])) { metadata =>
         val keyspaceList: List[KeyspaceMetadata]   = metadata.getKeyspaces.asScala.toList
         val tableList: List[AbstractTableMetadata] = keyspaceList.flatMap(extractTables)
         val indexList: List[IndexMetadata]         = extractIndexes(tableList)
@@ -71,6 +75,7 @@ class MetadataSchemaProvider[M[_]](cluster: Cluster)(implicit H: FSHandler[Clust
           indexList.traverse(toCreateIndex[M](_)),
           userTypeList.traverse(toUserType[M])
         )(_ ++ _ ++ _ ++ _)
+      }
     }
   }
 }
@@ -79,7 +84,9 @@ object MetadataSchemaProvider {
 
   implicit def metadataSchemaProvider[M[_]](
       implicit cluster: Cluster,
-      H: ClusterAPI.Op ~> M): SchemaDefinitionProvider[M] =
-    new MetadataSchemaProvider[M](cluster)
+      AC: AsyncContext[M],
+      M: MonadError[M, Throwable],
+      API: ClusterAPI[ClusterAPI.Op]): SchemaDefinitionProvider[M] =
+    new MetadataSchemaProvider[M](M.pure(cluster))
 
 }

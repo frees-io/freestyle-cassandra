@@ -20,6 +20,7 @@ package schema.provider
 import cats.~>
 import com.datastax.driver.core._
 import com.google.common.util.concurrent.ListenableFuture
+import freestyle.FSHandler
 import freestyle.cassandra.TestUtils.{successfulFuture, EitherM, MatchersUtil}
 import freestyle.cassandra.schema.SchemaDefinition
 import org.scalacheck.Prop._
@@ -46,7 +47,7 @@ class MetadataSchemaProviderSpec
 
   import scala.concurrent.ExecutionContext.Implicits.global
 
-  implicit def futureClusterAPIHanlder(implicit C: Cluster): ClusterAPI.Op ~> Future =
+  implicit def futureClusterAPIHanlder(implicit C: Cluster): FSHandler[ClusterAPI.Op, Future] =
     clusterAPIHandler[Future] andThen apiInterpreter[Future, Cluster](C)
 
   "schemaDefinition" should {
@@ -70,7 +71,9 @@ class MetadataSchemaProviderSpec
               genIndex.copy(createIndex = createIndex)
             }
 
-            val metadataSchemaProvider = new MetadataSchemaProvider[Future](clusterMock) {
+            val clusterFuture: Future[Cluster] = Future.successful(clusterMock)
+
+            val metadataSchemaProvider = new MetadataSchemaProvider[Future](clusterFuture) {
 
               override def readTable(metadata: IndexMetadata): TableName =
                 tables.head.createTable.tableName
