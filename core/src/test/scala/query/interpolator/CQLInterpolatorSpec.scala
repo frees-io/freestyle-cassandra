@@ -33,11 +33,11 @@ class CQLInterpolatorSpec extends WordSpec with Matchers {
 
     "provide a cql interpolator" in {
 
-      implicit val M: MonadError[Try, Throwable] = cats.instances.try_.catsStdInstancesForTry
+      implicit val E: MonadError[Try, Throwable] = cats.instances.try_.catsStdInstancesForTry
 
       val schemaValidator: SchemaValidator[Try] = new SchemaValidator[Try] {
         override def validateStatement(st: Statement)(
-            implicit M: MonadError[Try, Throwable]): Try[ValidatedNel[SchemaError, Unit]] =
+            implicit E: MonadError[Try, Throwable]): Try[ValidatedNel[SchemaError, Unit]] =
           Success(Valid((): Unit))
       }
 

@@ -41,11 +41,11 @@ class CQLInterpolator(V: SchemaValidator[Try]) extends Interpolator {
       case (prev, _)                     => prev
     }
 
-    def parseStatement[M[_]](cql: String)(implicit M: MonadError[M, Throwable]): M[Statement] =
+    def parseStatement[M[_]](cql: String)(implicit E: MonadError[M, Throwable]): M[Statement] =
       CqlParser.parseDML(cql) match {
-        case CqlParser.Success(dataManipulation, _) => M.pure(dataManipulation)
-        case CqlParser.Failure(msg, _)              => M.raiseError(new IllegalArgumentException(msg))
-        case CqlParser.Error(msg, _)                => M.raiseError(new IllegalArgumentException(msg))
+        case CqlParser.Success(dataManipulation, _) => E.pure(dataManipulation)
+        case CqlParser.Failure(msg, _)              => E.raiseError(new IllegalArgumentException(msg))
+        case CqlParser.Error(msg, _)                => E.raiseError(new IllegalArgumentException(msg))
       }
 
     parseStatement[Try](cql).flatMap(V.validateStatement) match {
@@ -58,8 +58,8 @@ class CQLInterpolator(V: SchemaValidator[Try]) extends Interpolator {
   }
 
   def evaluate[M[_]](interpolation: RuntimeInterpolation)(
-      implicit M: MonadError[M, Throwable]): M[(String, List[OutputValue])] =
-    M.pure {
+      implicit E: MonadError[M, Throwable]): M[(String, List[OutputValue])] =
+    E.pure {
       interpolation.parts.foldLeft(("", List.empty[OutputValue])) {
         case ((cql, values), Literal(_, string)) =>
           (cql + string, values)

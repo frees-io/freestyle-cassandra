@@ -25,7 +25,7 @@ package object validator {
   trait SchemaValidator[M[_]] {
 
     def validateStatement(st: Statement)(
-        implicit M: MonadError[M, Throwable]): M[ValidatedNel[SchemaError, Unit]]
+        implicit E: MonadError[M, Throwable]): M[ValidatedNel[SchemaError, Unit]]
 
   }
 

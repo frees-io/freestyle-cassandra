@@ -26,7 +26,7 @@ import shapeless.labelled.FieldType
 package object mapper {
 
   abstract class FieldMapper(val name: String) {
-    def serialize[M[_]](implicit M: MonadError[M, Throwable]): M[ByteBuffer]
+    def serialize[M[_]](implicit E: MonadError[M, Throwable]): M[ByteBuffer]
   }
 
   trait FieldListMapper[A] {
@@ -47,7 +47,7 @@ package object mapper {
       val fieldName = witness.value.name
       createFieldMapper { hlist =>
         val fieldMapper = new FieldMapper(fieldName) {
-          override def serialize[M[_]](implicit M: MonadError[M, Throwable]): M[ByteBuffer] =
+          override def serialize[M[_]](implicit E: MonadError[M, Throwable]): M[ByteBuffer] =
             codec.value.serialize(hlist.head)
         }
         fieldMapper :: tMapper.map(hlist.tail)

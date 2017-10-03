@@ -33,7 +33,7 @@ object RuntimeCQLInterpolator {
 
   private[this] val schemaValidator: SchemaValidator[Try] = new SchemaValidator[Try] {
     override def validateStatement(st: Statement)(
-        implicit M: MonadError[Try, Throwable]): Try[ValidatedNel[SchemaError, Unit]] =
+        implicit E: MonadError[Try, Throwable]): Try[ValidatedNel[SchemaError, Unit]] =
       Success(Valid((): Unit))
   }
 
@@ -42,7 +42,7 @@ object RuntimeCQLInterpolator {
   implicit def embedArgsNamesInCql[T](implicit C: ByteBufferCodec[T]) = cqlInterpolator.embed[T](
     Case(CQLLiteral, CQLLiteral) { v =>
       new ValueSerializer {
-        override def serialize[M[_]](implicit M: MonadError[M, Throwable]): M[ByteBuffer] =
+        override def serialize[M[_]](implicit E: MonadError[M, Throwable]): M[ByteBuffer] =
           C.serialize(v)
       }
     }

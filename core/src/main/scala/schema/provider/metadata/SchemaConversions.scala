@@ -41,7 +41,7 @@ import scala.language.postfixOps
 trait SchemaConversions {
 
   def toCreateKeyspace[M[_]](keyspaceMetadata: KeyspaceMetadata)(
-      implicit M: MonadError[M, Throwable]): M[CreateKeyspace] =
+      implicit E: MonadError[M, Throwable]): M[CreateKeyspace] =
     catchNonFatalAsSchemaError {
       val name: String = Option(keyspaceMetadata.getName)
         .getOrElse(throw new IllegalArgumentException("Schema name is null"))
@@ -57,16 +57,16 @@ trait SchemaConversions {
     }
 
   def toCreateTable[M[_]](metadata: AbstractTableMetadata)(
-      implicit M: MonadError[M, Throwable]): M[CreateTable] =
-    M.flatten {
+      implicit E: MonadError[M, Throwable]): M[CreateTable] =
+    E.flatten {
       catchNonFatalAsSchemaError {
         val columnsM: M[List[Table.Column]] =
-          M.traverse(metadata.getColumns.asScala.toList)(toTableColumn[M](_)(M))
+          E.traverse(metadata.getColumns.asScala.toList)(toTableColumn[M](_)(E))
         val pKeyM: M[PrimaryKey] = toPrimaryKey(
           metadata.getPartitionKey.asScala.toList,
           metadata.getClusteringColumns.asScala.toList)
 
-        M.map2(columnsM, pKeyM) { (columns, pKey) =>
+        E.map2(columnsM, pKeyM) { (columns, pKey) =>
           CreateTable(
             ifNotExists = false,
             tableName =
@@ -85,7 +85,7 @@ trait SchemaConversions {
   def toCreateIndex[M[_]](
       metadata: IndexMetadata,
       readTable: (IndexMetadata) => TableName = readTable)(
-      implicit M: MonadError[M, Throwable]): M[CreateIndex] =
+      implicit E: MonadError[M, Throwable]): M[CreateIndex] =
     catchNonFatalAsSchemaError {
       CreateIndex(
         isCustom = metadata.isCustomIndex,
@@ -101,8 +101,8 @@ trait SchemaConversions {
       )
     }
 
-  def toUserType[M[_]](userType: UserType)(implicit M: MonadError[M, Throwable]): M[CreateType] =
-    M.flatten {
+  def toUserType[M[_]](userType: UserType)(implicit E: MonadError[M, Throwable]): M[CreateType] =
+    E.flatten {
       catchNonFatalAsSchemaError {
         val fieldsM: M[List[Field]] =
           userType.getFieldNames.asScala.toList.traverse { fieldName =>
@@ -111,19 +111,19 @@ trait SchemaConversions {
 
         val typeName = TypeName(Some(KeyspaceName(userType.getKeyspace)), userType.getTypeName)
 
-        M.map(fieldsM) { list =>
+        E.map(fieldsM) { list =>
           CreateType(ifNotExists = false, typeName = typeName, fields = list)
         }
       }
     }
 
   private[this] def toField[M[_]](name: String, datastaxDataType: DatastaxDataType)(
-      implicit M: MonadError[M, Throwable]): M[Field] =
-    M.map(toDataType(datastaxDataType))(Field(name, _))
+      implicit E: MonadError[M, Throwable]): M[Field] =
+    E.map(toDataType(datastaxDataType))(Field(name, _))
 
   private[this] def toTableColumn[M[_]](metadata: ColumnMetadata)(
-      implicit M: MonadError[M, Throwable]): M[Table.Column] =
-    M.map(toDataType(metadata.getType)) { dataType =>
+      implicit E: MonadError[M, Throwable]): M[Table.Column] =
+    E.map(toDataType(metadata.getType)) { dataType =>
       Table.Column(
         name = metadata.getName,
         dataType = dataType,
@@ -132,34 +132,34 @@ trait SchemaConversions {
     }
 
   private[this] def toDataType[M[_]](dataType: DatastaxDataType)(
-      implicit M: MonadError[M, Throwable]): M[DataType] = {
+      implicit E: MonadError[M, Throwable]): M[DataType] = {
 
     import DatastaxDataType._
 
     def toDataTypeNative(dataType: DatastaxDataType): M[DataType.Native] =
       dataType.getName match {
-        case Name.ASCII     => M.pure(DataType.Ascii)
-        case Name.BIGINT    => M.pure(DataType.BigInt)
-        case Name.BLOB      => M.pure(DataType.Blob)
-        case Name.BOOLEAN   => M.pure(DataType.Boolean)
-        case Name.COUNTER   => M.pure(DataType.Counter)
-        case Name.DATE      => M.pure(DataType.Date)
-        case Name.DECIMAL   => M.pure(DataType.Decimal)
-        case Name.DOUBLE    => M.pure(DataType.Double)
-        case Name.FLOAT     => M.pure(DataType.Float)
-        case Name.INET      => M.pure(DataType.Inet)
-        case Name.INT       => M.pure(DataType.Int)
-        case Name.SMALLINT  => M.pure(DataType.Smallint)
-        case Name.TEXT      => M.pure(DataType.Text)
-        case Name.TIME      => M.pure(DataType.Time)
-        case Name.TIMESTAMP => M.pure(DataType.Timestamp)
-        case Name.TIMEUUID  => M.pure(DataType.Timeuuid)
-        case Name.TINYINT   => M.pure(DataType.Tinyint)
-        case Name.UUID      => M.pure(DataType.Uuid)
-        case Name.VARCHAR   => M.pure(DataType.Varchar)
-        case Name.VARINT    => M.pure(DataType.Varint)
+        case Name.ASCII     => E.pure(DataType.Ascii)
+        case Name.BIGINT    => E.pure(DataType.BigInt)
+        case Name.BLOB      => E.pure(DataType.Blob)
+        case Name.BOOLEAN   => E.pure(DataType.Boolean)
+        case Name.COUNTER   => E.pure(DataType.Counter)
+        case Name.DATE      => E.pure(DataType.Date)
+        case Name.DECIMAL   => E.pure(DataType.Decimal)
+        case Name.DOUBLE    => E.pure(DataType.Double)
+        case Name.FLOAT     => E.pure(DataType.Float)
+        case Name.INET      => E.pure(DataType.Inet)
+        case Name.INT       => E.pure(DataType.Int)
+        case Name.SMALLINT  => E.pure(DataType.Smallint)
+        case Name.TEXT      => E.pure(DataType.Text)
+        case Name.TIME      => E.pure(DataType.Time)
+        case Name.TIMESTAMP => E.pure(DataType.Timestamp)
+        case Name.TIMEUUID  => E.pure(DataType.Timeuuid)
+        case Name.TINYINT   => E.pure(DataType.Tinyint)
+        case Name.UUID      => E.pure(DataType.Uuid)
+        case Name.VARCHAR   => E.pure(DataType.Varchar)
+        case Name.VARINT    => E.pure(DataType.Varint)
         case _ =>
-          M.raiseError(
+          E.raiseError(
             SchemaDefinitionProviderError(s"Native DataType ${dataType.getName} not supported"))
       }
 
@@ -170,40 +170,40 @@ trait SchemaConversions {
       val maybeCol: Option[M[DataType]] = collectionType.getName match {
         case Name.LIST =>
           typeArgs.headOption map { typeArg =>
-            M.map(toDataTypeNative(typeArg))(DataType.List)
+            E.map(toDataTypeNative(typeArg))(DataType.List)
           }
         case Name.SET =>
           typeArgs.headOption map { typeArg =>
-            M.map(toDataTypeNative(typeArg))(DataType.Set)
+            E.map(toDataTypeNative(typeArg))(DataType.Set)
           }
         case Name.MAP =>
           for {
             t1 <- typeArgs.headOption
             t2 <- typeArgs.tail.headOption
           } yield
-            M.map2(toDataTypeNative(t1), toDataTypeNative(t2))((t1, t2) => DataType.Map(t1, t2))
+            E.map2(toDataTypeNative(t1), toDataTypeNative(t2))((t1, t2) => DataType.Map(t1, t2))
         case _ => None
       }
 
       maybeCol getOrElse {
-        M.raiseError(
+        E.raiseError(
           SchemaDefinitionProviderError(
             s"Error parsing collection DataType '${collectionType.asFunctionParameterString()}'"))
       }
     }
 
     def toCustomType(className: String): M[DataType] =
-      M.pure(DataType.Custom(className))
+      E.pure(DataType.Custom(className))
 
     def toUserDefinedType(keyspace: String, typeName: String): M[DataType] =
-      M.pure(DataType.UserDefined(KeyspaceName(keyspace), typeName))
+      E.pure(DataType.UserDefined(KeyspaceName(keyspace), typeName))
 
     def toTupleType(tupleType: TupleType): M[DataType] =
-      M.map(tupleType.getComponentTypes.asScala.toList.traverse(toDataTypeNative))(DataType.Tuple)
+      E.map(tupleType.getComponentTypes.asScala.toList.traverse(toDataTypeNative))(DataType.Tuple)
 
     dataType match {
       case nativeType: NativeType =>
-        M.widen[DataType.Native, DataType](toDataTypeNative(nativeType))
+        E.widen[DataType.Native, DataType](toDataTypeNative(nativeType))
       case customType: CustomType         => toCustomType(customType.getCustomTypeClassName)
       case collectionType: CollectionType => toCollectionType(collectionType)
       case tupleType: TupleType           => toTupleType(tupleType)
@@ -214,7 +214,7 @@ trait SchemaConversions {
   private[this] def toPrimaryKey[M[_]](
       partitionKeys: List[ColumnMetadata],
       clusteringColumns: List[ColumnMetadata])(
-      implicit M: MonadError[M, Throwable]): M[PrimaryKey] =
-    M.pure(PrimaryKey(partitionKeys.map(_.getName), clusteringColumns.map(_.getName)))
+      implicit E: MonadError[M, Throwable]): M[PrimaryKey] =
+    E.pure(PrimaryKey(partitionKeys.map(_.getName), clusteringColumns.map(_.getName)))
 
 }

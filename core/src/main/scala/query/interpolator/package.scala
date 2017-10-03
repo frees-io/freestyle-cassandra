@@ -28,7 +28,7 @@ package object interpolator {
   case object CQLLiteral  extends CQLContext
 
   trait ValueSerializer {
-    def serialize[M[_]](implicit M: MonadError[M, Throwable]): M[ByteBuffer]
+    def serialize[M[_]](implicit E: MonadError[M, Throwable]): M[ByteBuffer]
   }
 
   case class OutputValue(index: Int, serializer: ValueSerializer)

@@ -25,25 +25,25 @@ import troy.cql.ast.CqlParser
 
 class TroySchemaProvider[M[_]](cqlF: => M[String]) extends SchemaDefinitionProvider[M] {
 
-  override def schemaDefinition(implicit M: MonadError[M, Throwable]): M[SchemaDefinition] =
-    M.flatMap(cqlF) { cql =>
+  override def schemaDefinition(implicit E: MonadError[M, Throwable]): M[SchemaDefinition] =
+    E.flatMap(cqlF) { cql =>
       CqlParser.parseSchema(cql) match {
-        case CqlParser.Success(res, _) => M.pure(res)
+        case CqlParser.Success(res, _) => E.pure(res)
         case CqlParser.Failure(msg, next) =>
-          M.raiseError(
+          E.raiseError(
             SchemaDefinitionProviderError(
               s"Parse Failure: $msg, line = ${next.pos.line}, column = ${next.pos.column}"))
-        case CqlParser.Error(msg, _) => M.raiseError(SchemaDefinitionProviderError(msg))
+        case CqlParser.Error(msg, _) => E.raiseError(SchemaDefinitionProviderError(msg))
       }
     }
 }
 
 object TroySchemaProvider {
 
-  def apply[M[_]](cql: String)(implicit M: MonadError[M, Throwable]): TroySchemaProvider[M] =
-    new TroySchemaProvider(M.pure(cql))
+  def apply[M[_]](cql: String)(implicit E: MonadError[M, Throwable]): TroySchemaProvider[M] =
+    new TroySchemaProvider(E.pure(cql))
 
-  def apply[M[_]](is: InputStream)(implicit M: MonadError[M, Throwable]): TroySchemaProvider[M] =
+  def apply[M[_]](is: InputStream)(implicit E: MonadError[M, Throwable]): TroySchemaProvider[M] =
     new TroySchemaProvider[M](
       catchNonFatalAsSchemaError(scala.io.Source.fromInputStream(is).mkString))
 

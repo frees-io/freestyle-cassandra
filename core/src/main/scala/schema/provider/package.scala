@@ -22,7 +22,7 @@ import cats.MonadError
 package object provider {
 
   trait SchemaDefinitionProvider[M[_]] {
-    def schemaDefinition(implicit M: MonadError[M, Throwable]): M[SchemaDefinition]
+    def schemaDefinition(implicit E: MonadError[M, Throwable]): M[SchemaDefinition]
   }
 
 }
