@@ -30,7 +30,7 @@ class RuntimeCQLInterpolatorSpec extends WordSpec with Matchers {
     "return a success for a simple query" in {
 
       import RuntimeCQLInterpolator._
-      implicit val M: MonadError[Try, Throwable] = cats.instances.try_.catsStdInstancesForTry
+      implicit val E: MonadError[Try, Throwable] = cats.instances.try_.catsStdInstancesForTry
 
       cql"SELECT * FROM users" shouldBe Success(("SELECT * FROM users", Nil))
     }
@@ -38,7 +38,7 @@ class RuntimeCQLInterpolatorSpec extends WordSpec with Matchers {
     "return a success for a query with params" in {
 
       import RuntimeCQLInterpolator._
-      implicit val M: MonadError[Try, Throwable] = cats.instances.try_.catsStdInstancesForTry
+      implicit val E: MonadError[Try, Throwable] = cats.instances.try_.catsStdInstancesForTry
 
       implicit val protocolVersion: ProtocolVersion   = ProtocolVersion.V4
       implicit val stringTypeCodec: TypeCodec[String] = TypeCodec.ascii()
@@ -62,7 +62,7 @@ class RuntimeCQLInterpolatorSpec extends WordSpec with Matchers {
     "not compile for a wrong statement" in {
 
       import RuntimeCQLInterpolator._
-      implicit val M: MonadError[Try, Throwable] = cats.instances.try_.catsStdInstancesForTry
+      implicit val E: MonadError[Try, Throwable] = cats.instances.try_.catsStdInstancesForTry
 
       """cql"Wrong statement"""" shouldNot compile
     }

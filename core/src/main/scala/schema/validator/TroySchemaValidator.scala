@@ -24,12 +24,12 @@ import freestyle.cassandra.schema.provider.SchemaDefinitionProvider
 import troy.schema.{Message, Result, SchemaEngine, V}
 
 class TroySchemaValidator[M[_]](
-    implicit M: MonadError[M, Throwable],
+    implicit E: MonadError[M, Throwable],
     SDP: SchemaDefinitionProvider[M])
     extends SchemaValidator[M] {
 
   override def validateStatement(st: Statement)(
-      implicit M: MonadError[M, Throwable]): M[ValidatedNel[SchemaError, Unit]] = {
+      implicit E: MonadError[M, Throwable]): M[ValidatedNel[SchemaError, Unit]] = {
 
     def toSchemaValidatorError(message: Message): SchemaValidatorError =
       SchemaValidatorError(message.message)
@@ -57,7 +57,7 @@ class TroySchemaValidator[M[_]](
       }
     }
 
-    M.flatMap(SDP.schemaDefinition)(validateStatement(_, st))
+    E.flatMap(SDP.schemaDefinition)(validateStatement(_, st))
   }
 
 }
@@ -65,6 +65,6 @@ class TroySchemaValidator[M[_]](
 object TroySchemaValidator {
 
   implicit def instance[M[_]](
-      implicit M: MonadError[M, Throwable],
+      implicit E: MonadError[M, Throwable],
       SDP: SchemaDefinitionProvider[M]): SchemaValidator[M] = new TroySchemaValidator[M]
 }

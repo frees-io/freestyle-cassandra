@@ -46,7 +46,7 @@ class SchemaValidatorSpec extends WordSpec with Matchers with MockFactory {
     "return Unit if the schema provider and the provided function works as expected" in {
       val sv: SchemaValidator[EitherM] = new SchemaValidator[EitherM] {
         override def validateStatement(st: Statement)(
-            implicit M: MonadError[EitherM, Throwable]): Either[
+            implicit E: MonadError[EitherM, Throwable]): Either[
           Throwable,
           ValidatedNel[SchemaError, Unit]] = Right(Validated.valid((): Unit))
       }
@@ -59,7 +59,7 @@ class SchemaValidatorSpec extends WordSpec with Matchers with MockFactory {
       val exc = SchemaDefinitionProviderError("Test error")
       val sv: SchemaValidator[EitherM] = new SchemaValidator[EitherM] {
         override def validateStatement(st: Statement)(
-            implicit M: MonadError[EitherM, Throwable]): Either[
+            implicit E: MonadError[EitherM, Throwable]): Either[
           Throwable,
           ValidatedNel[SchemaError, Unit]] = Left(exc)
       }

@@ -41,9 +41,9 @@ package object schema {
   type Statement        = DataManipulation
 
   def catchNonFatalAsSchemaError[M[_], A](value: => A)(
-      implicit M: MonadError[M, Throwable]): M[A] =
-    M.handleErrorWith(M.catchNonFatal(value)) { e =>
-      M.raiseError(SchemaDefinitionProviderError(e))
+      implicit E: MonadError[M, Throwable]): M[A] =
+    E.handleErrorWith(E.catchNonFatal(value)) { e =>
+      E.raiseError(SchemaDefinitionProviderError(e))
     }
 
 }

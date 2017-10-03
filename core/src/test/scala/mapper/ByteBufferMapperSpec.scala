@@ -71,14 +71,14 @@ class ByteBufferMapperSpec extends WordSpec with Matchers with Checkers {
         val Regex: Regex = "(\\d+);(.+)".r
 
         override def deserialize[M[_]](bytes: ByteBuffer)(
-            implicit M: MonadError[M, Throwable]): M[B] =
-          M.flatMap(stringCodec.deserialize(bytes)) {
-            case Regex(v1, v2) => M.pure(B(v1.toLong, v2))
-            case _             => M.raiseError[B](new RuntimeException("Bad serialized value"))
+            implicit E: MonadError[M, Throwable]): M[B] =
+          E.flatMap(stringCodec.deserialize(bytes)) {
+            case Regex(v1, v2) => E.pure(B(v1.toLong, v2))
+            case _             => E.raiseError[B](new RuntimeException("Bad serialized value"))
           }
 
         override def serialize[M[_]](value: B)(
-            implicit M: MonadError[M, Throwable]): M[ByteBuffer] =
+            implicit E: MonadError[M, Throwable]): M[ByteBuffer] =
           stringCodec.serialize(value.b1 + ";" + value.b2)
       }
 

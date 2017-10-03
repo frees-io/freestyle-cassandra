@@ -41,7 +41,7 @@ class TroySchemaValidatorSpec extends WordSpec with MatchersUtil with Checkers {
           implicit val sdp: SchemaDefinitionProvider[EitherM] =
             new SchemaDefinitionProvider[EitherM] {
               override def schemaDefinition(
-                  implicit M: MonadError[EitherM, Throwable]): EitherM[SchemaDefinition] =
+                  implicit E: MonadError[EitherM, Throwable]): EitherM[SchemaDefinition] =
                 Right(Seq(st.keyspace, st.table))
             }
 
