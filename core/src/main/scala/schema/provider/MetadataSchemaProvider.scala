@@ -34,7 +34,7 @@ import scala.collection.JavaConverters._
 import scala.language.postfixOps
 
 class MetadataSchemaProvider[M[_]](
-    val clusterProvider: M[Cluster])(implicit AC: AsyncContext[M], API: ClusterAPI[ClusterAPI.Op])
+    clusterProvider: M[Cluster])(implicit AC: AsyncContext[M], API: ClusterAPI[ClusterAPI.Op])
     extends SchemaDefinitionProvider[M]
     with SchemaConversions {
 
