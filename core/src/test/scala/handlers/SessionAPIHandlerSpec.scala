@@ -18,7 +18,7 @@ package freestyle.cassandra
 package handlers
 
 import com.datastax.driver.core._
-import freestyle.cassandra.api.LowLevelAPIOps
+import freestyle.cassandra.api.SessionAPIOps
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, OneInstancePerTest, WordSpec}
 
@@ -26,7 +26,7 @@ import scala.collection.JavaConverters._
 import scala.concurrent.{Await, Future}
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class LowLevelAPIHandlerSpec
+class SessionAPIHandlerSpec
     extends WordSpec
     with Matchers
     with OneInstancePerTest
@@ -43,13 +43,13 @@ class LowLevelAPIHandlerSpec
   import freestyle.async.implicits._
   import freestyle.cassandra.handlers.implicits._
   import TestUtils._
-  val handler: LowLevelAPIHandler[Future] = lowLevelAPIHandler[Future]
+  val handler: SessionAPIHandler[Future] = sessionAPIHandler[Future]
 
   import scala.concurrent.duration._
-  def run[T](k: LowLevelAPIOps[Future, T]): T =
+  def run[T](k: SessionAPIOps[Future, T]): T =
     Await.result(k.run(sessionMock), 5.seconds)
 
-  "ListenableFutureHandler" should {
+  "SessionAPIHandler" should {
 
     "call to initAsync when calling init() method" in {
       val result = successfulFuture(sessionMock)

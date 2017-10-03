@@ -458,8 +458,9 @@ trait MetadataArbitraries {
        """.stripMargin,
           SelectStatement(
             mod = None,
-            selection = Select.SelectClause(Seq(
-              Select.SelectionClauseItem(selector = Select.ColumnName(selectColumn), as = None))),
+            selection = Select.SelectClause(
+              Seq(
+                Select.SelectionClauseItem(selector = Select.ColumnName(selectColumn), as = None))),
             from = tableName,
             where = Some(
               WhereClause(
@@ -491,12 +492,11 @@ trait MetadataArbitraries {
 
   }
 
-  val schemaGen: Gen[
-    (
-        GeneratedKeyspace,
-        NonEmptyList[GeneratedTable],
-        List[GeneratedIndex],
-        List[GeneratedUserType])] =
+  val schemaGen: Gen[(
+      GeneratedKeyspace,
+      NonEmptyList[GeneratedTable],
+      List[GeneratedIndex],
+      List[GeneratedUserType])] =
     for {
       keyspace <- generatedKeyspaceArb.arbitrary
       tables <- distinctListOfGen[GeneratedTable](

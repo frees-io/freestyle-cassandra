@@ -17,6 +17,8 @@
 package freestyle.cassandra
 package handlers
 
+import java.nio.ByteBuffer
+
 import cats.data.Kleisli
 import cats.{~>, MonadError}
 
@@ -24,43 +26,47 @@ import collection.JavaConverters._
 import com.datastax.driver.core._
 import com.google.common.util.concurrent.{AsyncFunction, Futures, ListenableFuture, MoreExecutors}
 import freestyle.async.AsyncContext
-import freestyle.cassandra.api.{ClusterAPI, ClusterAPIOps, LowLevelAPI, LowLevelAPIOps}
+import freestyle.cassandra.api.{ClusterAPI, ClusterAPIOps, SessionAPI, SessionAPIOps, StatementAPI}
 
 object implicits {
 
   import freestyle.cassandra.implicits._
 
-  implicit def lowLevelAPIHandler[M[_]](implicit AC: AsyncContext[M]): LowLevelAPIHandler[M] =
-    new LowLevelAPIHandler[M]
+  implicit def sessionAPIHandler[M[_]](implicit AC: AsyncContext[M]): SessionAPIHandler[M] =
+    new SessionAPIHandler[M]
 
   implicit def clusterAPIHandler[M[_]](
       implicit AC: AsyncContext[M],
       E: MonadError[M, Throwable]): ClusterAPIHandler[M] =
     new ClusterAPIHandler[M]
 
-  class LowLevelAPIHandler[M[_]](implicit H: ListenableFuture[?] ~> M)
-      extends LowLevelAPI.Handler[LowLevelAPIOps[M, ?]] {
+  implicit def statementAPIHandler[M[_]](
+      implicit E: MonadError[M, Throwable]): StatementAPIHandler[M] =
+    new StatementAPIHandler[M]
 
-    def init: LowLevelAPIOps[M, Session] = Kleisli(s => H(s.initAsync()))
+  class SessionAPIHandler[M[_]](implicit H: ListenableFuture[?] ~> M)
+      extends SessionAPI.Handler[SessionAPIOps[M, ?]] {
 
-    def close: LowLevelAPIOps[M, Unit] = closeFuture2unit[M, Session](_.closeAsync())
+    def init: SessionAPIOps[M, Session] = Kleisli(s => H(s.initAsync()))
 
-    def prepare(query: String): LowLevelAPIOps[M, PreparedStatement] =
+    def close: SessionAPIOps[M, Unit] = closeFuture2unit[M, Session](_.closeAsync())
+
+    def prepare(query: String): SessionAPIOps[M, PreparedStatement] =
       Kleisli(s => H(s.prepareAsync(query)))
 
-    def prepareStatement(statement: RegularStatement): LowLevelAPIOps[M, PreparedStatement] =
+    def prepareStatement(statement: RegularStatement): SessionAPIOps[M, PreparedStatement] =
       Kleisli(s => H(s.prepareAsync(statement)))
 
-    def execute(query: String): LowLevelAPIOps[M, ResultSet] =
+    def execute(query: String): SessionAPIOps[M, ResultSet] =
       Kleisli(s => H(s.executeAsync(query)))
 
-    def executeWithValues(query: String, values: Any*): LowLevelAPIOps[M, ResultSet] =
+    def executeWithValues(query: String, values: Any*): SessionAPIOps[M, ResultSet] =
       Kleisli(s => H(s.executeAsync(query, values)))
 
-    def executeWithMap(query: String, values: Map[String, AnyRef]): LowLevelAPIOps[M, ResultSet] =
+    def executeWithMap(query: String, values: Map[String, AnyRef]): SessionAPIOps[M, ResultSet] =
       Kleisli(s => H(s.executeAsync(query, values.asJava)))
 
-    def executeStatement(statement: Statement): LowLevelAPIOps[M, ResultSet] =
+    def executeStatement(statement: Statement): SessionAPIOps[M, ResultSet] =
       Kleisli(s => H(s.executeAsync(statement)))
 
   }
@@ -83,6 +89,26 @@ object implicits {
 
     def metrics: ClusterAPIOps[M, Metrics] =
       Kleisli(c => E.catchNonFatal(c.getMetrics))
+
+  }
+
+  class StatementAPIHandler[M[_]](implicit E: MonadError[M, Throwable])
+      extends StatementAPI.Handler[M] {
+
+    def bind(preparedStatement: PreparedStatement): M[BoundStatement] =
+      E.catchNonFatal(preparedStatement.bind())
+
+    def setBytesUnsafeByIndex(
+        boundStatement: BoundStatement,
+        index: Int,
+        bytes: ByteBuffer): M[BoundStatement] =
+      E.catchNonFatal(boundStatement.setBytesUnsafe(index, bytes))
+
+    def setBytesUnsafeByName(
+        boundStatement: BoundStatement,
+        name: String,
+        bytes: ByteBuffer): M[BoundStatement] =
+      E.catchNonFatal(boundStatement.setBytesUnsafe(name, bytes))
 
   }
 

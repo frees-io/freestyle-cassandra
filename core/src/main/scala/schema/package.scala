@@ -40,8 +40,7 @@ package object schema {
   type SchemaDefinition = Seq[DataDefinition]
   type Statement        = DataManipulation
 
-  def catchNonFatalAsSchemaError[M[_], A](value: => A)(
-      implicit E: MonadError[M, Throwable]): M[A] =
+  def catchNonFatalAsSchemaError[M[_], A](value: => A)(implicit E: MonadError[M, Throwable]): M[A] =
     E.handleErrorWith(E.catchNonFatal(value)) { e =>
       E.raiseError(SchemaDefinitionProviderError(e))
     }

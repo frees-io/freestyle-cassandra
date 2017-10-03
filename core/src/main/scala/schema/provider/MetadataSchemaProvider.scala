@@ -33,8 +33,9 @@ import freestyle.{FreeS, _}
 import scala.collection.JavaConverters._
 import scala.language.postfixOps
 
-class MetadataSchemaProvider[M[_]](
-    clusterProvider: M[Cluster])(implicit AC: AsyncContext[M], API: ClusterAPI[ClusterAPI.Op])
+class MetadataSchemaProvider[M[_]](clusterProvider: M[Cluster])(
+    implicit AC: AsyncContext[M],
+    API: ClusterAPI[ClusterAPI.Op])
     extends SchemaDefinitionProvider[M]
     with SchemaConversions {
 

@@ -184,8 +184,7 @@ class Decoders[Config] extends DatastaxReads[Config] {
       flagField("allowBetaProtocolVersion", _.allowBetaProtocolVersion),
       flagField("enableSSL", _.withSSL),
       field[String]("name", _.withClusterName),
-      field[AddressTranslator]("addressTranslator", _.withAddressTranslator)(
-        addressTranslatorRead),
+      field[AddressTranslator]("addressTranslator", _.withAddressTranslator)(addressTranslatorRead),
       field[AuthProvider]("authProvider", _.withAuthProvider)(authProviderRead),
       field[LoadBalancingPolicy]("loadBalancingPolicy", _.withLoadBalancingPolicy)(
         loadBalancingRead),

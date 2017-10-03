@@ -32,7 +32,7 @@ class ClusterDecoderSpec extends TestDecoderUtils {
   import classy.config._
   import com.typesafe.config.Config
   import com.typesafe.config.ConfigFactory
-  import org.scalacheck.Shapeless._
+  import org.scalacheck.ScalacheckShapeless._
 
   "PoolingOptions Decoder" should {
 

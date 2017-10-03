@@ -17,26 +17,22 @@
 package freestyle.cassandra
 package api
 
-import freestyle._
+import java.nio.ByteBuffer
+
 import com.datastax.driver.core._
+import freestyle._
 
 @free
-trait LowLevelAPI {
+trait StatementAPI {
+  def bind(preparedStatement: PreparedStatement): FS[BoundStatement]
 
-  def init: FS[Session]
+  def setBytesUnsafeByIndex(
+      boundStatement: BoundStatement,
+      index: Int,
+      bytes: ByteBuffer): FS[BoundStatement]
 
-  def close: FS[Unit]
-
-  def prepare(query: String): FS[PreparedStatement]
-
-  def prepareStatement(statement: RegularStatement): FS[PreparedStatement]
-
-  def execute(query: String): FS[ResultSet]
-
-  def executeWithValues(query: String, values: Any*): FS[ResultSet]
-
-  def executeWithMap(query: String, values: Map[String, AnyRef]): FS[ResultSet]
-
-  def executeStatement(statement: Statement): FS[ResultSet]
-
+  def setBytesUnsafeByName(
+      boundStatement: BoundStatement,
+      name: String,
+      bytes: ByteBuffer): FS[BoundStatement]
 }

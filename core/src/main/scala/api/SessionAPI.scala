@@ -15,19 +15,28 @@
  */
 
 package freestyle.cassandra
+package api
 
-import cats.data.Kleisli
-import cats.~>
-import com.datastax.driver.core.{Cluster, Session}
+import com.datastax.driver.core._
+import freestyle._
 
-package object api {
+@free
+trait SessionAPI {
 
-  type SessionAPIOps[F[_], A] = Kleisli[F, Session, A]
+  def init: FS[Session]
 
-  type ClusterAPIOps[F[_], A] = Kleisli[F, Cluster, A]
+  def close: FS[Unit]
 
-  def apiInterpreter[F[_], A](a: A): (Kleisli[F, A, ?] ~> F) = new (Kleisli[F, A, ?] ~> F) {
-    override def apply[B](fa: Kleisli[F, A, B]): F[B] = fa(a)
-  }
+  def prepare(query: String): FS[PreparedStatement]
+
+  def prepareStatement(statement: RegularStatement): FS[PreparedStatement]
+
+  def execute(query: String): FS[ResultSet]
+
+  def executeWithValues(query: String, values: Any*): FS[ResultSet]
+
+  def executeWithMap(query: String, values: Map[String, AnyRef]): FS[ResultSet]
+
+  def executeStatement(statement: Statement): FS[ResultSet]
 
 }

@@ -23,7 +23,7 @@ import freestyle._
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, OneInstancePerTest, WordSpec}
 
-class LowLevelAPISpec extends WordSpec with Matchers with OneInstancePerTest with MockFactory {
+class SessionAPISpec extends WordSpec with Matchers with OneInstancePerTest with MockFactory {
 
   import TestUtils._
 
@@ -32,20 +32,20 @@ class LowLevelAPISpec extends WordSpec with Matchers with OneInstancePerTest wit
   val prepSt: PreparedStatement = stub[PreparedStatement]
   val resultSet: ResultSet      = stub[ResultSet]
 
-  implicit val lowLevelAPIHandler: LowLevelAPI.Op ~> Id = new (LowLevelAPI.Op ~> Id) {
-    override def apply[A](fa: LowLevelAPI.Op[A]): Id[A] = fa match {
-      case LowLevelAPI.InitOP()                  => sessionMock
-      case LowLevelAPI.CloseOP()                 => unit
-      case LowLevelAPI.PrepareOP(_)              => prepSt
-      case LowLevelAPI.PrepareStatementOP(_)     => prepSt
-      case LowLevelAPI.ExecuteOP(_)              => resultSet
-      case LowLevelAPI.ExecuteWithValuesOP(_, _) => resultSet
-      case LowLevelAPI.ExecuteWithMapOP(_, _)    => resultSet
-      case LowLevelAPI.ExecuteStatementOP(_)     => resultSet
+  implicit val sessionAPIHandler: SessionAPI.Op ~> Id = new (SessionAPI.Op ~> Id) {
+    override def apply[A](fa: SessionAPI.Op[A]): Id[A] = fa match {
+      case SessionAPI.InitOP()                  => sessionMock
+      case SessionAPI.CloseOP()                 => unit
+      case SessionAPI.PrepareOP(_)              => prepSt
+      case SessionAPI.PrepareStatementOP(_)     => prepSt
+      case SessionAPI.ExecuteOP(_)              => resultSet
+      case SessionAPI.ExecuteWithValuesOP(_, _) => resultSet
+      case SessionAPI.ExecuteWithMapOP(_, _)    => resultSet
+      case SessionAPI.ExecuteStatementOP(_)     => resultSet
     }
   }
 
-  "LowLevelAPI" should {
+  "SessionAPI" should {
 
     "work as expect when calling OP" in {
 
@@ -59,20 +59,20 @@ class LowLevelAPISpec extends WordSpec with Matchers with OneInstancePerTest wit
           ResultSet,
           ResultSet)
 
-      def program[F[_]](implicit lowLevelAPI: LowLevelAPI[F]): FreeS[F, ReturnResult] = {
+      def program[F[_]](implicit sessionAPI: SessionAPI[F]): FreeS[F, ReturnResult] = {
         for {
-          v1 <- lowLevelAPI.init
-          v2 <- lowLevelAPI.close
-          v3 <- lowLevelAPI.prepare("")
-          v4 <- lowLevelAPI.prepareStatement(Null[RegularStatement])
-          v5 <- lowLevelAPI.execute("")
-          v6 <- lowLevelAPI.executeWithValues("", Null[Any])
-          v7 <- lowLevelAPI.executeWithMap("", Null[Map[String, AnyRef]])
-          v8 <- lowLevelAPI.executeStatement(Null[Statement])
+          v1 <- sessionAPI.init
+          v2 <- sessionAPI.close
+          v3 <- sessionAPI.prepare("")
+          v4 <- sessionAPI.prepareStatement(Null[RegularStatement])
+          v5 <- sessionAPI.execute("")
+          v6 <- sessionAPI.executeWithValues("", Null[Any])
+          v7 <- sessionAPI.executeWithMap("", Null[Map[String, AnyRef]])
+          v8 <- sessionAPI.executeStatement(Null[Statement])
         } yield (v1, v2, v3, v4, v5, v6, v7, v8)
       }
 
-      val result = program[LowLevelAPI.Op].interpret[Id]
+      val result = program[SessionAPI.Op].interpret[Id]
       result shouldBe (
         (
           sessionMock,

@@ -18,11 +18,7 @@ package freestyle.cassandra
 
 import java.util.concurrent.{Callable, Executors}
 
-import com.google.common.util.concurrent.{
-  ListenableFuture,
-  ListeningExecutorService,
-  MoreExecutors
-}
+import com.google.common.util.concurrent.{ListenableFuture, ListeningExecutorService, MoreExecutors}
 import org.scalatest.Matchers
 
 object TestUtils {
