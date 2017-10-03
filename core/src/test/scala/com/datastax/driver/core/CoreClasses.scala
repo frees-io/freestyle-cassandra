@@ -195,3 +195,14 @@ class UserTypeTestDefault extends UserTypeTest("", "", new java.util.ArrayList[U
 
 case class UserTypeFieldTest(name: String, dataType: DataType)
     extends UserType.Field(name, dataType)
+
+object ColumnDefinitionsTest
+    extends ColumnDefinitions(Array.empty[ColumnDefinitions.Definition], Null[CodecRegistry])
+
+object PreparedIdTest
+    extends PreparedId(
+      Null[MD5Digest],
+      Null[ColumnDefinitions],
+      Null[ColumnDefinitions],
+      Array.empty[Int],
+      ProtocolVersion.V4)

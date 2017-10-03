@@ -49,7 +49,7 @@ class SessionAPIHandlerSpec
   def run[T](k: SessionAPIOps[Future, T]): T =
     Await.result(k.run(sessionMock), 5.seconds)
 
-  "ListenableFutureHandler" should {
+  "SessionAPIHandler" should {
 
     "call to initAsync when calling init() method" in {
       val result = successfulFuture(sessionMock)
