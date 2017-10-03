@@ -22,6 +22,7 @@ import java.nio.ByteBuffer
 import cats.{~>, Id}
 import com.datastax.driver.core._
 import freestyle._
+import freestyle.cassandra.codecs._
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, OneInstancePerTest, WordSpec}
 
@@ -30,14 +31,20 @@ class StatementAPISpec extends WordSpec with Matchers with OneInstancePerTest wi
   val prepSt: PreparedStatement = stub[PreparedStatement]
   (prepSt.getVariables _).when().returns(ColumnDefinitionsTest)
   (prepSt.getPreparedId _).when().returns(PreparedIdTest)
-  val boundSt: BoundStatement = new BoundStatement(prepSt)
-  val byteBuffer: ByteBuffer  = ByteBuffer.wrap("Hello World!".getBytes)
+  val boundSt1: BoundStatement = new BoundStatement(prepSt)
+  val boundSt2: BoundStatement = new BoundStatement(prepSt)
+  val boundSt3: BoundStatement = new BoundStatement(prepSt)
+  val boundSt4: BoundStatement = new BoundStatement(prepSt)
+  val boundSt5: BoundStatement = new BoundStatement(prepSt)
+  val byteBuffer: ByteBuffer   = ByteBuffer.wrap("Hello World!".getBytes)
 
   implicit val statementAPIHandler: StatementAPI.Op ~> Id = new (StatementAPI.Op ~> Id) {
     override def apply[A](fa: StatementAPI.Op[A]): Id[A] = fa match {
-      case StatementAPI.BindOP(_)                        => boundSt
-      case StatementAPI.SetBytesUnsafeByIndexOP(_, _, _) => boundSt
-      case StatementAPI.SetBytesUnsafeByNameOP(_, _, _)  => boundSt
+      case StatementAPI.BindOP(_)                        => boundSt1
+      case StatementAPI.SetBytesUnsafeByIndexOP(_, _, _) => boundSt2
+      case StatementAPI.SetBytesUnsafeByNameOP(_, _, _)  => boundSt3
+      case StatementAPI.SetValueByIndexOP(_, _, _, _)    => boundSt4
+      case StatementAPI.SetValueByNameOP(_, _, _, _)     => boundSt5
     }
   }
 
@@ -45,18 +52,21 @@ class StatementAPISpec extends WordSpec with Matchers with OneInstancePerTest wi
 
     "work as expect when calling OP" in {
 
-      type ReturnResult = (BoundStatement, BoundStatement, BoundStatement)
+      type ReturnResult =
+        (BoundStatement, BoundStatement, BoundStatement, BoundStatement, BoundStatement)
 
       def program[F[_]](implicit API: StatementAPI[F]): FreeS[F, ReturnResult] = {
         for {
           v1 <- API.bind(prepSt)
-          v2 <- API.setBytesUnsafeByIndex(boundSt, 0, byteBuffer)
-          v3 <- API.setBytesUnsafeByName(boundSt, "", byteBuffer)
-        } yield (v1, v2, v3)
+          v2 <- API.setBytesUnsafeByIndex(v1, 0, byteBuffer)
+          v3 <- API.setBytesUnsafeByName(v2, "", byteBuffer)
+          v4 <- API.setValueByIndex[Double](v3, 0, 15.5, doubleCodec)
+          v5 <- API.setValueByName[Double](v4, "", 15.5, doubleCodec)
+        } yield (v1, v2, v3, v4, v5)
       }
 
       val result = program[StatementAPI.Op].interpret[Id]
-      result shouldBe ((boundSt, boundSt, boundSt))
+      result shouldBe ((boundSt1, boundSt2, boundSt3, boundSt4, boundSt5))
     }
 
   }

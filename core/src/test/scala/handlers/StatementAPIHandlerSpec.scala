@@ -20,6 +20,7 @@ package handlers
 import java.nio.ByteBuffer
 
 import com.datastax.driver.core._
+import freestyle.cassandra.codecs._
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, OneInstancePerTest, WordSpec}
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -65,8 +66,16 @@ class StatementAPIHandlerSpec
       run(handler.setBytesUnsafeByIndex(boundStMock, 10, byteBuffer)) shouldBe boundedStMock
     }
 
-    "call to setBytesUnsafe when calling setBytesUnsafeByIndex(BoundStatement, String, ByteBuffer) method" in {
+    "call to setBytesUnsafe when calling setBytesUnsafeByName(BoundStatement, String, ByteBuffer) method" in {
       run(handler.setBytesUnsafeByName(boundStMock, "name", byteBuffer)) shouldBe boundedStMock
+    }
+
+    "call to setBytesUnsafe when calling setValueByIndex[T](BoundStatement, Int, T, ByteBufferCodec[T]) method" in {
+      run(handler.setValueByIndex(boundStMock, 10, 99.9, doubleCodec)) shouldBe boundedStMock
+    }
+
+    "call to setBytesUnsafe when calling setValueByName[T](BoundStatement, Int, T, ByteBufferCodec[T]) method" in {
+      run(handler.setValueByName(boundStMock, "name", 99.9, doubleCodec)) shouldBe boundedStMock
     }
 
   }

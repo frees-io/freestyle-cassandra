@@ -21,6 +21,7 @@ import java.nio.ByteBuffer
 
 import com.datastax.driver.core._
 import freestyle._
+import freestyle.cassandra.codecs.ByteBufferCodec
 
 @free
 trait StatementAPI {
@@ -35,4 +36,16 @@ trait StatementAPI {
       boundStatement: BoundStatement,
       name: String,
       bytes: ByteBuffer): FS[BoundStatement]
+
+  def setValueByIndex[T](
+      boundStatement: BoundStatement,
+      index: Int,
+      value: T,
+      codec: ByteBufferCodec[T]): FS[BoundStatement]
+
+  def setValueByName[T](
+      boundStatement: BoundStatement,
+      name: String,
+      value: T,
+      codec: ByteBufferCodec[T]): FS[BoundStatement]
 }
