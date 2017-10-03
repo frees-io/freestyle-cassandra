@@ -127,10 +127,7 @@ object ColumnMetadataTest {
 
 object IndexMetadataTest {
 
-  case class RowIndexTest(
-      indexName: Option[String],
-      target: String,
-      indexClassName: Option[String])
+  case class RowIndexTest(indexName: Option[String], target: String, indexClassName: Option[String])
       extends AbstractGettableData(ProtocolVersion.V5)
       with Row {
 

@@ -98,13 +98,13 @@ object implicits {
     def bind(preparedStatement: PreparedStatement): M[BoundStatement] =
       E.catchNonFatal(preparedStatement.bind())
 
-    def setBytesUnsafeIndex(
+    def setBytesUnsafeByIndex(
         boundStatement: BoundStatement,
         index: Int,
         bytes: ByteBuffer): M[BoundStatement] =
       E.catchNonFatal(boundStatement.setBytesUnsafe(index, bytes))
 
-    def setBytesUnsafeName(
+    def setBytesUnsafeByName(
         boundStatement: BoundStatement,
         name: String,
         bytes: ByteBuffer): M[BoundStatement] =

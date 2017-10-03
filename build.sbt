@@ -15,15 +15,11 @@ lazy val commonDependencies: Seq[ModuleID] = Seq(
   %("cassandra-driver-mapping"),
   %("cassandra-driver-extras"),
   "io.github.cassandra-scala" %% "troy-schema" % "0.4.0",
-  "com.propensive" %% "contextual" % "1.0.1"
+  "com.propensive"            %% "contextual"  % "1.0.1"
 )
 
 lazy val testDependencies: Seq[ModuleID] =
-  Seq(
-    %%("scalatest"),
-    %%("scalamockScalatest"),
-    %%("scalacheck"),
-    %%("scheckShapeless")) map (_  % "test")
+  Seq(%%("scalatest"), %%("scalamockScalatest"), %%("scalacheck"), %%("scheckShapeless")) map (_ % "test")
 
 lazy val root = project
   .in(file("."))
@@ -39,3 +35,4 @@ lazy val core = project
   .settings(resolvers += Resolver.bintrayRepo("tabdulradi", "maven"))
   .settings(libraryDependencies ++= commonDependencies)
   .settings(libraryDependencies ++= testDependencies)
+  .settings(addCompilerPlugin("org.scalameta" % "paradise" % "3.0.0-M8" cross CrossVersion.full))

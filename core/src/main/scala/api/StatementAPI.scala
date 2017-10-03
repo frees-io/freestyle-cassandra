@@ -26,12 +26,12 @@ import freestyle._
 trait StatementAPI {
   def bind(preparedStatement: PreparedStatement): FS[BoundStatement]
 
-  def setBytesUnsafeIndex(
+  def setBytesUnsafeByIndex(
       boundStatement: BoundStatement,
       index: Int,
       bytes: ByteBuffer): FS[BoundStatement]
 
-  def setBytesUnsafeName(
+  def setBytesUnsafeByName(
       boundStatement: BoundStatement,
       name: String,
       bytes: ByteBuffer): FS[BoundStatement]

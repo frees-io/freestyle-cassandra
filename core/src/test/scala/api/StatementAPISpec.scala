@@ -35,9 +35,9 @@ class StatementAPISpec extends WordSpec with Matchers with OneInstancePerTest wi
 
   implicit val statementAPIHandler: StatementAPI.Op ~> Id = new (StatementAPI.Op ~> Id) {
     override def apply[A](fa: StatementAPI.Op[A]): Id[A] = fa match {
-      case StatementAPI.BindOP(_)                      => boundSt
-      case StatementAPI.SetBytesUnsafeIndexOP(_, _, _) => boundSt
-      case StatementAPI.SetBytesUnsafeNameOP(_, _, _)  => boundSt
+      case StatementAPI.BindOP(_)                        => boundSt
+      case StatementAPI.SetBytesUnsafeByIndexOP(_, _, _) => boundSt
+      case StatementAPI.SetBytesUnsafeByNameOP(_, _, _)  => boundSt
     }
   }
 
@@ -50,8 +50,8 @@ class StatementAPISpec extends WordSpec with Matchers with OneInstancePerTest wi
       def program[F[_]](implicit API: StatementAPI[F]): FreeS[F, ReturnResult] = {
         for {
           v1 <- API.bind(prepSt)
-          v2 <- API.setBytesUnsafeIndex(boundSt, 0, byteBuffer)
-          v3 <- API.setBytesUnsafeName(boundSt, "", byteBuffer)
+          v2 <- API.setBytesUnsafeByIndex(boundSt, 0, byteBuffer)
+          v3 <- API.setBytesUnsafeByName(boundSt, "", byteBuffer)
         } yield (v1, v2, v3)
       }
 
