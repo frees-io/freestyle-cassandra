@@ -26,7 +26,7 @@ import org.scalatest.{Matchers, WordSpec}
 class ConfigStatementOpsSpec extends WordSpec with Matchers with Checkers with MockFactory {
 
   import ConfigArbitraries._
-  import org.scalacheck.Shapeless._
+  import org.scalacheck.ScalacheckShapeless._
   import config.model._
   import config.model.implicits._
   import scala.collection.JavaConverters._
