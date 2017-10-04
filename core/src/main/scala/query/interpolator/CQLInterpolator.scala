@@ -17,9 +17,10 @@
 package freestyle.cassandra
 package query.interpolator
 
-import cats.MonadError
+import cats.{Applicative, MonadError}
 import cats.data.Validated.{Invalid, Valid}
 import contextual.Interpolator
+import freestyle.cassandra.query.model.{SerializableValue, SerializableValueByIndex}
 import freestyle.cassandra.schema.Statement
 import freestyle.cassandra.schema.validator.SchemaValidator
 import troy.cql.ast.CqlParser
@@ -31,7 +32,7 @@ class CQLInterpolator(V: SchemaValidator[Try]) extends Interpolator {
   import cats.instances.try_._
 
   override type ContextType = CQLContext
-  override type Input       = ValueSerializer
+  override type Input       = SerializableValue
 
   override def contextualize(interpolation: StaticInterpolation): Seq[ContextType] = {
 
@@ -57,14 +58,14 @@ class CQLInterpolator(V: SchemaValidator[Try]) extends Interpolator {
     }
   }
 
-  def evaluate[M[_]](interpolation: RuntimeInterpolation)(
-      implicit E: MonadError[M, Throwable]): M[(String, List[OutputValue])] =
-    E.pure {
-      interpolation.parts.foldLeft(("", List.empty[OutputValue])) {
+  def evaluate[M[_]: Applicative](
+      interpolation: RuntimeInterpolation): M[(String, List[SerializableValueByIndex])] =
+    Applicative[M].pure {
+      interpolation.parts.foldLeft(("", List.empty[SerializableValueByIndex])) {
         case ((cql, values), Literal(_, string)) =>
           (cql + string, values)
         case ((cql, values), Substitution(index, value)) =>
-          (cql + "?", values :+ OutputValue(index, value))
+          (cql + "?", values :+ SerializableValueByIndex(index, value))
       }
     }
 }

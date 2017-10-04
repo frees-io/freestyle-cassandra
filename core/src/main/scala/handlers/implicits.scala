@@ -28,6 +28,11 @@ import com.google.common.util.concurrent.{AsyncFunction, Futures, ListenableFutu
 import freestyle.async.AsyncContext
 import freestyle.cassandra.api.{ClusterAPI, ClusterAPIOps, SessionAPI, SessionAPIOps, StatementAPI}
 import freestyle.cassandra.codecs.ByteBufferCodec
+import freestyle.cassandra.query.model.{
+  SerializableValueBy,
+  SerializableValueByIndex,
+  SerializableValueByName
+}
 
 object implicits {
 
@@ -124,6 +129,29 @@ object implicits {
         value: T,
         codec: ByteBufferCodec[T]): M[BoundStatement] =
       E.flatMap(codec.serialize[M](value))(setByteBufferByName(boundStatement, name, _))
+
+    def setByteBufferListByIndex(
+        statement: PreparedStatement,
+        values: List[SerializableValueByIndex]): M[BoundStatement] =
+      setByteBufferList(statement, values, setByteBufferByIndex)
+
+    def setByteBufferListByName(
+        statement: PreparedStatement,
+        values: List[SerializableValueByName]): M[BoundStatement] =
+      setByteBufferList(statement, values, setByteBufferByName)
+
+    private[this] def setByteBufferList[T](
+        statement: PreparedStatement,
+        values: List[SerializableValueBy[T]],
+        setValue: (BoundStatement, T, ByteBuffer) => M[BoundStatement]): M[BoundStatement] =
+      values.foldLeft(bind(statement)) {
+        case (bstM, SerializableValueBy(indexOrName, serializableValue)) =>
+          E.flatten {
+            E.map2(bstM, serializableValue.serialize[M]) { (bst, byteBuffer) =>
+              setValue(bst, indexOrName, byteBuffer)
+            }
+          }
+      }
 
   }
 

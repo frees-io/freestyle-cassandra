@@ -24,6 +24,7 @@ import cats.data.Validated.Valid
 import cats.data.ValidatedNel
 import contextual.{Case, Prefix}
 import freestyle.cassandra.codecs.ByteBufferCodec
+import freestyle.cassandra.query.model.SerializableValue
 import freestyle.cassandra.schema.validator.SchemaValidator
 import freestyle.cassandra.schema.{SchemaError, Statement}
 
@@ -41,7 +42,7 @@ object RuntimeCQLInterpolator {
 
   implicit def embedArgsNamesInCql[T](implicit C: ByteBufferCodec[T]) = cqlInterpolator.embed[T](
     Case(CQLLiteral, CQLLiteral) { v =>
-      new ValueSerializer {
+      new SerializableValue {
         override def serialize[M[_]](implicit E: MonadError[M, Throwable]): M[ByteBuffer] =
           C.serialize(v)
       }

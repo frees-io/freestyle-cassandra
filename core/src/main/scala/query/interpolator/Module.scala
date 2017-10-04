@@ -15,13 +15,24 @@
  */
 
 package freestyle.cassandra
-package query
+package query.interpolator
 
-import contextual.Context
+import com.datastax.driver.core.ResultSet
+import freestyle._
+import freestyle.cassandra.api.{SessionAPI, StatementAPI}
+import freestyle.cassandra.query.model.SerializableValueByIndex
 
-package object interpolator {
+@module
+trait Module {
 
-  sealed trait CQLContext extends Context
-  case object CQLLiteral  extends CQLContext
+  val sessionAPI: SessionAPI
+  val statementAPI: StatementAPI
+
+  def executeAsResultSet(cql: String, values: List[SerializableValueByIndex]): FS.Seq[ResultSet] =
+    for {
+      st  <- sessionAPI.prepare(cql)
+      bst <- statementAPI.setByteBufferListByIndex(st, values)
+      rs  <- sessionAPI.executeStatement(bst)
+    } yield rs
 
 }

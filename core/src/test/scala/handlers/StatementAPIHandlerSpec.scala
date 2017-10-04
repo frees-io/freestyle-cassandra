@@ -19,10 +19,17 @@ package handlers
 
 import java.nio.ByteBuffer
 
+import cats.MonadError
 import com.datastax.driver.core._
 import freestyle.cassandra.codecs._
+import freestyle.cassandra.query.model.{
+  SerializableValue,
+  SerializableValueByIndex,
+  SerializableValueByName
+}
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, OneInstancePerTest, WordSpec}
+
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{Await, Future}
 
@@ -47,6 +54,10 @@ class StatementAPIHandlerSpec
   (prepStMock.bind _).when().returns(boundStMock)
 
   val byteBuffer: ByteBuffer = ByteBuffer.wrap("Hello World!".getBytes)
+  val serializableValue: SerializableValue = new SerializableValue {
+    override def serialize[M[_]](implicit E: MonadError[M, Throwable]): M[ByteBuffer] =
+      E.pure(byteBuffer)
+  }
 
   import cats.instances.future._
   import freestyle.cassandra.handlers.implicits._
@@ -76,6 +87,22 @@ class StatementAPIHandlerSpec
 
     "call to setBytesUnsafe when calling setValueByName[T](BoundStatement, Int, T, ByteBufferCodec[T]) method" in {
       run(handler.setValueByName(boundStMock, "name", 99.9, doubleCodec)) shouldBe boundedStMock
+    }
+
+    "call to bind and setBytesUnsafe when calling setByteBufferByIndex(PreparedStatement, List[SerializableValueByIndex]) method" in {
+      run(
+        handler.setByteBufferListByIndex(
+          prepStMock,
+          List(SerializableValueByIndex(10, serializableValue)))) shouldBe boundedStMock
+      (prepStMock.bind _).verify()
+    }
+
+    "call to bind and setBytesUnsafe when calling setByteBufferByName(PreparedStatement, List[SerializableValueByName]) method" in {
+      run(
+        handler.setByteBufferListByName(
+          prepStMock,
+          List(SerializableValueByName("name", serializableValue)))) shouldBe boundedStMock
+      (prepStMock.bind _).verify()
     }
 
   }

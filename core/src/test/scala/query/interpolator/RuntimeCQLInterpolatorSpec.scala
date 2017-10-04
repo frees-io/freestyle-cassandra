@@ -19,6 +19,7 @@ package query.interpolator
 
 import cats.MonadError
 import com.datastax.driver.core.{ProtocolVersion, TypeCodec}
+import freestyle.cassandra.query.model.SerializableValueByIndex
 import org.scalatest.{Matchers, WordSpec}
 
 import scala.util.{Success, Try}
@@ -48,7 +49,7 @@ class RuntimeCQLInterpolatorSpec extends WordSpec with Matchers {
       val id: Int      = 1
       val name: String = "username"
 
-      val result: Try[(String, List[OutputValue])] =
+      val result: Try[(String, List[SerializableValueByIndex])] =
         cql"SELECT * FROM users WHERE id = $id AND name = $name"
       result.isSuccess shouldBe true
       result.get._1 shouldBe "SELECT * FROM users WHERE id = ? AND name = ?"
