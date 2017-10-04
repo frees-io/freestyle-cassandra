@@ -23,7 +23,7 @@ import cats.MonadError
 import com.datastax.driver.core.{ProtocolVersion, TypeCodec}
 import org.scalacheck.Prop._
 import org.scalatest.{Matchers, WordSpec}
-import org.scalacheck.Shapeless._
+import org.scalacheck.ScalacheckShapeless._
 import org.scalatest.prop.Checkers
 
 import scala.util.matching.Regex

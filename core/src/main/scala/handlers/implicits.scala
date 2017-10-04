@@ -27,6 +27,7 @@ import com.datastax.driver.core._
 import com.google.common.util.concurrent.{AsyncFunction, Futures, ListenableFuture, MoreExecutors}
 import freestyle.async.AsyncContext
 import freestyle.cassandra.api.{ClusterAPI, ClusterAPIOps, SessionAPI, SessionAPIOps, StatementAPI}
+import freestyle.cassandra.codecs.ByteBufferCodec
 
 object implicits {
 
@@ -98,17 +99,31 @@ object implicits {
     def bind(preparedStatement: PreparedStatement): M[BoundStatement] =
       E.catchNonFatal(preparedStatement.bind())
 
-    def setBytesUnsafeByIndex(
+    def setByteBufferByIndex(
         boundStatement: BoundStatement,
         index: Int,
         bytes: ByteBuffer): M[BoundStatement] =
       E.catchNonFatal(boundStatement.setBytesUnsafe(index, bytes))
 
-    def setBytesUnsafeByName(
+    def setByteBufferByName(
         boundStatement: BoundStatement,
         name: String,
         bytes: ByteBuffer): M[BoundStatement] =
       E.catchNonFatal(boundStatement.setBytesUnsafe(name, bytes))
+
+    def setValueByIndex[T](
+        boundStatement: BoundStatement,
+        index: Int,
+        value: T,
+        codec: ByteBufferCodec[T]): M[BoundStatement] =
+      E.flatMap(codec.serialize[M](value))(setByteBufferByIndex(boundStatement, index, _))
+
+    def setValueByName[T](
+        boundStatement: BoundStatement,
+        name: String,
+        value: T,
+        codec: ByteBufferCodec[T]): M[BoundStatement] =
+      E.flatMap(codec.serialize[M](value))(setByteBufferByName(boundStatement, name, _))
 
   }
 

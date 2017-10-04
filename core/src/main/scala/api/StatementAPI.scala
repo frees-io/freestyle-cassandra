@@ -21,18 +21,31 @@ import java.nio.ByteBuffer
 
 import com.datastax.driver.core._
 import freestyle._
+import freestyle.cassandra.codecs.ByteBufferCodec
 
 @free
 trait StatementAPI {
   def bind(preparedStatement: PreparedStatement): FS[BoundStatement]
 
-  def setBytesUnsafeByIndex(
+  def setByteBufferByIndex(
       boundStatement: BoundStatement,
       index: Int,
       bytes: ByteBuffer): FS[BoundStatement]
 
-  def setBytesUnsafeByName(
+  def setByteBufferByName(
       boundStatement: BoundStatement,
       name: String,
       bytes: ByteBuffer): FS[BoundStatement]
+
+  def setValueByIndex[T](
+      boundStatement: BoundStatement,
+      index: Int,
+      value: T,
+      codec: ByteBufferCodec[T]): FS[BoundStatement]
+
+  def setValueByName[T](
+      boundStatement: BoundStatement,
+      name: String,
+      value: T,
+      codec: ByteBufferCodec[T]): FS[BoundStatement]
 }
