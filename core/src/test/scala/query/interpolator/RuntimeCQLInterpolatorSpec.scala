@@ -22,7 +22,7 @@ import com.datastax.driver.core.{ProtocolVersion, TypeCodec}
 import freestyle.cassandra.query.model.SerializableValueByIndex
 import org.scalatest.{Matchers, WordSpec}
 
-import scala.util.{Success, Try}
+import scala.util.Try
 
 class RuntimeCQLInterpolatorSpec extends WordSpec with Matchers {
 
@@ -31,9 +31,8 @@ class RuntimeCQLInterpolatorSpec extends WordSpec with Matchers {
     "return a success for a simple query" in {
 
       import RuntimeCQLInterpolator._
-      implicit val E: MonadError[Try, Throwable] = cats.instances.try_.catsStdInstancesForTry
 
-      cql"SELECT * FROM users" shouldBe Success(("SELECT * FROM users", Nil))
+      cql"SELECT * FROM users" shouldBe (("SELECT * FROM users", Nil))
     }
 
     "return a success for a query with params" in {
@@ -49,15 +48,14 @@ class RuntimeCQLInterpolatorSpec extends WordSpec with Matchers {
       val id: Int      = 1
       val name: String = "username"
 
-      val result: Try[(String, List[SerializableValueByIndex])] =
+      val result: (String, List[SerializableValueByIndex]) =
         cql"SELECT * FROM users WHERE id = $id AND name = $name"
-      result.isSuccess shouldBe true
-      result.get._1 shouldBe "SELECT * FROM users WHERE id = ? AND name = ?"
-      result.get._2.size shouldBe 2
-      result.get._2.head.index shouldBe 0
-      result.get._2.head.serializer.serialize shouldBe intCodec.serialize(id)
-      result.get._2(1).index shouldBe 1
-      result.get._2(1).serializer.serialize shouldBe stringByteBufferCodec.serialize(name)
+      result._1 shouldBe "SELECT * FROM users WHERE id = ? AND name = ?"
+      result._2.size shouldBe 2
+      result._2.head.index shouldBe 0
+      result._2.head.serializer.serialize shouldBe intCodec.serialize(id)
+      result._2(1).index shouldBe 1
+      result._2(1).serializer.serialize shouldBe stringByteBufferCodec.serialize(name)
     }
 
     "not compile for a wrong statement" in {

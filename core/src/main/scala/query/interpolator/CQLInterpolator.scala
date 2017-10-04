@@ -58,14 +58,11 @@ class CQLInterpolator(V: SchemaValidator[Try]) extends Interpolator {
     }
   }
 
-  def evaluate[M[_]: Applicative](
-      interpolation: RuntimeInterpolation): M[(String, List[SerializableValueByIndex])] =
-    Applicative[M].pure {
-      interpolation.parts.foldLeft(("", List.empty[SerializableValueByIndex])) {
-        case ((cql, values), Literal(_, string)) =>
-          (cql + string, values)
-        case ((cql, values), Substitution(index, value)) =>
-          (cql + "?", values :+ SerializableValueByIndex(index, value))
-      }
+  def evaluate(interpolation: RuntimeInterpolation): (String, List[SerializableValueByIndex]) =
+    interpolation.parts.foldLeft(("", List.empty[SerializableValueByIndex])) {
+      case ((cql, values), Literal(_, string)) =>
+        (cql + string, values)
+      case ((cql, values), Substitution(index, value)) =>
+        (cql + "?", values :+ SerializableValueByIndex(index, value))
     }
 }
