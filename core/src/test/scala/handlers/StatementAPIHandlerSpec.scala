@@ -62,12 +62,12 @@ class StatementAPIHandlerSpec
       (prepStMock.bind _).verify()
     }
 
-    "call to setBytesUnsafe when calling setBytesUnsafeByIndex(BoundStatement, Int, ByteBuffer) method" in {
-      run(handler.setBytesUnsafeByIndex(boundStMock, 10, byteBuffer)) shouldBe boundedStMock
+    "call to setBytesUnsafe when calling setByteBufferByIndex(BoundStatement, Int, ByteBuffer) method" in {
+      run(handler.setByteBufferByIndex(boundStMock, 10, byteBuffer)) shouldBe boundedStMock
     }
 
-    "call to setBytesUnsafe when calling setBytesUnsafeByName(BoundStatement, String, ByteBuffer) method" in {
-      run(handler.setBytesUnsafeByName(boundStMock, "name", byteBuffer)) shouldBe boundedStMock
+    "call to setBytesUnsafe when calling setByteBufferByName(BoundStatement, String, ByteBuffer) method" in {
+      run(handler.setByteBufferByName(boundStMock, "name", byteBuffer)) shouldBe boundedStMock
     }
 
     "call to setBytesUnsafe when calling setValueByIndex[T](BoundStatement, Int, T, ByteBufferCodec[T]) method" in {

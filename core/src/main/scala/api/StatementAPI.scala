@@ -27,12 +27,12 @@ import freestyle.cassandra.codecs.ByteBufferCodec
 trait StatementAPI {
   def bind(preparedStatement: PreparedStatement): FS[BoundStatement]
 
-  def setBytesUnsafeByIndex(
+  def setByteBufferByIndex(
       boundStatement: BoundStatement,
       index: Int,
       bytes: ByteBuffer): FS[BoundStatement]
 
-  def setBytesUnsafeByName(
+  def setByteBufferByName(
       boundStatement: BoundStatement,
       name: String,
       bytes: ByteBuffer): FS[BoundStatement]

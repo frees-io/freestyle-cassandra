@@ -40,11 +40,11 @@ class StatementAPISpec extends WordSpec with Matchers with OneInstancePerTest wi
 
   implicit val statementAPIHandler: StatementAPI.Op ~> Id = new (StatementAPI.Op ~> Id) {
     override def apply[A](fa: StatementAPI.Op[A]): Id[A] = fa match {
-      case StatementAPI.BindOP(_)                        => boundSt1
-      case StatementAPI.SetBytesUnsafeByIndexOP(_, _, _) => boundSt2
-      case StatementAPI.SetBytesUnsafeByNameOP(_, _, _)  => boundSt3
-      case StatementAPI.SetValueByIndexOP(_, _, _, _)    => boundSt4
-      case StatementAPI.SetValueByNameOP(_, _, _, _)     => boundSt5
+      case StatementAPI.BindOP(_)                       => boundSt1
+      case StatementAPI.SetByteBufferByIndexOP(_, _, _) => boundSt2
+      case StatementAPI.SetByteBufferByNameOP(_, _, _)  => boundSt3
+      case StatementAPI.SetValueByIndexOP(_, _, _, _)   => boundSt4
+      case StatementAPI.SetValueByNameOP(_, _, _, _)    => boundSt5
     }
   }
 
@@ -58,8 +58,8 @@ class StatementAPISpec extends WordSpec with Matchers with OneInstancePerTest wi
       def program[F[_]](implicit API: StatementAPI[F]): FreeS[F, ReturnResult] = {
         for {
           v1 <- API.bind(prepSt)
-          v2 <- API.setBytesUnsafeByIndex(v1, 0, byteBuffer)
-          v3 <- API.setBytesUnsafeByName(v2, "", byteBuffer)
+          v2 <- API.setByteBufferByIndex(v1, 0, byteBuffer)
+          v3 <- API.setByteBufferByName(v2, "", byteBuffer)
           v4 <- API.setValueByIndex[Double](v3, 0, 15.5, doubleCodec)
           v5 <- API.setValueByName[Double](v4, "", 15.5, doubleCodec)
         } yield (v1, v2, v3, v4, v5)

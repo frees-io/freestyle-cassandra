@@ -99,13 +99,13 @@ object implicits {
     def bind(preparedStatement: PreparedStatement): M[BoundStatement] =
       E.catchNonFatal(preparedStatement.bind())
 
-    def setBytesUnsafeByIndex(
+    def setByteBufferByIndex(
         boundStatement: BoundStatement,
         index: Int,
         bytes: ByteBuffer): M[BoundStatement] =
       E.catchNonFatal(boundStatement.setBytesUnsafe(index, bytes))
 
-    def setBytesUnsafeByName(
+    def setByteBufferByName(
         boundStatement: BoundStatement,
         name: String,
         bytes: ByteBuffer): M[BoundStatement] =
@@ -116,14 +116,14 @@ object implicits {
         index: Int,
         value: T,
         codec: ByteBufferCodec[T]): M[BoundStatement] =
-      E.flatMap(codec.serialize[M](value))(setBytesUnsafeByIndex(boundStatement, index, _))
+      E.flatMap(codec.serialize[M](value))(setByteBufferByIndex(boundStatement, index, _))
 
     def setValueByName[T](
         boundStatement: BoundStatement,
         name: String,
         value: T,
         codec: ByteBufferCodec[T]): M[BoundStatement] =
-      E.flatMap(codec.serialize[M](value))(setBytesUnsafeByName(boundStatement, name, _))
+      E.flatMap(codec.serialize[M](value))(setByteBufferByName(boundStatement, name, _))
 
   }
 
