@@ -19,7 +19,7 @@ lazy val testDependencies: Seq[ModuleID] =
 
 lazy val root = project
   .in(file("."))
-  .settings(name := "frees-cassandra")
+  .settings(name := "freestyle-cassandra")
   .settings(noPublishSettings)
   .dependsOn(core)
   .aggregate(core)
@@ -31,4 +31,4 @@ lazy val core = project
   .settings(resolvers += Resolver.bintrayRepo("tabdulradi", "maven"))
   .settings(libraryDependencies ++= commonDependencies)
   .settings(libraryDependencies ++= testDependencies)
-  .settings(addCompilerPlugin("org.scalameta" % "paradise" % "3.0.0-M8" cross CrossVersion.full))
+  .settings(addCompilerPlugin("org.scalameta" % "paradise" % "3.0.0-M10" cross CrossVersion.full))
