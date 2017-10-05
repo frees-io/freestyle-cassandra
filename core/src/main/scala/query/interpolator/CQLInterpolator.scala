@@ -20,7 +20,7 @@ package query.interpolator
 import cats.{Applicative, MonadError}
 import cats.data.Validated.{Invalid, Valid}
 import contextual.Interpolator
-import freestyle.cassandra.query.model.{SerializableValue, SerializableValueByIndex}
+import freestyle.cassandra.query.model.{SerializableValue, SerializableValueBy}
 import freestyle.cassandra.schema.Statement
 import freestyle.cassandra.schema.validator.SchemaValidator
 import troy.cql.ast.CqlParser
@@ -58,11 +58,11 @@ class CQLInterpolator(V: SchemaValidator[Try]) extends Interpolator {
     }
   }
 
-  def evaluate(interpolation: RuntimeInterpolation): (String, List[SerializableValueByIndex]) =
-    interpolation.parts.foldLeft(("", List.empty[SerializableValueByIndex])) {
+  def evaluate(interpolation: RuntimeInterpolation): (String, List[SerializableValueBy[Int]]) =
+    interpolation.parts.foldLeft(("", List.empty[SerializableValueBy[Int]])) {
       case ((cql, values), Literal(_, string)) =>
         (cql + string, values)
       case ((cql, values), Substitution(index, value)) =>
-        (cql + "?", values :+ SerializableValueByIndex(index, value))
+        (cql + "?", values :+ SerializableValueBy(index, value))
     }
 }

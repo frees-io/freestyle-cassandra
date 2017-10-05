@@ -22,11 +22,7 @@ import java.nio.ByteBuffer
 import cats.MonadError
 import com.datastax.driver.core._
 import freestyle.cassandra.codecs._
-import freestyle.cassandra.query.model.{
-  SerializableValue,
-  SerializableValueByIndex,
-  SerializableValueByName
-}
+import freestyle.cassandra.query.model.{SerializableValue, SerializableValueBy}
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, OneInstancePerTest, WordSpec}
 
@@ -93,7 +89,7 @@ class StatementAPIHandlerSpec
       run(
         handler.setByteBufferListByIndex(
           prepStMock,
-          List(SerializableValueByIndex(10, serializableValue)))) shouldBe boundedStMock
+          List(SerializableValueBy(10, serializableValue)))) shouldBe boundedStMock
       (prepStMock.bind _).verify()
     }
 
@@ -101,7 +97,7 @@ class StatementAPIHandlerSpec
       run(
         handler.setByteBufferListByName(
           prepStMock,
-          List(SerializableValueByName("name", serializableValue)))) shouldBe boundedStMock
+          List(SerializableValueBy("name", serializableValue)))) shouldBe boundedStMock
       (prepStMock.bind _).verify()
     }
 

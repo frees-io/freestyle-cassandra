@@ -27,18 +27,23 @@ object model {
     def serialize[M[_]](implicit E: MonadError[M, Throwable]): M[ByteBuffer]
   }
 
-  sealed case class SerializableValueBy[T](index: T, serializer: SerializableValue)
-
-  type SerializableValueByIndex = SerializableValueBy[Int]
-  type SerializableValueByName  = SerializableValueBy[String]
-
-  object SerializableValueByIndex {
-    def apply(index: Int, serializer: SerializableValue): SerializableValueByIndex =
-      SerializableValueBy(index, serializer)
+  sealed trait SerializableValueBy[T] {
+    def position: T
+    def serializableValue: SerializableValue
   }
 
-  object SerializableValueByName {
-    def apply(name: String, serializer: SerializableValue): SerializableValueByName =
-      SerializableValueBy(name, serializer)
+  object SerializableValueBy {
+
+    def apply(p: Int, s: SerializableValue): SerializableValueBy[Int] =
+      new SerializableValueBy[Int] {
+        override def position: Int                        = p
+        override def serializableValue: SerializableValue = s
+      }
+
+    def apply(p: String, s: SerializableValue): SerializableValueBy[String] =
+      new SerializableValueBy[String] {
+        override def position: String                     = p
+        override def serializableValue: SerializableValue = s
+      }
   }
 }

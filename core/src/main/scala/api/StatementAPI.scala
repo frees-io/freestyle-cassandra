@@ -22,7 +22,7 @@ import java.nio.ByteBuffer
 import com.datastax.driver.core._
 import freestyle._
 import freestyle.cassandra.codecs.ByteBufferCodec
-import freestyle.cassandra.query.model.{SerializableValueByIndex, SerializableValueByName}
+import freestyle.cassandra.query.model.SerializableValueBy
 
 @free
 trait StatementAPI {
@@ -53,9 +53,9 @@ trait StatementAPI {
 
   def setByteBufferListByIndex(
       preparedStatement: PreparedStatement,
-      values: List[SerializableValueByIndex]): FS[BoundStatement]
+      values: List[SerializableValueBy[Int]]): FS[BoundStatement]
 
   def setByteBufferListByName(
       preparedStatement: PreparedStatement,
-      values: List[SerializableValueByName]): FS[BoundStatement]
+      values: List[SerializableValueBy[String]]): FS[BoundStatement]
 }

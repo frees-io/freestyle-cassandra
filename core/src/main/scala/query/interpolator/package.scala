@@ -23,14 +23,14 @@ import contextual.Context
 import freestyle._
 import freestyle.async.AsyncContext
 import freestyle.cassandra.api.{apiInterpreter, SessionAPI}
-import freestyle.cassandra.query.model.SerializableValueByIndex
+import freestyle.cassandra.query.model.SerializableValueBy
 
 package object interpolator {
 
   sealed trait CQLContext extends Context
   case object CQLLiteral  extends CQLContext
 
-  final class InterpolatorOps(tuple: (String, List[SerializableValueByIndex])) {
+  final class InterpolatorOps(tuple: (String, List[SerializableValueBy[Int]])) {
 
     import freestyle.implicits._
     import freestyle.cassandra.handlers.implicits._
@@ -49,7 +49,7 @@ package object interpolator {
 
   }
 
-  implicit def inserpolatorOps(tuple: (String, List[SerializableValueByIndex])): InterpolatorOps =
+  implicit def inserpolatorOps(tuple: (String, List[SerializableValueBy[Int]])): InterpolatorOps =
     new InterpolatorOps(tuple)
 
 }

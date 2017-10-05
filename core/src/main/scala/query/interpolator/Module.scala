@@ -20,7 +20,7 @@ package query.interpolator
 import com.datastax.driver.core.ResultSet
 import freestyle._
 import freestyle.cassandra.api.{SessionAPI, StatementAPI}
-import freestyle.cassandra.query.model.SerializableValueByIndex
+import freestyle.cassandra.query.model.SerializableValueBy
 
 @module
 trait Module {
@@ -28,7 +28,7 @@ trait Module {
   val sessionAPI: SessionAPI
   val statementAPI: StatementAPI
 
-  def executeAsResultSet(cql: String, values: List[SerializableValueByIndex]): FS.Seq[ResultSet] =
+  def executeAsResultSet(cql: String, values: List[SerializableValueBy[Int]]): FS.Seq[ResultSet] =
     for {
       st  <- sessionAPI.prepare(cql)
       bst <- statementAPI.setByteBufferListByIndex(st, values)
