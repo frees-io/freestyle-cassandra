@@ -36,15 +36,19 @@ class StatementAPISpec extends WordSpec with Matchers with OneInstancePerTest wi
   val boundSt3: BoundStatement = new BoundStatement(prepSt)
   val boundSt4: BoundStatement = new BoundStatement(prepSt)
   val boundSt5: BoundStatement = new BoundStatement(prepSt)
+  val boundSt6: BoundStatement = new BoundStatement(prepSt)
+  val boundSt7: BoundStatement = new BoundStatement(prepSt)
   val byteBuffer: ByteBuffer   = ByteBuffer.wrap("Hello World!".getBytes)
 
   implicit val statementAPIHandler: StatementAPI.Op ~> Id = new (StatementAPI.Op ~> Id) {
     override def apply[A](fa: StatementAPI.Op[A]): Id[A] = fa match {
-      case StatementAPI.BindOP(_)                       => boundSt1
-      case StatementAPI.SetByteBufferByIndexOP(_, _, _) => boundSt2
-      case StatementAPI.SetByteBufferByNameOP(_, _, _)  => boundSt3
-      case StatementAPI.SetValueByIndexOP(_, _, _, _)   => boundSt4
-      case StatementAPI.SetValueByNameOP(_, _, _, _)    => boundSt5
+      case StatementAPI.BindOP(_)                        => boundSt1
+      case StatementAPI.SetByteBufferByIndexOP(_, _, _)  => boundSt2
+      case StatementAPI.SetByteBufferByNameOP(_, _, _)   => boundSt3
+      case StatementAPI.SetValueByIndexOP(_, _, _, _)    => boundSt4
+      case StatementAPI.SetValueByNameOP(_, _, _, _)     => boundSt5
+      case StatementAPI.SetByteBufferListByIndexOP(_, _) => boundSt6
+      case StatementAPI.SetByteBufferListByNameOP(_, _)  => boundSt7
     }
   }
 
@@ -53,7 +57,14 @@ class StatementAPISpec extends WordSpec with Matchers with OneInstancePerTest wi
     "work as expect when calling OP" in {
 
       type ReturnResult =
-        (BoundStatement, BoundStatement, BoundStatement, BoundStatement, BoundStatement)
+        (
+            BoundStatement,
+            BoundStatement,
+            BoundStatement,
+            BoundStatement,
+            BoundStatement,
+            BoundStatement,
+            BoundStatement)
 
       def program[F[_]](implicit API: StatementAPI[F]): FreeS[F, ReturnResult] = {
         for {
@@ -62,11 +73,13 @@ class StatementAPISpec extends WordSpec with Matchers with OneInstancePerTest wi
           v3 <- API.setByteBufferByName(v2, "", byteBuffer)
           v4 <- API.setValueByIndex[Double](v3, 0, 15.5, doubleCodec)
           v5 <- API.setValueByName[Double](v4, "", 15.5, doubleCodec)
-        } yield (v1, v2, v3, v4, v5)
+          v6 <- API.setByteBufferListByIndex(prepSt, Nil)
+          v7 <- API.setByteBufferListByName(prepSt, Nil)
+        } yield (v1, v2, v3, v4, v5, v6, v7)
       }
 
       val result = program[StatementAPI.Op].interpret[Id]
-      result shouldBe ((boundSt1, boundSt2, boundSt3, boundSt4, boundSt5))
+      result shouldBe ((boundSt1, boundSt2, boundSt3, boundSt4, boundSt5, boundSt6, boundSt7))
     }
 
   }

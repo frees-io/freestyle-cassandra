@@ -17,20 +17,39 @@
 package freestyle.cassandra
 package query
 
-import java.nio.ByteBuffer
-
-import cats.MonadError
+import cats.{~>, MonadError}
+import com.datastax.driver.core.{ResultSet, Session}
 import contextual.Context
+import freestyle._
+import freestyle.async.AsyncContext
+import freestyle.cassandra.api.{apiInterpreter, SessionAPI}
+import freestyle.cassandra.query.model.SerializableValueBy
 
 package object interpolator {
 
   sealed trait CQLContext extends Context
   case object CQLLiteral  extends CQLContext
 
-  trait ValueSerializer {
-    def serialize[M[_]](implicit E: MonadError[M, Throwable]): M[ByteBuffer]
+  final class InterpolatorOps(tuple: (String, List[SerializableValueBy[Int]])) {
+
+    import freestyle.implicits._
+    import freestyle.cassandra.handlers.implicits._
+
+    implicit def sessionAPIInterpreter[M[_]](
+        implicit AC: AsyncContext[M],
+        session: Session): SessionAPI.Op ~> M =
+      sessionAPIHandler andThen apiInterpreter[M, Session](session)
+
+    def asResultSet[M[_]](
+        implicit SR: StatementRunner[StatementRunner.Op],
+        S: Session,
+        AC: AsyncContext[M],
+        E: MonadError[M, Throwable]): M[ResultSet] =
+      SR.executeAsResultSet(tuple._1, tuple._2).interpret[M]
+
   }
 
-  case class OutputValue(index: Int, serializer: ValueSerializer)
+  implicit def inserpolatorOps(tuple: (String, List[SerializableValueBy[Int]])): InterpolatorOps =
+    new InterpolatorOps(tuple)
 
 }

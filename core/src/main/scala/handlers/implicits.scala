@@ -19,6 +19,8 @@ package handlers
 
 import java.nio.ByteBuffer
 
+import cats.instances.list._
+import cats.syntax.foldable._
 import cats.data.Kleisli
 import cats.{~>, MonadError}
 
@@ -28,6 +30,7 @@ import com.google.common.util.concurrent.{AsyncFunction, Futures, ListenableFutu
 import freestyle.async.AsyncContext
 import freestyle.cassandra.api.{ClusterAPI, ClusterAPIOps, SessionAPI, SessionAPIOps, StatementAPI}
 import freestyle.cassandra.codecs.ByteBufferCodec
+import freestyle.cassandra.query.model.SerializableValueBy
 
 object implicits {
 
@@ -124,6 +127,26 @@ object implicits {
         value: T,
         codec: ByteBufferCodec[T]): M[BoundStatement] =
       E.flatMap(codec.serialize[M](value))(setByteBufferByName(boundStatement, name, _))
+
+    def setByteBufferListByIndex(
+        statement: PreparedStatement,
+        values: List[SerializableValueBy[Int]]): M[BoundStatement] =
+      setByteBufferList(statement, values, setByteBufferByIndex)
+
+    def setByteBufferListByName(
+        statement: PreparedStatement,
+        values: List[SerializableValueBy[String]]): M[BoundStatement] =
+      setByteBufferList(statement, values, setByteBufferByName)
+
+    private[this] def setByteBufferList[T](
+        statement: PreparedStatement,
+        values: List[SerializableValueBy[T]],
+        setValue: (BoundStatement, T, ByteBuffer) => M[BoundStatement]): M[BoundStatement] =
+      E.flatMap(bind(statement)) { boundSt =>
+        values.foldM(boundSt) { (b, v) =>
+          E.flatMap(v.serializableValue.serialize[M])(setValue(b, v.position, _))
+        }
+      }
 
   }
 
