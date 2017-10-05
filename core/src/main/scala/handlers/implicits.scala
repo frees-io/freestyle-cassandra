@@ -22,6 +22,8 @@ import java.nio.ByteBuffer
 import cats.instances.list._
 import cats.syntax.foldable._
 import cats.data.Kleisli
+import cats.instances.list._
+import cats.syntax.traverse._
 import cats.{~>, MonadError}
 
 import collection.JavaConverters._
@@ -36,7 +38,9 @@ object implicits {
 
   import freestyle.cassandra.implicits._
 
-  implicit def sessionAPIHandler[M[_]](implicit AC: AsyncContext[M]): SessionAPIHandler[M] =
+  implicit def sessionAPIHandler[M[_]](
+      implicit AC: AsyncContext[M],
+      E: MonadError[M, Throwable]): SessionAPIHandler[M] =
     new SessionAPIHandler[M]
 
   implicit def clusterAPIHandler[M[_]](
@@ -48,7 +52,7 @@ object implicits {
       implicit E: MonadError[M, Throwable]): StatementAPIHandler[M] =
     new StatementAPIHandler[M]
 
-  class SessionAPIHandler[M[_]](implicit H: ListenableFuture[?] ~> M)
+  class SessionAPIHandler[M[_]](implicit H: ListenableFuture[?] ~> M, E: MonadError[M, Throwable])
       extends SessionAPI.Handler[SessionAPIOps[M, ?]] {
 
     def init: SessionAPIOps[M, Session] = Kleisli(s => H(s.initAsync()))
@@ -72,6 +76,17 @@ object implicits {
 
     def executeStatement(statement: Statement): SessionAPIOps[M, ResultSet] =
       Kleisli(s => H(s.executeAsync(statement)))
+
+    def executeWithByteBuffer(
+        query: String,
+        values: List[SerializableValueBy[Int]]): SessionAPIOps[M, ResultSet] =
+      Kleisli { session =>
+        E.flatMap {
+          values.traverse(_.serializableValue.serialize[M])
+        } { values =>
+          H(session.executeAsync(ByteBufferSimpleStatement(query, values.toArray)))
+        }
+      }
 
   }
 
@@ -148,6 +163,13 @@ object implicits {
         }
       }
 
+  }
+
+  private[this] case class ByteBufferSimpleStatement(query: String, values: Array[ByteBuffer])
+      extends SimpleStatement(query, values) {
+    override def getValues(
+        protocolVersion: ProtocolVersion,
+        codecRegistry: CodecRegistry): Array[ByteBuffer] = values
   }
 
   private[this] def closeFuture2unit[M[_], A](f: A => CloseFuture)(
