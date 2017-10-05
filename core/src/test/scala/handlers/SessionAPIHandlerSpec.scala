@@ -40,6 +40,7 @@ class SessionAPIHandlerSpec
   val mapValues: Map[String, AnyRef] = Map("param1" -> "value1", "param2" -> "value2")
   val values: Seq[Any]               = Seq("value1", "value2")
 
+  import cats.instances.future._
   import freestyle.async.implicits._
   import freestyle.cassandra.handlers.implicits._
   import TestUtils._

@@ -36,16 +36,17 @@ package object interpolator {
     import freestyle.cassandra.handlers.implicits._
 
     implicit def sessionAPIInterpreter[M[_]](
-        implicit AC: AsyncContext[M],
-        session: Session): SessionAPI.Op ~> M =
-      sessionAPIHandler andThen apiInterpreter[M, Session](session)
+        implicit S: Session,
+        AC: AsyncContext[M],
+        E: MonadError[M, Throwable]): SessionAPI.Op ~> M =
+      sessionAPIHandler andThen apiInterpreter[M, Session](S)
 
     def asResultSet[M[_]](
-        implicit SR: StatementRunner[StatementRunner.Op],
+        implicit API: SessionAPI[SessionAPI.Op],
         S: Session,
         AC: AsyncContext[M],
         E: MonadError[M, Throwable]): M[ResultSet] =
-      SR.executeAsResultSet(tuple._1, tuple._2).interpret[M]
+      API.executeWithByteBuffer(tuple._1, tuple._2).interpret[M]
 
   }
 
