@@ -89,7 +89,7 @@ class StatementAPIHandlerSpec
       run(handler.setValueByName(boundStMock, "name", 99.9, doubleCodec)) shouldBe boundedStMock
     }
 
-    "call to bind and setBytesUnsafe when calling setByteBufferByIndex(PreparedStatement, List[SerializableValueByIndex]) method" in {
+    "call to bind and setBytesUnsafe when calling setByteBufferListByIndex(PreparedStatement, List[SerializableValueByIndex]) method" in {
       run(
         handler.setByteBufferListByIndex(
           prepStMock,
@@ -97,7 +97,7 @@ class StatementAPIHandlerSpec
       (prepStMock.bind _).verify()
     }
 
-    "call to bind and setBytesUnsafe when calling setByteBufferByName(PreparedStatement, List[SerializableValueByName]) method" in {
+    "call to bind and setBytesUnsafe when calling setByteBufferListByName(PreparedStatement, List[SerializableValueByName]) method" in {
       run(
         handler.setByteBufferListByName(
           prepStMock,

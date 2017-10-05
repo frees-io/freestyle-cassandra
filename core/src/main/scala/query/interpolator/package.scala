@@ -41,11 +41,11 @@ package object interpolator {
       sessionAPIHandler andThen apiInterpreter[M, Session](session)
 
     def asResultSet[M[_]](
-        implicit session: Session,
-        module: Module[Module.Op],
+        implicit Mod: Module[Module.Op],
+        S: Session,
         AC: AsyncContext[M],
         E: MonadError[M, Throwable]): M[ResultSet] =
-      module.executeAsResultSet(tuple._1, tuple._2).interpret[M]
+      Mod.executeAsResultSet(tuple._1, tuple._2).interpret[M]
 
   }
 
