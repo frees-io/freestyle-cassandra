@@ -38,16 +38,8 @@ class InterpolatorImplicitSpec
 
   implicit val sessionMock: Session = stub[Session]
 
-  val prepStMock: PreparedStatement = stub[PreparedStatement]
-  (prepStMock.getVariables _).when().returns(ColumnDefinitionsTest)
-  (prepStMock.getPreparedId _).when().returns(PreparedIdTest)
-
   val rsMock: ResultSet = stub[ResultSet]
-
   (sessionMock.executeAsync(_: Statement)).when(*).returns(ResultSetFutureTest(rsMock))
-
-  val boundSt: BoundStatement = new BoundStatement(prepStMock)
-  (prepStMock.bind _).when().returns(boundSt)
 
   "InterpolatorImplicitDef asResultSet" should {
 
@@ -60,22 +52,11 @@ class InterpolatorImplicitSpec
       cats.instances.future.catsStdInstancesForFuture
 
     "return a valid ResultSet" in {
-      val listenableSt: ListenableFuture[PreparedStatement] = successfulFuture(prepStMock)
-      (sessionMock.prepareAsync(_: String)).when(*).returns(listenableSt)
       val future: Future[ResultSet] = cql"SELECT * FROM users".asResultSet[Future]
       Await.result(future, Duration.Inf) shouldBe rsMock
     }
 
-    "return a failed future when the session returns a failed future" in {
-      val listenableSt: ListenableFuture[PreparedStatement] = failedFuture[PreparedStatement]
-      (sessionMock.prepareAsync(_: String)).when(*).returns(listenableSt)
-      val future: Future[ResultSet] = cql"SELECT * FROM users".asResultSet[Future]
-      Await.result(future.failed, Duration.Inf) shouldBe exception
-    }
-
     "return a failed future when the ByteBufferCodec returns a failure" in {
-      val listenableSt: ListenableFuture[PreparedStatement] = successfulFuture(prepStMock)
-      (sessionMock.prepareAsync(_: String)).when(*).returns(listenableSt)
       val serializeException = new RuntimeException("Error serializing")
       implicit val stringByteBufferCodec: ByteBufferCodec[String] = new ByteBufferCodec[String] {
         override def deserialize[M[_]](bytes: ByteBuffer)(
