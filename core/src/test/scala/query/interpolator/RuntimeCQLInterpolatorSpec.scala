@@ -43,19 +43,19 @@ class RuntimeCQLInterpolatorSpec extends WordSpec with Matchers {
       implicit val protocolVersion: ProtocolVersion   = ProtocolVersion.V4
       implicit val stringTypeCodec: TypeCodec[String] = TypeCodec.ascii()
       import freestyle.cassandra.codecs._
-      val stringByteBufferCodec: ByteBufferCodec[String] = implicitly[ByteBufferCodec[String]]
+      val stringCodec: ByteBufferCodec[String] = implicitly[ByteBufferCodec[String]]
 
       val id: Int      = 1
       val name: String = "username"
 
-      val result: (String, List[SerializableValueBy[Int]]) =
+      val (query, values) =
         cql"SELECT * FROM users WHERE id = $id AND name = $name"
-      result._1 shouldBe "SELECT * FROM users WHERE id = ? AND name = ?"
-      result._2.size shouldBe 2
-      result._2.head.position shouldBe 0
-      result._2.head.serializableValue.serialize shouldBe intCodec.serialize(id)
-      result._2(1).position shouldBe 1
-      result._2(1).serializableValue.serialize shouldBe stringByteBufferCodec.serialize(name)
+      query shouldBe "SELECT * FROM users WHERE id = ? AND name = ?"
+      values.size shouldBe 2
+      values.head.position shouldBe 0
+      values.head.serializableValue.serialize shouldBe intCodec.serialize(id)
+      values(1).position shouldBe 1
+      values(1).serializableValue.serialize shouldBe stringCodec.serialize(name)
     }
 
     "not compile for a wrong statement" in {
