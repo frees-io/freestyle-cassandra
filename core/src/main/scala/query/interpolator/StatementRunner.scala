@@ -23,7 +23,7 @@ import freestyle.cassandra.api.{SessionAPI, StatementAPI}
 import freestyle.cassandra.query.model.SerializableValueBy
 
 @module
-trait Module {
+trait StatementRunner {
 
   val sessionAPI: SessionAPI
   val statementAPI: StatementAPI
