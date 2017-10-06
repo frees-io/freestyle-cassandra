@@ -41,7 +41,10 @@ package object interpolator {
         E: MonadError[M, Throwable]): SessionAPI.Op ~> M =
       sessionAPIHandler andThen apiInterpreter[M, Session](S)
 
-    def asResultSet[M[_]](
+    def asResultSet[M[_]](implicit API: SessionAPI[M]): FreeS[M, ResultSet] =
+      API.executeWithByteBuffer(tuple._1, tuple._2)
+
+    def attemptResultSet[M[_]](
         implicit API: SessionAPI[SessionAPI.Op],
         S: Session,
         AC: AsyncContext[M],
