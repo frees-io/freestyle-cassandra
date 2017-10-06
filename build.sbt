@@ -37,5 +37,14 @@ lazy val macros = project
   .in(file("macros"))
   .settings(moduleName := "frees-cassandra-macros")
   .settings(scalaMetaSettings)
+  .settings(libraryDependencies ++= testDependencies)
   .settings(addCompilerPlugin("org.scalameta" % "paradise" % "3.0.0-M10" cross CrossVersion.full))
   .dependsOn(core)
+
+lazy val `macros-tests` = project
+  .in(file("macros-tests"))
+  .settings(moduleName := "frees-cassandra-macros-tests")
+  .settings(scalaMetaSettings)
+  .settings(libraryDependencies ++= testDependencies)
+  .settings(addCompilerPlugin("org.scalameta" % "paradise" % "3.0.0-M10" cross CrossVersion.full))
+  .dependsOn(core, macros)

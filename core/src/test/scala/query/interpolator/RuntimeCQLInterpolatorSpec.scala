@@ -19,7 +19,6 @@ package query.interpolator
 
 import cats.MonadError
 import com.datastax.driver.core.{ProtocolVersion, TypeCodec}
-import freestyle.cassandra.query.model.SerializableValueBy
 import org.scalatest.{Matchers, WordSpec}
 
 import scala.util.Try
