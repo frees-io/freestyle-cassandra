@@ -21,8 +21,8 @@ lazy val root = project
   .in(file("."))
   .settings(name := "freestyle-cassandra")
   .settings(noPublishSettings)
-  .dependsOn(core)
-  .aggregate(core)
+  .dependsOn(core, macros)
+  .aggregate(core, macros)
 
 lazy val core = project
   .in(file("core"))
@@ -32,3 +32,10 @@ lazy val core = project
   .settings(libraryDependencies ++= commonDependencies)
   .settings(libraryDependencies ++= testDependencies)
   .settings(addCompilerPlugin("org.scalameta" % "paradise" % "3.0.0-M10" cross CrossVersion.full))
+
+lazy val macros = project
+  .in(file("macros"))
+  .settings(moduleName := "frees-cassandra-macros")
+  .settings(scalaMetaSettings)
+  .settings(addCompilerPlugin("org.scalameta" % "paradise" % "3.0.0-M10" cross CrossVersion.full))
+  .dependsOn(core)
