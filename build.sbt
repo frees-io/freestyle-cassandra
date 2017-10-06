@@ -21,8 +21,8 @@ lazy val root = project
   .in(file("."))
   .settings(name := "freestyle-cassandra")
   .settings(noPublishSettings)
-  .dependsOn(core, macros)
-  .aggregate(core, macros)
+  .dependsOn(core, macros, `macros-tests`)
+  .aggregate(core, macros, `macros-tests`)
 
 lazy val core = project
   .in(file("core"))
