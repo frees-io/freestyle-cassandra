@@ -19,11 +19,14 @@ package query.interpolator
 
 import java.nio.ByteBuffer
 
-import cats.MonadError
+import cats.{~>, MonadError}
 import com.datastax.driver.core._
 import com.google.common.util.concurrent.ListenableFuture
+import freestyle.async.AsyncContext
 import freestyle.cassandra.TestUtils._
+import freestyle.cassandra.api.{apiInterpreter, SessionAPI}
 import freestyle.cassandra.codecs.ByteBufferCodec
+import freestyle.cassandra.handlers.implicits.sessionAPIHandler
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, OneInstancePerTest, WordSpec}
 
@@ -36,23 +39,24 @@ class InterpolatorImplicitSpec
     with OneInstancePerTest
     with MockFactory {
 
+  import RuntimeCQLInterpolator._
+  import freestyle.cassandra.query.interpolator._
+
+  import freestyle.async.implicits._
+  import scala.concurrent.ExecutionContext.Implicits.global
+
+  implicit val E: MonadError[Future, Throwable] =
+    cats.instances.future.catsStdInstancesForFuture
+
   implicit val sessionMock: Session = stub[Session]
 
   val rsMock: ResultSet = stub[ResultSet]
   (sessionMock.executeAsync(_: Statement)).when(*).returns(ResultSetFutureTest(rsMock))
 
-  "InterpolatorImplicitDef asResultSet" should {
-
-    import RuntimeCQLInterpolator._
-    import freestyle.async.implicits._
-    import freestyle.cassandra.query.interpolator._
-    import scala.concurrent.ExecutionContext.Implicits.global
-
-    implicit val E: MonadError[Future, Throwable] =
-      cats.instances.future.catsStdInstancesForFuture
+  "InterpolatorImplicitDef attemptResultSet" should {
 
     "return a valid ResultSet" in {
-      val future: Future[ResultSet] = cql"SELECT * FROM users".asResultSet[Future]
+      val future: Future[ResultSet] = cql"SELECT * FROM users".attemptResultSet[Future]
       Await.result(future, Duration.Inf) shouldBe rsMock
     }
 
@@ -67,9 +71,23 @@ class InterpolatorImplicitSpec
             implicit E: MonadError[M, Throwable]): M[ByteBuffer] =
           E.raiseError(serializeException)
       }
-      val name: String              = "UserName"
-      val future: Future[ResultSet] = cql"SELECT * FROM users WHERE name=$name".asResultSet[Future]
+      val name: String = "UserName"
+      val future: Future[ResultSet] =
+        cql"SELECT * FROM users WHERE name=$name".attemptResultSet[Future]
       Await.result(future.failed, Duration.Inf) shouldBe serializeException
+    }
+
+  }
+
+  "InterpolatorImplicitDef asResultSet" should {
+
+    implicit val interpreter = sessionAPIHandler[Future] andThen apiInterpreter[Future, Session](
+      sessionMock)
+
+    "return a valid ResultSet from a FreeS" in {
+      val future: Future[ResultSet] =
+        cql"SELECT * FROM users".asResultSet[SessionAPI.Op].interpret[Future]
+      Await.result(future, Duration.Inf) shouldBe rsMock
     }
 
   }
