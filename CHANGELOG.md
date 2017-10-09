@@ -1,5 +1,12 @@
 # Changelog
 
+## 10/09/2017 - Version 0.0.1
+
+Release changes:
+
+* Returns a FreeS[M, ResultSet] from the interpolator ([#86](https://github.com/frees-io/freestyle-cassandra/pull/86))
+
+
 ## 10/06/2017 - Version 0.0.1-RC1
 
 Release changes:
