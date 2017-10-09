@@ -20,7 +20,7 @@ package util
 import java.io.File
 
 import org.apache.cassandra.config.Config.RequestSchedulerId
-import org.apache.cassandra.config.{Config, ConfigurationLoader, SeedProviderDef}
+import org.apache.cassandra.config.{Config, ConfigurationLoader, ParameterizedClass}
 import org.apache.cassandra.dht.ByteOrderedPartitioner
 import org.apache.cassandra.locator.{SimpleSeedProvider, SimpleSnitch}
 import org.apache.cassandra.scheduler.RoundRobinScheduler
@@ -46,10 +46,9 @@ class CassandraConfigurationLoader extends ConfigurationLoader {
     config.request_scheduler_id = RequestSchedulerId.keyspace
     config.commitlog_sync_batch_window_in_ms = 1.0
     config.commitlog_sync = org.apache.cassandra.config.Config.CommitLogSync.batch
-    val linkedHashMap = new java.util.LinkedHashMap[String, AnyRef]()
-    linkedHashMap.put("class_name", classOf[SimpleSeedProvider].getName)
-    linkedHashMap.put("parameters", List(Map("seeds" -> "127.0.0.1").asJava).asJava)
-    config.seed_provider = new SeedProviderDef(linkedHashMap)
+    config.seed_provider = new ParameterizedClass(
+      classOf[SimpleSeedProvider].getName,
+      Map("seeds" -> "127.0.0.1").asJava)
     config.concurrent_compactors = 4
     config.row_cache_size_in_mb = 64
     config

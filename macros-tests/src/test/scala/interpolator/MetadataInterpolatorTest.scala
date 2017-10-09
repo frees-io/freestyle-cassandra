@@ -17,8 +17,8 @@
 package freestyle.cassandra.macros
 package interpolator
 
-import freestyle.cassandra.util.CassandraUtil
 import com.datastax.driver.core.Cluster
+import freestyle.cassandra.util.CassandraUtil
 import org.apache.cassandra.service.CassandraDaemon
 import org.scalatest._
 
@@ -60,6 +60,12 @@ class MetadataInterpolatorTest extends WordSpec with Matchers with BeforeAndAfte
       Option(rs.one()) shouldBe None
       cluster.close()
     }
+
+//    "works as expected for a simple valid query" in {
+//
+//      import MyMetadataInterpolator._
+//      cql"SELECT * FROM demodb.user" shouldBe (("SELECT * FROM test.users", Nil))
+//    }
 
   }
 }
