@@ -14,15 +14,15 @@
  * limitations under the License.
  */
 
-package freestyle.cassandra.macros
-package interpolator
+package freestyle.cassandra
+package query.interpolator
 
 import scala.collection.immutable.Seq
 import scala.meta._
 
-object macroInterpolator {
+object MacroInterpolator {
 
-  class TroySchemaInterpolator(schemaPath: String) extends scala.annotation.StaticAnnotation {
+  class SchemaFileInterpolator(schemaPath: String) extends scala.annotation.StaticAnnotation {
 
     inline def apply(defn: Any): Any = meta {
       val arg = this match {

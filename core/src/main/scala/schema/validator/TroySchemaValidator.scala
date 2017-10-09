@@ -46,8 +46,7 @@ class TroySchemaValidator[M[_]](
 
     def validateStatement(
         schema: SchemaDefinition,
-        st: Statement): M[ValidatedNel[SchemaError, Unit]] = {
-
+        st: Statement): M[ValidatedNel[SchemaError, Unit]] =
       catchNonFatalAsSchemaError {
         toValidatedNel {
           SchemaEngine(schema)
@@ -55,7 +54,6 @@ class TroySchemaValidator[M[_]](
             .map(_ => (): Unit)
         }
       }
-    }
 
     E.flatMap(SDP.schemaDefinition)(validateStatement(_, st))
   }

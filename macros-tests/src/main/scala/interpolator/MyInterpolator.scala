@@ -17,7 +17,9 @@
 package freestyle.cassandra.macros
 package interpolator
 
-import freestyle.cassandra.macros.interpolator.macroInterpolator.TroySchemaInterpolator
+// $COVERAGE-OFF$Test classes
+import freestyle.cassandra.query.interpolator.MacroInterpolator.SchemaFileInterpolator
 
-@TroySchemaInterpolator("/schema.sql")
+@SchemaFileInterpolator("/schema.sql")
 trait MyInterpolator
+// $COVERAGE-ON$
