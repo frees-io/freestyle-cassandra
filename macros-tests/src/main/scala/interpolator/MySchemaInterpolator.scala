@@ -21,5 +21,5 @@ package interpolator
 import freestyle.cassandra.query.interpolator.MacroInterpolator.SchemaFileInterpolator
 
 @SchemaFileInterpolator("/schema.sql")
-trait MyInterpolator
+trait MySchemaInterpolator
 // $COVERAGE-ON$

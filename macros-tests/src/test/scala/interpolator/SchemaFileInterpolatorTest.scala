@@ -28,9 +28,9 @@ import scala.util.{Success, Try}
 
 class SchemaFileInterpolatorTest extends WordSpec with Matchers {
 
-  import MyInterpolator._
+  import MySchemaInterpolator._
 
-  "TrySchemaInterpolator" should {
+  "SchemaFileInterpolator" should {
 
     "works as expected for a simple valid query" in {
 

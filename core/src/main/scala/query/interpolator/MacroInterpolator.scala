@@ -22,30 +22,48 @@ import scala.meta._
 
 object MacroInterpolator {
 
-  def imports =
-    q"""
-        import cats.MonadError
-        import contextual.{Case, Prefix}
-        import freestyle.cassandra.codecs.ByteBufferCodec
-        import freestyle.cassandra.query.interpolator.{CQLInterpolator, CQLLiteral}
-        import freestyle.cassandra.query.model.SerializableValue
-        import freestyle.cassandra.schema.provider.{SchemaDefinitionProvider, TroySchemaProvider}
-        import freestyle.cassandra.schema.validator.{SchemaValidator, TroySchemaValidator}
-        import java.nio.ByteBuffer
-        import scala.util.Try
-     """
+  sealed trait ValidatorType
+  case object SchemaFile extends ValidatorType
+  case object Metadata extends ValidatorType
 
-  def schemaFileValidator(typeName: Type.Name, schemaPath: String) =
-    q"""
-        val tryMonadError: MonadError[Try, Throwable] = cats.instances.try_.catsStdInstancesForTry
-        val schemaProvider: SchemaDefinitionProvider[Try] =
-          TroySchemaProvider[Try](${Term.Name(typeName.value)}.getClass.getResourceAsStream(${Lit.String(schemaPath)}))(tryMonadError)
-        val schemaValidator: SchemaValidator[Try] = TroySchemaValidator.instance(tryMonadError, schemaProvider)
-     """
+  def validatorBlock(typeName: Type.Name, path: String, validator: ValidatorType): Term.Block = {
 
-  def companion(typeName: Type.Name) =
-    q"""
-        object ${Term.Name(typeName.value)} {
+    def schemaFileValidator(typeName: Type.Name, schemaPath: String) =
+      q"""
+          val tryMonadError: MonadError[Try, Throwable] = cats.instances.try_.catsStdInstancesForTry
+          val schemaProvider: SchemaDefinitionProvider[Try] =
+            TroySchemaProvider[Try](${Term.Name(typeName.value)}.getClass.getResourceAsStream(${Lit.String(schemaPath)}))(tryMonadError)
+          TroySchemaValidator.instance(tryMonadError, schemaProvider)
+       """
+
+    def metadataValidator(typeName: Type.Name, schemaPath: String) =
+      q"""
+          val tryMonadError: MonadError[Try, Throwable] = cats.instances.try_.catsStdInstancesForTry
+          val schemaProvider: SchemaDefinitionProvider[Try] =
+            MetadataSchemaProvider.metadataSchemaProvider[Try](${Term.Name(typeName.value)}.getClass.getResourceAsStream(${Lit.String(schemaPath)}))(tryMonadError)
+          TroySchemaValidator.instance(tryMonadError, schemaProvider)
+       """
+
+      validator match {
+        case SchemaFile => schemaFileValidator(typeName, path)
+        case Metadata => metadataValidator(typeName, path)
+      }
+    }
+
+  def companion(typeName: Type.Name, path: String, validator: ValidatorType) =
+    q"""object ${Term.Name(typeName.value)} {
+
+          import cats.MonadError
+          import contextual.{Case, Prefix}
+          import freestyle.cassandra.codecs.ByteBufferCodec
+          import freestyle.cassandra.query.interpolator.{CQLInterpolator, CQLLiteral}
+          import freestyle.cassandra.query.model.SerializableValue
+          import freestyle.cassandra.schema.provider._
+          import freestyle.cassandra.schema.validator._
+          import java.nio.ByteBuffer
+          import scala.util.Try
+
+          val schemaValidator: SchemaValidator[Try] = ${validatorBlock(typeName, path, validator)}
 
           object cqlInterpolator extends CQLInterpolator(schemaValidator)
 
@@ -79,10 +97,28 @@ object MacroInterpolator {
 
       defn match {
         case t: Defn.Trait =>
-          Term.Block(Seq(t, imports, schemaFileValidator(t.name, arg), companion(t.name)))
+          Term.Block(Seq(t, companion(t.name, arg, SchemaFile)))
         case _ =>
-          println(defn.structure)
-          abort("@SchemaInterpolator must annotate a trait.")
+          abort("@SchemaFileInterpolator must annotate a trait.")
+      }
+    }
+  }
+
+  class SchemaMetadataInterpolator(configPath: String) extends scala.annotation.StaticAnnotation {
+
+    inline def apply(defn: Any): Any = meta {
+      val arg = this match {
+        case q"new $_(${Lit(argument: String)})" if argument.nonEmpty =>
+          argument
+        case _ =>
+          abort("You must provide a valid schema path")
+      }
+
+      defn match {
+        case t: Defn.Trait =>
+          Term.Block(Seq(t, companion(t.name, arg, Metadata)))
+        case _ =>
+          abort("@SchemaMetadataInterpolator must annotate a trait.")
       }
     }
   }
