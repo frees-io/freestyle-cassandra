@@ -4,13 +4,6 @@
 
 Release changes:
 
-* Returns a FreeS[M, ResultSet] from the interpolator ([#86](https://github.com/frees-io/freestyle-cassandra/pull/86))
-
-
-## 10/06/2017 - Version 0.0.1-RC1
-
-Release changes:
-
 * Removes macro implementation ([#13](https://github.com/frees-io/freestyle-cassandra/pull/13))
 * Adds a statement generator ([#14](https://github.com/frees-io/freestyle-cassandra/pull/14))
 * Keyspace schema parser ([#15](https://github.com/frees-io/freestyle-cassandra/pull/15))
@@ -39,3 +32,4 @@ Release changes:
 * Implement asResultSet method for interpolator ([#80](https://github.com/frees-io/freestyle-cassandra/pull/80))
 * Execute query without prepare ([#83](https://github.com/frees-io/freestyle-cassandra/pull/83))
 * Releases RC1 ([#84](https://github.com/frees-io/freestyle-cassandra/pull/84))
+* Returns a FreeS[M, ResultSet] from the interpolator ([#86](https://github.com/frees-io/freestyle-cassandra/pull/86))
