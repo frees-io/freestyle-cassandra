@@ -17,7 +17,7 @@
 package freestyle.cassandra
 package schema.provider
 
-import java.io.{Reader, StringReader}
+import java.io.{ByteArrayInputStream, InputStream}
 
 import com.datastax.driver.core._
 import com.google.common.util.concurrent.ListenableFuture
@@ -33,7 +33,6 @@ import scala.concurrent.{Await, Future}
 class MetadataSchemaProviderSpec extends TestDecoderUtils {
 
   import cats.instances.future._
-  import freestyle.async.implicits._
   import freestyle.cassandra.schema.MetadataArbitraries._
 
   import scala.concurrent.ExecutionContext.Implicits.global
@@ -44,14 +43,13 @@ class MetadataSchemaProviderSpec extends TestDecoderUtils {
       check {
         forAll(schemaGen) {
           case (keyspace, tables, indexes, userTypes) =>
-            implicit val clusterMock: Cluster     = mock[ClusterTest]
-            val sessionMock: Session              = mock[Session]
-            val metadataMock: Metadata            = mock[MetadataTest]
-            val result: ListenableFuture[Session] = successfulFuture(sessionMock)
-            (clusterMock.connectAsync _: () => ListenableFuture[Session]).expects().returns(result)
+            implicit val clusterMock: Cluster = mock[ClusterTest]
+            val sessionMock: Session          = mock[Session]
+            val metadataMock: Metadata        = mock[MetadataTest]
+            (clusterMock.connect _: () => Session).expects().returns(sessionMock)
             (clusterMock.getMetadata _).expects().returns(metadataMock)
             (metadataMock.getKeyspaces _).expects().returns(List(keyspace.keyspaceMetadata).asJava)
-            (clusterMock.closeAsync _).expects().returns(CloseFutureTest)
+            (clusterMock.close _).expects().returns((): Unit)
 
             val indexedWithTableName = indexes.map { genIndex =>
               val createIndex =
@@ -91,13 +89,12 @@ class MetadataSchemaProviderSpec extends TestDecoderUtils {
     }
 
     "return a left if there is an error fetching the metadata from cluster" in {
-      implicit val clusterMock: Cluster     = mock[ClusterTest]
-      val sessionMock: Session              = mock[Session]
-      val result: ListenableFuture[Session] = successfulFuture(sessionMock)
-      val exception: Throwable              = new RuntimeException("Test exception")
-      (clusterMock.connectAsync _: () => ListenableFuture[Session]).expects().returns(result)
+      implicit val clusterMock: Cluster = mock[ClusterTest]
+      val sessionMock: Session          = mock[Session]
+      val exception: Throwable          = new RuntimeException("Test exception")
+      (clusterMock.connect _: () => Session).expects().returns(sessionMock)
       (clusterMock.getMetadata _).expects().throws(exception)
-      (clusterMock.closeAsync _).expects().returns(CloseFutureTest)
+      (clusterMock.close _).expects().returns((): Unit)
 
       Await.result(MetadataSchemaProvider.metadataSchemaProvider[Future].schemaDefinition.recover {
         case _ => Seq.empty
@@ -107,9 +104,9 @@ class MetadataSchemaProviderSpec extends TestDecoderUtils {
     "clusterProvider" should {
 
       "return an error if the cluster configuration is not valid" in {
-        val reader: Reader = new StringReader("cluster = {}")
+        val is: InputStream = new ByteArrayInputStream("cluster = {}".getBytes)
 
-        val clusterProvider = MetadataSchemaProvider.clusterProvider[Future](reader)
+        val clusterProvider = MetadataSchemaProvider.clusterProvider[Future](is)
 
         Await.result(clusterProvider.recover {
           case _ => Seq.empty
@@ -117,10 +114,11 @@ class MetadataSchemaProviderSpec extends TestDecoderUtils {
       }
 
       "return the valid configuration" in {
-        val reader: Reader = new StringReader(s"cluster = ${validClusterConfiguration.print}")
+        val is: InputStream =
+          new ByteArrayInputStream(s"cluster = ${validClusterConfiguration.print}".getBytes)
 
         val cluster = Await.result(
-          MetadataSchemaProvider.clusterProvider[Future](reader),
+          MetadataSchemaProvider.clusterProvider[Future](is),
           scala.concurrent.duration.Duration.Inf)
 
         Option(cluster.getClusterName) shouldBe validClusterConfiguration.name
@@ -129,11 +127,11 @@ class MetadataSchemaProviderSpec extends TestDecoderUtils {
     }
 
     "create a metadataSchemaProvider from a Reader with the configuration" in {
-      val reader: Reader = new StringReader("cluster = {}")
+      val is: InputStream = new ByteArrayInputStream("cluster = {}".getBytes)
 
       type SchemaProviderFuture = SchemaDefinitionProvider[Future]
 
-      MetadataSchemaProvider.metadataSchemaProvider[Future](reader) shouldBe a[SchemaProviderFuture]
+      MetadataSchemaProvider.metadataSchemaProvider[Future](is) shouldBe a[SchemaProviderFuture]
     }
   }
 
