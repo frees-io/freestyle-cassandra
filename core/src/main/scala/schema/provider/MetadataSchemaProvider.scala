@@ -106,8 +106,8 @@ object MetadataSchemaProvider {
     }
   }
 
-  def metadataSchemaProvider[M[_]](config: InputStream)(
+  def metadataSchemaProvider[M[_]](isF: M[InputStream])(
       implicit E: MonadError[M, Throwable]): SchemaDefinitionProvider[M] =
-    new MetadataSchemaProvider[M](clusterProvider[M](config))
+    new MetadataSchemaProvider[M](E.flatMap(isF)(is => clusterProvider[M](is)))
 
 }

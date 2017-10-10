@@ -70,5 +70,11 @@ class MetadataInterpolatorTest extends WordSpec with Matchers with BeforeAndAfte
 //      cql"SELECT * FROM demodb.user" shouldBe (("SELECT * FROM test.users", Nil))
 //    }
 
+    "doesn't compile when passing an invalid schema path" in {
+
+      import MyInvalidMetadataInterpolator._
+      """cql"SELECT * FROM unknownTable"""" shouldNot compile
+    }
+
   }
 }

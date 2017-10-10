@@ -67,7 +67,7 @@ class SchemaFileInterpolatorTest extends WordSpec with Matchers {
 
     "doesn't compile when passing an invalid schema path" in {
 
-      import MyFailedSchemaInterpolator._
+      import MyInvalidSchemaInterpolator._
       """cql"SELECT * FROM unknownTable"""" shouldNot compile
     }
 

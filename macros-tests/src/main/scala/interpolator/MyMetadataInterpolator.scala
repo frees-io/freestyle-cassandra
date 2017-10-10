@@ -22,4 +22,7 @@ import freestyle.cassandra.query.interpolator.MacroInterpolator.SchemaMetadataIn
 
 @SchemaMetadataInterpolator("/cluster.conf")
 trait MyMetadataInterpolator
+
+@SchemaMetadataInterpolator("/invalidPath.conf")
+trait MyInvalidMetadataInterpolator
 // $COVERAGE-ON$

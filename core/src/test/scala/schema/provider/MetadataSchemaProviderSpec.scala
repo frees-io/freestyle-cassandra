@@ -131,7 +131,8 @@ class MetadataSchemaProviderSpec extends TestDecoderUtils {
 
       type SchemaProviderFuture = SchemaDefinitionProvider[Future]
 
-      MetadataSchemaProvider.metadataSchemaProvider[Future](is) shouldBe a[SchemaProviderFuture]
+      MetadataSchemaProvider.metadataSchemaProvider[Future](Future.successful(is)) shouldBe a[
+        SchemaProviderFuture]
     }
   }
 

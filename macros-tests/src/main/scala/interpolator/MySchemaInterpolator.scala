@@ -24,5 +24,5 @@ import freestyle.cassandra.query.interpolator.MacroInterpolator.SchemaFileInterp
 trait MySchemaInterpolator
 
 @SchemaFileInterpolator("/invalidPath.sql")
-trait MyFailedSchemaInterpolator
+trait MyInvalidSchemaInterpolator
 // $COVERAGE-ON$
