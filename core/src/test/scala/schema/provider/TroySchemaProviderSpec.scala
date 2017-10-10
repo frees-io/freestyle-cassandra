@@ -35,7 +35,7 @@ class TroySchemaProviderSpec extends WordSpec with MatchersUtil with Checkers {
         forAll { keyspace: GeneratedKeyspace =>
           val is: InputStream = new ByteArrayInputStream(keyspace.cql.getBytes)
           val fromString      = TroySchemaProvider[EitherM](keyspace.cql).schemaDefinition
-          val fromInputStream = TroySchemaProvider[EitherM](is).schemaDefinition
+          val fromInputStream = TroySchemaProvider[EitherM](Right(is)).schemaDefinition
           (fromString isEqualTo Right(Seq(keyspace.createKeyspace))) &&
           (fromInputStream isEqualTo Right(Seq(keyspace.createKeyspace)))
         }
@@ -67,7 +67,7 @@ class TroySchemaProviderSpec extends WordSpec with MatchersUtil with Checkers {
     }
 
     "return a left for an invalid inputstream" in {
-      TroySchemaProvider[EitherM](Null[InputStream]).schemaDefinition.isLeft shouldBe true
+      TroySchemaProvider[EitherM](Left(new RuntimeException("Test Error"))).schemaDefinition.isLeft shouldBe true
     }
 
   }

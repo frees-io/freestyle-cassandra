@@ -26,42 +26,52 @@ object MacroInterpolator {
   case object SchemaFile extends ValidatorType
   case object Metadata extends ValidatorType
 
+  def inputStreamBlock(typeName: Type.Name, path: String): Term.Block =
+    q"""
+       import _root_.scala.util._
+       val myPath = ${Lit.String(path)}
+       Try(Option(${Term.Name(typeName.value)}.getClass.getResourceAsStream(myPath))).flatMap {
+         case Some(is) => Success(is)
+         case None => Failure(new IllegalArgumentException("Resource path " + myPath + " not found"))
+       }
+     """
+
   def validatorBlock(typeName: Type.Name, path: String, validator: ValidatorType): Term.Block = {
 
-    def schemaFileValidator(typeName: Type.Name, schemaPath: String) =
+    def schemaFileValidator(typeName: Type.Name) =
       q"""
-          val tryMonadError: MonadError[Try, Throwable] = cats.instances.try_.catsStdInstancesForTry
-          val schemaProvider: SchemaDefinitionProvider[Try] =
-            TroySchemaProvider[Try](${Term.Name(typeName.value)}.getClass.getResourceAsStream(${Lit.String(schemaPath)}))(tryMonadError)
+          val tryMonadError: MonadError[Try, Throwable] = _root_.cats.instances.try_.catsStdInstancesForTry
+          val isF: Try[java.io.InputStream] = ${inputStreamBlock(typeName, path)}
+          val schemaProvider: SchemaDefinitionProvider[Try] = TroySchemaProvider[Try](isF)(tryMonadError)
           TroySchemaValidator.instance(tryMonadError, schemaProvider)
        """
 
-    def metadataValidator(typeName: Type.Name, schemaPath: String) =
+    def metadataValidator(typeName: Type.Name) =
       q"""
-          val tryMonadError: MonadError[Try, Throwable] = cats.instances.try_.catsStdInstancesForTry
+          val tryMonadError: MonadError[Try, Throwable] = _root_.cats.instances.try_.catsStdInstancesForTry
           val schemaProvider: SchemaDefinitionProvider[Try] =
-            MetadataSchemaProvider.metadataSchemaProvider[Try](${Term.Name(typeName.value)}.getClass.getResourceAsStream(${Lit.String(schemaPath)}))(tryMonadError)
+            MetadataSchemaProvider.metadataSchemaProvider[Try](${Term.Name(typeName.value)}.getClass.getResourceAsStream(${Lit.String(path)}))(tryMonadError)
           TroySchemaValidator.instance(tryMonadError, schemaProvider)
        """
 
       validator match {
-        case SchemaFile => schemaFileValidator(typeName, path)
-        case Metadata => metadataValidator(typeName, path)
+        case SchemaFile => schemaFileValidator(typeName)
+        case Metadata => metadataValidator(typeName)
       }
     }
 
   def companion(typeName: Type.Name, path: String, validator: ValidatorType) =
     q"""object ${Term.Name(typeName.value)} {
 
-          import cats.MonadError
-          import contextual.{Case, Prefix}
-          import freestyle.cassandra.codecs.ByteBufferCodec
-          import freestyle.cassandra.query.interpolator.{CQLInterpolator, CQLLiteral}
-          import freestyle.cassandra.query.model.SerializableValue
-          import freestyle.cassandra.schema.provider._
-          import freestyle.cassandra.schema.validator._
-          import java.nio.ByteBuffer
-          import scala.util.Try
+          import _root_.cats.MonadError
+          import _root_.contextual.{Case, Prefix}
+          import _root_.freestyle.cassandra.codecs.ByteBufferCodec
+          import _root_.freestyle.cassandra.query.interpolator.{CQLInterpolator, CQLLiteral}
+          import _root_.freestyle.cassandra.query.model.SerializableValue
+          import _root_.freestyle.cassandra.schema.provider._
+          import _root_.freestyle.cassandra.schema.validator._
+          import _root_.java.nio.ByteBuffer
+          import _root_.scala.util.Try
 
           val schemaValidator: SchemaValidator[Try] = ${validatorBlock(typeName, path, validator)}
 
@@ -92,7 +102,7 @@ object MacroInterpolator {
         case q"new $_(${Lit(argument: String)})" if argument.nonEmpty =>
           argument
         case _ =>
-          abort("You must provide a valid schema path")
+          abort("@SchemaFileInterpolator: You must provide a valid schema path")
       }
 
       defn match {
@@ -111,7 +121,7 @@ object MacroInterpolator {
         case q"new $_(${Lit(argument: String)})" if argument.nonEmpty =>
           argument
         case _ =>
-          abort("You must provide a valid schema path")
+          abort("@SchemaMetadataInterpolator: You must provide a valid schema path")
       }
 
       defn match {

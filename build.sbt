@@ -31,7 +31,6 @@ lazy val core = project
   .settings(resolvers += Resolver.bintrayRepo("tabdulradi", "maven"))
   .settings(libraryDependencies ++= commonDependencies)
   .settings(libraryDependencies ++= testDependencies)
-  .settings(addCompilerPlugin("org.scalameta" % "paradise" % "3.0.0-M10" cross CrossVersion.full))
 
 lazy val `macros-tests` = project
   .in(file("macros-tests"))
@@ -39,6 +38,5 @@ lazy val `macros-tests` = project
   .settings(scalaMetaSettings)
   .settings(libraryDependencies ++= testDependencies)
   .settings(libraryDependencies += "org.apache.cassandra" % "cassandra-all" % "3.11.0" % "test")
-  .settings(addCompilerPlugin("org.scalameta" % "paradise" % "3.0.0-M10" cross CrossVersion.full))
   .settings(fork in Test in ThisBuild := true)
   .dependsOn(core)

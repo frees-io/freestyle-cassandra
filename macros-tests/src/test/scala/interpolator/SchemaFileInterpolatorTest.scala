@@ -28,17 +28,17 @@ import scala.util.{Success, Try}
 
 class SchemaFileInterpolatorTest extends WordSpec with Matchers {
 
-  import MySchemaInterpolator._
-
   "SchemaFileInterpolator" should {
 
     "works as expected for a simple valid query" in {
 
+      import MySchemaInterpolator._
       cql"SELECT * FROM test.users" shouldBe (("SELECT * FROM test.users", Nil))
     }
 
     "works as expected for a valid query with params" in {
 
+      import MySchemaInterpolator._
       implicit val protocolVersion: ProtocolVersion   = ProtocolVersion.V4
       implicit val stringTypeCodec: TypeCodec[String] = TypeCodec.ascii()
       implicit val uuidTypeCodec: TypeCodec[UUID]     = TypeCodec.uuid()
@@ -61,6 +61,13 @@ class SchemaFileInterpolatorTest extends WordSpec with Matchers {
 
     "doesn't compile for an invalid query" in {
 
+      import MySchemaInterpolator._
+      """cql"SELECT * FROM unknownTable"""" shouldNot compile
+    }
+
+    "doesn't compile when passing an invalid schema path" in {
+
+      import MyFailedSchemaInterpolator._
       """cql"SELECT * FROM unknownTable"""" shouldNot compile
     }
 
