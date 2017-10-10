@@ -17,25 +17,19 @@
 package freestyle.cassandra
 package schema.provider
 
-import java.io.Reader
+import java.io.{InputStream, InputStreamReader}
 
 import cats.MonadError
 import cats.implicits._
 import com.datastax.driver.core._
-import freestyle.async.AsyncContext
-import freestyle.cassandra.api.{apiInterpreter, ClusterAPI}
 import freestyle.cassandra.config.Decoders
-import freestyle.cassandra.handlers.implicits.clusterAPIHandler
-import freestyle.cassandra.schema.SchemaDefinition
+import freestyle.cassandra.schema._
 import freestyle.cassandra.schema.provider.metadata.SchemaConversions
-import freestyle.{FreeS, _}
 
 import scala.collection.JavaConverters._
 import scala.language.postfixOps
 
-class MetadataSchemaProvider[M[_]](clusterProvider: M[Cluster])(
-    implicit AC: AsyncContext[M],
-    API: ClusterAPI[ClusterAPI.Op])
+class MetadataSchemaProvider[M[_]](clusterProvider: M[Cluster])
     extends SchemaDefinitionProvider[M]
     with SchemaConversions {
 
@@ -53,34 +47,34 @@ class MetadataSchemaProvider[M[_]](clusterProvider: M[Cluster])(
 
   override def schemaDefinition(implicit E: MonadError[M, Throwable]): M[SchemaDefinition] = {
 
-    def guarantee[F[_], A](fa: F[A], finalizer: F[Unit])(
-        implicit E: MonadError[F, Throwable]): F[A] =
-      E.flatMap(E.attempt(fa)) { e =>
-        E.flatMap(finalizer)(_ => e.fold(E.raiseError, E.pure))
+    def metadata(): M[Metadata] = {
+
+      def connect(): M[Cluster] = E.flatMap(clusterProvider) { cluster =>
+        catchNonFatalAsSchemaError[M, Cluster] {
+          cluster.connect()
+          cluster
+        }
       }
 
-    def metadataF: FreeS[ClusterAPI.Op, Metadata] = API.connect *> API.metadata
-
-    def closeF: FreeS[ClusterAPI.Op, Unit] = API.close
-
-    E.flatMap(clusterProvider) { cluster =>
-      implicit val H: FSHandler[ClusterAPI.Op, M] =
-        clusterAPIHandler[M] andThen apiInterpreter[M, Cluster](cluster)
-
-      E.flatMap(guarantee(metadataF.interpret[M], closeF.interpret[M])) { metadata =>
-        val keyspaceList: List[KeyspaceMetadata]   = metadata.getKeyspaces.asScala.toList
-        val tableList: List[AbstractTableMetadata] = keyspaceList.flatMap(extractTables)
-        val indexList: List[IndexMetadata]         = extractIndexes(tableList)
-        val userTypeList: List[UserType]           = keyspaceList.flatMap(extractUserTypes)
-
-        E.map4(
-          keyspaceList.traverse(toCreateKeyspace[M]),
-          tableList.traverse(toCreateTable[M]),
-          indexList.traverse(toCreateIndex[M](_)),
-          userTypeList.traverse(toUserType[M])
-        )(_ ++ _ ++ _ ++ _)
+      E.flatMap(connect()) { cluster =>
+        guarantee[M, Metadata](cluster.getMetadata, cluster.close())
       }
     }
+
+    E.flatMap(metadata()) { metadata =>
+      val keyspaceList: List[KeyspaceMetadata]   = metadata.getKeyspaces.asScala.toList
+      val tableList: List[AbstractTableMetadata] = keyspaceList.flatMap(extractTables)
+      val indexList: List[IndexMetadata]         = extractIndexes(tableList)
+      val userTypeList: List[UserType]           = keyspaceList.flatMap(extractUserTypes)
+
+      E.map4(
+        keyspaceList.traverse(toCreateKeyspace[M]),
+        tableList.traverse(toCreateTable[M]),
+        indexList.traverse(toCreateIndex[M](_)),
+        userTypeList.traverse(toUserType[M])
+      )(_ ++ _ ++ _ ++ _)
+    }
+
   }
 }
 
@@ -88,23 +82,22 @@ object MetadataSchemaProvider {
 
   implicit def metadataSchemaProvider[M[_]](
       implicit cluster: Cluster,
-      AC: AsyncContext[M],
-      E: MonadError[M, Throwable],
-      API: ClusterAPI[ClusterAPI.Op]): SchemaDefinitionProvider[M] =
+      E: MonadError[M, Throwable]): SchemaDefinitionProvider[M] =
     new MetadataSchemaProvider[M](E.pure(cluster))
 
-  def clusterProvider[M[_]](configReader: Reader)(
+  def clusterProvider[M[_]](config: InputStream)(
       implicit E: MonadError[M, Throwable]): M[Cluster] = {
+
     import classy.config._
     import classy.{DecodeError, Decoder}
     import com.datastax.driver.core.Cluster
     import com.typesafe.config.{Config, ConfigFactory}
 
     def decodeConfig: M[Either[DecodeError, Cluster]] =
-      E.catchNonFatal {
+      catchNonFatalAsSchemaError[M, Either[DecodeError, Cluster]] {
         val decoders: Decoders[Config]                = new Decoders[Config]
         val decoder: Decoder[Config, Cluster.Builder] = readConfig[Config]("cluster") andThen decoders.clusterBuilderDecoder
-        decoder(ConfigFactory.parseReader(configReader)).map(_.build())
+        decoder(ConfigFactory.parseReader(new InputStreamReader(config))).map(_.build())
       }
 
     E.flatMap(decodeConfig) {
@@ -113,10 +106,8 @@ object MetadataSchemaProvider {
     }
   }
 
-  def metadataSchemaProvider[M[_]](configReader: Reader)(
-      implicit AC: AsyncContext[M],
-      E: MonadError[M, Throwable],
-      API: ClusterAPI[ClusterAPI.Op]): SchemaDefinitionProvider[M] =
-    new MetadataSchemaProvider[M](clusterProvider[M](configReader))
+  def metadataSchemaProvider[M[_]](isF: M[InputStream])(
+      implicit E: MonadError[M, Throwable]): SchemaDefinitionProvider[M] =
+    new MetadataSchemaProvider[M](E.flatMap(isF)(is => clusterProvider[M](is)))
 
 }

@@ -43,8 +43,16 @@ object TroySchemaProvider {
   def apply[M[_]](cql: String)(implicit E: MonadError[M, Throwable]): TroySchemaProvider[M] =
     new TroySchemaProvider(E.pure(cql))
 
-  def apply[M[_]](is: InputStream)(implicit E: MonadError[M, Throwable]): TroySchemaProvider[M] =
-    new TroySchemaProvider[M](
-      catchNonFatalAsSchemaError(scala.io.Source.fromInputStream(is).mkString))
+  def apply[M[_]](isF: M[InputStream])(
+      implicit E: MonadError[M, Throwable]): TroySchemaProvider[M] = {
+    val cqlF: M[String] = E.flatMap(isF) { is =>
+      catchNonFatalAsSchemaError {
+        val string = scala.io.Source.fromInputStream(is).mkString
+        is.close()
+        string
+      }
+    }
+    new TroySchemaProvider[M](cqlF)
+  }
 
 }

@@ -15,19 +15,25 @@
  */
 
 package freestyle.cassandra
-package schema
+package util
 
-import cats.MonadError
+import org.slf4j.{Logger, LoggerFactory}
 
-package object provider {
+import scala.util.Try
 
-  trait SchemaDefinitionProvider[M[_]] {
-    def schemaDefinition(implicit E: MonadError[M, Throwable]): M[SchemaDefinition]
+object TestUtils {
+
+  final class TryOps[T](tryValue: Try[T]) {
+
+    val logger: Logger = LoggerFactory.getLogger("freestyle.cassandra.tests.TryOps")
+
+    def logError: Try[T] = {
+      tryValue.failed.foreach(e => logger.error("Error on Try", e))
+      tryValue
+    }
+
   }
 
-  def guarantee[M[_], A](fa: => A, finalizer: => Unit)(implicit E: MonadError[M, Throwable]): M[A] =
-    E.flatMap(E.attempt(catchNonFatalAsSchemaError(fa))) { e =>
-      E.flatMap(catchNonFatalAsSchemaError(finalizer))(_ => e.fold(E.raiseError, E.pure))
-    }
+  implicit def tryOps[T](tryValue: Try[T]): TryOps[T] = new TryOps[T](tryValue)
 
 }
