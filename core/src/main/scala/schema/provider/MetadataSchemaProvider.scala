@@ -23,7 +23,7 @@ import cats.MonadError
 import cats.implicits._
 import com.datastax.driver.core._
 import freestyle.cassandra.config.Decoders
-import freestyle.cassandra.schema.SchemaDefinition
+import freestyle.cassandra.schema._
 import freestyle.cassandra.schema.provider.metadata.SchemaConversions
 
 import scala.collection.JavaConverters._
@@ -47,22 +47,17 @@ class MetadataSchemaProvider[M[_]](clusterProvider: M[Cluster])
 
   override def schemaDefinition(implicit E: MonadError[M, Throwable]): M[SchemaDefinition] = {
 
-    def guarantee[A](fa: => A, finalizer: => Unit): M[A] =
-      E.flatMap(E.attempt(E.catchNonFatal(fa))) { e =>
-        E.flatMap(E.catchNonFatal(finalizer))(_ => e.fold(E.raiseError, E.pure))
-      }
-
     def metadata(): M[Metadata] = {
 
       def connect(): M[Cluster] = E.flatMap(clusterProvider) { cluster =>
-        E.catchNonFatal {
+        catchNonFatalAsSchemaError[M, Cluster] {
           cluster.connect()
           cluster
         }
       }
 
       E.flatMap(connect()) { cluster =>
-        guarantee(cluster.getMetadata, cluster.close())
+        guarantee[M, Metadata](cluster.getMetadata, cluster.close())
       }
     }
 
@@ -99,7 +94,7 @@ object MetadataSchemaProvider {
     import com.typesafe.config.{Config, ConfigFactory}
 
     def decodeConfig: M[Either[DecodeError, Cluster]] =
-      E.catchNonFatal {
+      catchNonFatalAsSchemaError[M, Either[DecodeError, Cluster]] {
         val decoders: Decoders[Config]                = new Decoders[Config]
         val decoder: Decoder[Config, Cluster.Builder] = readConfig[Config]("cluster") andThen decoders.clusterBuilderDecoder
         decoder(ConfigFactory.parseReader(new InputStreamReader(config))).map(_.build())

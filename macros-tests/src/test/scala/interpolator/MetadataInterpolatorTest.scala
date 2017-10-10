@@ -42,10 +42,11 @@ class MetadataInterpolatorTest extends WordSpec with Matchers with BeforeAndAfte
     }
   }
 
-  override protected def afterAll(): Unit =
-    daemon.foreach { d =>
-      CassandraUtil.stopCassandra(d).logError.foreach(Await.result(_, 60.seconds))
-    }
+  // It should be fixed in https://github.com/frees-io/freestyle-cassandra/issues/88
+//  override protected def afterAll(): Unit =
+//    daemon.foreach { d =>
+//      CassandraUtil.stopCassandra(d).logError.foreach(Await.result(_, 60.seconds))
+//    }
 
   "MetadataInterpolator" should {
 

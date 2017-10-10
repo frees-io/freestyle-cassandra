@@ -40,5 +40,5 @@ lazy val `macros-tests` = project
   .settings(libraryDependencies ++= testDependencies)
   .settings(libraryDependencies += "org.apache.cassandra" % "cassandra-all" % "3.11.0" % "test")
   .settings(addCompilerPlugin("org.scalameta" % "paradise" % "3.0.0-M10" cross CrossVersion.full))
-  .settings(fork in Test := true)
+  .settings(fork in Test in ThisBuild := true)
   .dependsOn(core)

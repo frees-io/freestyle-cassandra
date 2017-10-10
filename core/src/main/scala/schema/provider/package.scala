@@ -25,4 +25,9 @@ package object provider {
     def schemaDefinition(implicit E: MonadError[M, Throwable]): M[SchemaDefinition]
   }
 
+  def guarantee[M[_], A](fa: => A, finalizer: => Unit)(implicit E: MonadError[M, Throwable]): M[A] =
+    E.flatMap(E.attempt(catchNonFatalAsSchemaError(fa))) { e =>
+      E.flatMap(catchNonFatalAsSchemaError(finalizer))(_ => e.fold(E.raiseError, E.pure))
+    }
+
 }
