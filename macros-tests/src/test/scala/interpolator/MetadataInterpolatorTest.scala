@@ -49,6 +49,7 @@ class MetadataInterpolatorTest extends WordSpec with Matchers with BeforeAndAfte
 
   "MetadataInterpolator" should {
 
+    // TODO - Remove it in https://github.com/frees-io/freestyle-cassandra/issues/88
     "works" in {
       val cluster = new Cluster.Builder()
         .withClusterName(clusterName)
@@ -61,6 +62,7 @@ class MetadataInterpolatorTest extends WordSpec with Matchers with BeforeAndAfte
       cluster.close()
     }
 
+    // TODO - Finish it in https://github.com/frees-io/freestyle-cassandra/issues/88
 //    "works as expected for a simple valid query" in {
 //
 //      import MyMetadataInterpolator._
