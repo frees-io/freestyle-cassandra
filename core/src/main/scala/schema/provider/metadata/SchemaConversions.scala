@@ -111,8 +111,7 @@ trait SchemaConversions {
 
         val typeName = TypeName(Some(KeyspaceName(userType.getKeyspace)), userType.getTypeName)
 
-        E.map(fieldsM) { list =>
-          CreateType(ifNotExists = false, typeName = typeName, fields = list)
+        E.map(fieldsM) { list => CreateType(ifNotExists = false, typeName = typeName, fields = list)
         }
       }
     }
@@ -169,12 +168,10 @@ trait SchemaConversions {
 
       val maybeCol: Option[M[DataType]] = collectionType.getName match {
         case Name.LIST =>
-          typeArgs.headOption map { typeArg =>
-            E.map(toDataTypeNative(typeArg))(DataType.List)
+          typeArgs.headOption map { typeArg => E.map(toDataTypeNative(typeArg))(DataType.List)
           }
         case Name.SET =>
-          typeArgs.headOption map { typeArg =>
-            E.map(toDataTypeNative(typeArg))(DataType.Set)
+          typeArgs.headOption map { typeArg => E.map(toDataTypeNative(typeArg))(DataType.Set)
           }
         case Name.MAP =>
           for {

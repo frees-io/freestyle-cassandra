@@ -19,34 +19,15 @@ package interpolator
 
 import com.datastax.driver.core.Cluster
 import freestyle.cassandra.util.CassandraUtil
-import org.apache.cassandra.service.CassandraDaemon
 import org.scalatest._
-
-import scala.concurrent.Await
-import scala.concurrent.duration._
 
 class MetadataInterpolatorTest extends WordSpec with Matchers with BeforeAndAfterAll {
 
   import freestyle.cassandra.util.CassandraConfigurationValues._
   import freestyle.cassandra.util.TestUtils._
 
-  var daemon: Option[CassandraDaemon] = None
-
-  override def beforeAll: Unit = {
-
-    CassandraUtil.setLogLevelToWarn().logError
-
-    CassandraUtil.startCassandra().logError.foreach { future =>
-      daemon = Option(Await.result(future, 60.seconds))
-      CassandraUtil.executeCQL("/schema.sql").logError
-    }
-  }
-
-  // It should be fixed in https://github.com/frees-io/freestyle-cassandra/issues/88
-//  override protected def afterAll(): Unit =
-//    daemon.foreach { d =>
-//      CassandraUtil.stopCassandra(d).logError.foreach(Await.result(_, 60.seconds))
-//    }
+  override def beforeAll: Unit =
+    CassandraUtil.executeCQL("/schema.sql").logError
 
   "MetadataInterpolator" should {
 

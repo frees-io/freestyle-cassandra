@@ -89,8 +89,7 @@ class SessionAPIHandlerSpec
     "call to executeAsync(String, java.util.Map) when calling executeWithMap(String, Map) method" in {
       (sessionMock
         .executeAsync(_: String, _: java.util.Map[String, AnyRef]))
-        .expects(where { (s, m) =>
-          s == queryString && m.asScala == mapValues
+        .expects(where { (s, m) => s == queryString && m.asScala == mapValues
         })
         .returns(ResultSetFutureTest(rsMock))
       run(handler.executeWithMap(queryString, mapValues)) shouldBe rsMock

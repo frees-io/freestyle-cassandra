@@ -3,7 +3,7 @@ pgpPublicRing := file(s"$gpgFolder/pubring.gpg")
 pgpSecretRing := file(s"$gpgFolder/secring.gpg")
 
 lazy val commonDependencies: Seq[ModuleID] = Seq(
-  %%("freestyle-async"),
+  %%("frees-async"),
   %%("shapeless"),
   %%("classy-core"),
   %%("classy-config-typesafe"),
@@ -21,6 +21,7 @@ lazy val root = project
   .in(file("."))
   .settings(name := "freestyle-cassandra")
   .settings(noPublishSettings)
+  .enablePlugins(EmbeddedCassandraPlugin)
   .dependsOn(core, `macros-tests`)
   .aggregate(core, `macros-tests`)
 
@@ -37,6 +38,6 @@ lazy val `macros-tests` = project
   .settings(moduleName := "frees-cassandra-macros-tests")
   .settings(scalaMetaSettings)
   .settings(libraryDependencies ++= testDependencies)
-  .settings(libraryDependencies += "org.apache.cassandra" % "cassandra-all" % "3.11.0" % "test")
+//  .settings(libraryDependencies += "org.apache.cassandra" % "cassandra-all" % "3.11.0" % "test")
   .settings(fork in Test in ThisBuild := true)
   .dependsOn(core)
