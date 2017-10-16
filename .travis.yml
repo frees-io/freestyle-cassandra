@@ -26,6 +26,7 @@ before_install:
 - export PATH=${PATH}:./vendor/bundle
 script:
 - sbt ++$TRAVIS_SCALA_VERSION orgScriptCI
+- sbt ++$TRAVIS_SCALA_VERSION embeddedCassandraStart it:test
 after_success:
 - bash <(curl -s https://codecov.io/bash)
 - sbt ++$TRAVIS_SCALA_VERSION orgAfterCISuccess

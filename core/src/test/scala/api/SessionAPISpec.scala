@@ -34,14 +34,14 @@ class SessionAPISpec extends WordSpec with Matchers with OneInstancePerTest with
 
   implicit val sessionAPIHandler: SessionAPI.Op ~> Id = new (SessionAPI.Op ~> Id) {
     override def apply[A](fa: SessionAPI.Op[A]): Id[A] = fa match {
-      case SessionAPI.InitOP()                  => sessionMock
-      case SessionAPI.CloseOP()                 => unit
-      case SessionAPI.PrepareOP(_)              => prepSt
-      case SessionAPI.PrepareStatementOP(_)     => prepSt
-      case SessionAPI.ExecuteOP(_)              => resultSet
-      case SessionAPI.ExecuteWithValuesOP(_, _) => resultSet
-      case SessionAPI.ExecuteWithMapOP(_, _)    => resultSet
-      case SessionAPI.ExecuteStatementOP(_)     => resultSet
+      case SessionAPI.InitOp()                  => sessionMock
+      case SessionAPI.CloseOp()                 => unit
+      case SessionAPI.PrepareOp(_)              => prepSt
+      case SessionAPI.PrepareStatementOp(_)     => prepSt
+      case SessionAPI.ExecuteOp(_)              => resultSet
+      case SessionAPI.ExecuteWithValuesOp(_, _) => resultSet
+      case SessionAPI.ExecuteWithMapOp(_, _)    => resultSet
+      case SessionAPI.ExecuteStatementOp(_)     => resultSet
     }
   }
 

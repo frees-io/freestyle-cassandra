@@ -75,8 +75,7 @@ package object mapper {
     implicit def hconsMapper[K, H, T <: HList](
         implicit hMapper: Lazy[FieldListMapper[H]],
         tMapper: FieldListMapper[T]): FieldListMapper[FieldType[K, H] :: T] =
-      createFieldMapper { hlist =>
-        hMapper.value.map(hlist.head) ++ tMapper.map(hlist.tail)
+      createFieldMapper { hlist => hMapper.value.map(hlist.head) ++ tMapper.map(hlist.tail)
       }
   }
 
