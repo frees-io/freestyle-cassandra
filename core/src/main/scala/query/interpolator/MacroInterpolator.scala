@@ -37,7 +37,7 @@ object MacroInterpolator {
   class SchemaMetadataInterpolator(configPath: String) extends scala.annotation.StaticAnnotation {
 
     inline def apply(defn: Any): Any =
-      meta(generateMacro(this, defn, getClass.getSimpleName, SchemaFile))
+      meta(generateMacro(this, defn, getClass.getSimpleName, Metadata))
   }
 
   object MetaMacroInterpolator {

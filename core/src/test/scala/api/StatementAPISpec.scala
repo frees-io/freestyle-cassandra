@@ -42,13 +42,13 @@ class StatementAPISpec extends WordSpec with Matchers with OneInstancePerTest wi
 
   implicit val statementAPIHandler: StatementAPI.Op ~> Id = new (StatementAPI.Op ~> Id) {
     override def apply[A](fa: StatementAPI.Op[A]): Id[A] = fa match {
-      case StatementAPI.BindOP(_)                        => boundSt1
-      case StatementAPI.SetByteBufferByIndexOP(_, _, _)  => boundSt2
-      case StatementAPI.SetByteBufferByNameOP(_, _, _)   => boundSt3
-      case StatementAPI.SetValueByIndexOP(_, _, _, _)    => boundSt4
-      case StatementAPI.SetValueByNameOP(_, _, _, _)     => boundSt5
-      case StatementAPI.SetByteBufferListByIndexOP(_, _) => boundSt6
-      case StatementAPI.SetByteBufferListByNameOP(_, _)  => boundSt7
+      case StatementAPI.BindOp(_)                        => boundSt1
+      case StatementAPI.SetByteBufferByIndexOp(_, _, _)  => boundSt2
+      case StatementAPI.SetByteBufferByNameOp(_, _, _)   => boundSt3
+      case StatementAPI.SetValueByIndexOp(_, _, _, _)    => boundSt4
+      case StatementAPI.SetValueByNameOp(_, _, _, _)     => boundSt5
+      case StatementAPI.SetByteBufferListByIndexOp(_, _) => boundSt6
+      case StatementAPI.SetByteBufferListByNameOp(_, _)  => boundSt7
     }
   }
 

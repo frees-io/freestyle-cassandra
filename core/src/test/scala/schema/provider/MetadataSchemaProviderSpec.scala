@@ -20,8 +20,6 @@ package schema.provider
 import java.io.{ByteArrayInputStream, InputStream}
 
 import com.datastax.driver.core._
-import com.google.common.util.concurrent.ListenableFuture
-import freestyle.cassandra.TestUtils.successfulFuture
 import freestyle.cassandra.config.TestDecoderUtils
 import freestyle.cassandra.schema.SchemaDefinition
 import org.scalacheck.Prop._
@@ -49,7 +47,6 @@ class MetadataSchemaProviderSpec extends TestDecoderUtils {
             (clusterMock.connect _: () => Session).expects().returns(sessionMock)
             (clusterMock.getMetadata _).expects().returns(metadataMock)
             (metadataMock.getKeyspaces _).expects().returns(List(keyspace.keyspaceMetadata).asJava)
-            (clusterMock.close _).expects().returns((): Unit)
 
             val indexedWithTableName = indexes.map { genIndex =>
               val createIndex =
@@ -94,7 +91,6 @@ class MetadataSchemaProviderSpec extends TestDecoderUtils {
       val exception: Throwable          = new RuntimeException("Test exception")
       (clusterMock.connect _: () => Session).expects().returns(sessionMock)
       (clusterMock.getMetadata _).expects().throws(exception)
-      (clusterMock.close _).expects().returns((): Unit)
 
       Await.result(MetadataSchemaProvider.metadataSchemaProvider[Future].schemaDefinition.recover {
         case _ => Seq.empty

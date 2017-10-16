@@ -35,12 +35,12 @@ class ClusterAPISpec extends WordSpec with Matchers with OneInstancePerTest with
 
   implicit val clusterAPIHandler: ClusterAPI.Op ~> Id = new (ClusterAPI.Op ~> Id) {
     override def apply[A](fa: ClusterAPI.Op[A]): Id[A] = fa match {
-      case ClusterAPI.ConnectOP()          => sessionMock
-      case ClusterAPI.ConnectKeyspaceOP(_) => sessionMock
-      case ClusterAPI.CloseOP()            => unit
-      case ClusterAPI.ConfigurationOP()    => configuration
-      case ClusterAPI.MetadataOP()         => metadataTest
-      case ClusterAPI.MetricsOP()          => MetricsTest
+      case ClusterAPI.ConnectOp()          => sessionMock
+      case ClusterAPI.ConnectKeyspaceOp(_) => sessionMock
+      case ClusterAPI.CloseOp()            => unit
+      case ClusterAPI.ConfigurationOp()    => configuration
+      case ClusterAPI.MetadataOp()         => metadataTest
+      case ClusterAPI.MetricsOp()          => MetricsTest
     }
   }
 

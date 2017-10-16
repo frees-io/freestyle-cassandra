@@ -56,8 +56,7 @@ class MetadataSchemaProvider[M[_]](clusterProvider: M[Cluster])
         }
       }
 
-      E.flatMap(connect()) { cluster => guarantee[M, Metadata](cluster.getMetadata, cluster.close())
-      }
+      E.flatMap(connect())(c => E.catchNonFatal(c.getMetadata))
     }
 
     E.flatMap(metadata()) { metadata =>

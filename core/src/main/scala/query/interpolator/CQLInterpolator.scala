@@ -17,7 +17,7 @@
 package freestyle.cassandra
 package query.interpolator
 
-import cats.{Applicative, MonadError}
+import cats.MonadError
 import cats.data.Validated.{Invalid, Valid}
 import contextual.Interpolator
 import freestyle.cassandra.query.model.{SerializableValue, SerializableValueBy}
