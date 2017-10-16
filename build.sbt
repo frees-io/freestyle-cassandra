@@ -1,8 +1,3 @@
-import sbtorgpolicies.runnable.SetSetting
-import sbtorgpolicies.runnable.syntax._
-import scoverage.ScoverageKeys
-import scoverage.ScoverageKeys._
-
 pgpPassphrase := Some(getEnvVar("PGP_PASSPHRASE").getOrElse("").toCharArray)
 pgpPublicRing := file(s"$gpgFolder/pubring.gpg")
 pgpSecretRing := file(s"$gpgFolder/secring.gpg")
@@ -24,18 +19,6 @@ lazy val testDependencies: Seq[ModuleID] =
     .map(_ % "it,test")
 
 lazy val orgSettings = Seq(
-  orgScriptTaskListSetting := List(
-    (clean in Global).asRunnableItemFull,
-    embeddedCassandraStart
-      .asRunnableItem(allModules = false, aggregated = false, crossScalaVersions = true),
-    SetSetting(coverageEnabled in Global, true).asRunnableItem,
-    (compile in Compile).asRunnableItemFull,
-    (test in Test).asRunnableItemFull,
-    (test in IntegrationTest).asRunnableItemFull,
-    (ScoverageKeys.coverageReport in Test).asRunnableItem,
-    (ScoverageKeys.coverageAggregate in Test).asRunnableItem,
-    SetSetting(coverageEnabled in Global, false).asRunnableItem
-  ),
   embeddedCassandraCQLFileSetting := Option(file("macros-tests/src/main/resources/schema.sql"))
 )
 
