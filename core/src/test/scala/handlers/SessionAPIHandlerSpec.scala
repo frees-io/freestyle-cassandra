@@ -126,7 +126,7 @@ class SessionAPIHandlerSpec
       run(handler.executeStatement(regStMock)) shouldBe rsMock
     }
 
-    "call to serializableValue and executeAsync(Statement) when calling executeWithByteBuffer(String, List[SerializableValueBy[Int]]) method" in {
+    "call to serializableValue and executeAsync(Statement) when calling executeWithByteBuffer(String, List[SerializableValueBy[Int]], None) method" in {
 
       val values = List(serializableValueByIntMockA, serializableValueByIntMockB)
 
@@ -144,7 +144,7 @@ class SessionAPIHandlerSpec
       run(handler.executeWithByteBuffer(queryString, values)) shouldBe rsMock
     }
 
-    "call to serializableValue and executeAsync(Statement) when calling executeWithByteBuffer(String, List[SerializableValueBy[Int]], ConsistencyLevel) method" in {
+    "call to serializableValue and executeAsync(Statement) when calling executeWithByteBuffer(String, List[SerializableValueBy[Int]], Some(ConsistencyLevel)) method" in {
 
       val values = List(serializableValueByIntMockA, serializableValueByIntMockB)
 
@@ -160,7 +160,7 @@ class SessionAPIHandlerSpec
             (st.getConsistencyLevel == consistencyLevel)
         })
         .returns(ResultSetFutureTest(rsMock))
-      run(handler.executeWithByteBufferAndCL(queryString, values, consistencyLevel)) shouldBe rsMock
+      run(handler.executeWithByteBuffer(queryString, values, Some(consistencyLevel))) shouldBe rsMock
     }
 
   }

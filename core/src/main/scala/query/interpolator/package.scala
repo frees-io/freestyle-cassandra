@@ -41,21 +41,11 @@ package object interpolator {
         E: MonadError[M, Throwable]): SessionAPI.Op ~> M =
       sessionAPIHandler andThen apiInterpreter[M, Session](S)
 
-    def asResultSet[M[_]](implicit API: SessionAPI[M]): FreeS[M, ResultSet] =
-      API.executeWithByteBuffer(tuple._1, tuple._2)
-
-    def asResultSet[M[_]](consistencyLevel: ConsistencyLevel)(
+    def asResultSet[M[_]](consistencyLevel: Option[ConsistencyLevel] = None)(
         implicit API: SessionAPI[M]): FreeS[M, ResultSet] =
-      API.executeWithByteBufferAndCL(tuple._1, tuple._2, consistencyLevel)
+      API.executeWithByteBuffer(tuple._1, tuple._2, consistencyLevel)
 
-    def attemptResultSet[M[_]](
-        implicit API: SessionAPI[SessionAPI.Op],
-        S: Session,
-        AC: AsyncContext[M],
-        E: MonadError[M, Throwable]): M[ResultSet] =
-      asResultSet[SessionAPI.Op].interpret[M]
-
-    def attemptResultSet[M[_]](consistencyLevel: ConsistencyLevel)(
+    def attemptResultSet[M[_]](consistencyLevel: Option[ConsistencyLevel] = None)(
         implicit API: SessionAPI[SessionAPI.Op],
         S: Session,
         AC: AsyncContext[M],

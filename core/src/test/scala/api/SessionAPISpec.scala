@@ -34,16 +34,15 @@ class SessionAPISpec extends WordSpec with Matchers with OneInstancePerTest with
 
   implicit val sessionAPIHandler: SessionAPI.Op ~> Id = new (SessionAPI.Op ~> Id) {
     override def apply[A](fa: SessionAPI.Op[A]): Id[A] = fa match {
-      case SessionAPI.InitOp()                              => sessionMock
-      case SessionAPI.CloseOp()                             => unit
-      case SessionAPI.PrepareOp(_)                          => prepSt
-      case SessionAPI.PrepareStatementOp(_)                 => prepSt
-      case SessionAPI.ExecuteOp(_)                          => resultSet
-      case SessionAPI.ExecuteWithValuesOp(_, _)             => resultSet
-      case SessionAPI.ExecuteWithMapOp(_, _)                => resultSet
-      case SessionAPI.ExecuteStatementOp(_)                 => resultSet
-      case SessionAPI.ExecuteWithByteBufferOp(_, _)         => resultSet
-      case SessionAPI.ExecuteWithByteBufferAndCLOp(_, _, _) => resultSet
+      case SessionAPI.InitOp()                         => sessionMock
+      case SessionAPI.CloseOp()                        => unit
+      case SessionAPI.PrepareOp(_)                     => prepSt
+      case SessionAPI.PrepareStatementOp(_)            => prepSt
+      case SessionAPI.ExecuteOp(_)                     => resultSet
+      case SessionAPI.ExecuteWithValuesOp(_, _)        => resultSet
+      case SessionAPI.ExecuteWithMapOp(_, _)           => resultSet
+      case SessionAPI.ExecuteStatementOp(_)            => resultSet
+      case SessionAPI.ExecuteWithByteBufferOp(_, _, _) => resultSet
     }
   }
 
@@ -60,22 +59,20 @@ class SessionAPISpec extends WordSpec with Matchers with OneInstancePerTest with
           ResultSet,
           ResultSet,
           ResultSet,
-          ResultSet,
           ResultSet)
 
       def program[F[_]](implicit sessionAPI: SessionAPI[F]): FreeS[F, ReturnResult] = {
         for {
-          v1  <- sessionAPI.init
-          v2  <- sessionAPI.close
-          v3  <- sessionAPI.prepare("")
-          v4  <- sessionAPI.prepareStatement(Null[RegularStatement])
-          v5  <- sessionAPI.execute("")
-          v6  <- sessionAPI.executeWithValues("", Null[Any])
-          v7  <- sessionAPI.executeWithMap("", Null[Map[String, AnyRef]])
-          v8  <- sessionAPI.executeStatement(Null[Statement])
-          v9  <- sessionAPI.executeWithByteBuffer("", Nil)
-          v10 <- sessionAPI.executeWithByteBufferAndCL("", Nil, Null[ConsistencyLevel])
-        } yield (v1, v2, v3, v4, v5, v6, v7, v8, v9, v10)
+          v1 <- sessionAPI.init
+          v2 <- sessionAPI.close
+          v3 <- sessionAPI.prepare("")
+          v4 <- sessionAPI.prepareStatement(Null[RegularStatement])
+          v5 <- sessionAPI.execute("")
+          v6 <- sessionAPI.executeWithValues("", Null[Any])
+          v7 <- sessionAPI.executeWithMap("", Null[Map[String, AnyRef]])
+          v8 <- sessionAPI.executeStatement(Null[Statement])
+          v9 <- sessionAPI.executeWithByteBuffer("", Nil, None)
+        } yield (v1, v2, v3, v4, v5, v6, v7, v8, v9)
       }
 
       val result = program[SessionAPI.Op].interpret[Id]
@@ -85,7 +82,6 @@ class SessionAPISpec extends WordSpec with Matchers with OneInstancePerTest with
           unit,
           prepSt,
           prepSt,
-          resultSet,
           resultSet,
           resultSet,
           resultSet,

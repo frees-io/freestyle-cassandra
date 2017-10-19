@@ -80,19 +80,8 @@ object implicits {
 
     def executeWithByteBuffer(
         query: String,
-        values: List[SerializableValueBy[Int]]): SessionAPIOps[M, ResultSet] =
-      executeWithByteBufferAndMaybeCL(query, values, consistencyLevel = None)
-
-    def executeWithByteBufferAndCL(
-        query: String,
         values: List[SerializableValueBy[Int]],
-        consistencyLevel: ConsistencyLevel): SessionAPIOps[M, ResultSet] =
-      executeWithByteBufferAndMaybeCL(query, values, Option(consistencyLevel))
-
-    private[this] def executeWithByteBufferAndMaybeCL(
-        query: String,
-        values: List[SerializableValueBy[Int]],
-        consistencyLevel: Option[ConsistencyLevel]): SessionAPIOps[M, ResultSet] =
+        consistencyLevel: Option[ConsistencyLevel] = None): SessionAPIOps[M, ResultSet] =
       Kleisli { session =>
         values.traverse(_.serializableValue.serialize[M]).flatMap { values =>
           val st = ByteBufferSimpleStatement(query, values.toArray)
