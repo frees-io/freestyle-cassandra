@@ -18,7 +18,7 @@ package freestyle.cassandra
 package query
 
 import cats.{~>, MonadError}
-import com.datastax.driver.core.{ResultSet, Session}
+import com.datastax.driver.core.{ConsistencyLevel, ResultSet, Session}
 import contextual.Context
 import freestyle._
 import freestyle.async.AsyncContext
@@ -44,12 +44,23 @@ package object interpolator {
     def asResultSet[M[_]](implicit API: SessionAPI[M]): FreeS[M, ResultSet] =
       API.executeWithByteBuffer(tuple._1, tuple._2)
 
+    def asResultSet[M[_]](consistencyLevel: ConsistencyLevel)(
+        implicit API: SessionAPI[M]): FreeS[M, ResultSet] =
+      API.executeWithByteBufferAndCL(tuple._1, tuple._2, consistencyLevel)
+
     def attemptResultSet[M[_]](
         implicit API: SessionAPI[SessionAPI.Op],
         S: Session,
         AC: AsyncContext[M],
         E: MonadError[M, Throwable]): M[ResultSet] =
-      API.executeWithByteBuffer(tuple._1, tuple._2).interpret[M]
+      asResultSet[SessionAPI.Op].interpret[M]
+
+    def attemptResultSet[M[_]](consistencyLevel: ConsistencyLevel)(
+        implicit API: SessionAPI[SessionAPI.Op],
+        S: Session,
+        AC: AsyncContext[M],
+        E: MonadError[M, Throwable]): M[ResultSet] =
+      asResultSet[SessionAPI.Op](consistencyLevel).interpret[M]
 
   }
 
