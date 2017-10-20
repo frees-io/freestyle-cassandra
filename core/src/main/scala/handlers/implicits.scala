@@ -80,10 +80,13 @@ object implicits {
 
     def executeWithByteBuffer(
         query: String,
-        values: List[SerializableValueBy[Int]]): SessionAPIOps[M, ResultSet] =
+        values: List[SerializableValueBy[Int]],
+        consistencyLevel: Option[ConsistencyLevel] = None): SessionAPIOps[M, ResultSet] =
       Kleisli { session =>
         values.traverse(_.serializableValue.serialize[M]).flatMap { values =>
-          H(session.executeAsync(ByteBufferSimpleStatement(query, values.toArray)))
+          val st = ByteBufferSimpleStatement(query, values.toArray)
+          consistencyLevel.foreach(st.setConsistencyLevel)
+          H(session.executeAsync(st))
         }
       }
 

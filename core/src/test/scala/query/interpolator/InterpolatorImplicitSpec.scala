@@ -53,11 +53,29 @@ class InterpolatorImplicitSpec
   val rsMock: ResultSet = stub[ResultSet]
   (sessionMock.executeAsync(_: Statement)).when(*).returns(ResultSetFutureTest(rsMock))
 
-  "InterpolatorImplicitDef attemptResultSet" should {
+  val consistencyLevel = ConsistencyLevel.EACH_QUORUM
 
-    "return a valid ResultSet" in {
-      val future: Future[ResultSet] = cql"SELECT * FROM users".attemptResultSet[Future]
+  "InterpolatorImplicitDef asResultSet" should {
+
+    implicit val interpreter = sessionAPIHandler[Future] andThen apiInterpreter[Future, Session](
+      sessionMock)
+
+    "return a valid ResultSet from a FreeS" in {
+      val future: Future[ResultSet] =
+        cql"SELECT * FROM users".asResultSet[SessionAPI.Op]().interpret[Future]
       Await.result(future, Duration.Inf) shouldBe rsMock
+    }
+
+    "return a valid ResultSet from a FreeS when passing a ConsistencyLevel" in {
+      val future: Future[ResultSet] =
+        cql"SELECT * FROM users"
+          .asResultSet[SessionAPI.Op](Some(consistencyLevel))
+          .interpret[Future]
+      Await.result(future, Duration.Inf) shouldBe rsMock
+      (sessionMock
+        .executeAsync(_: Statement))
+        .verify(where { (st: Statement) => st.getConsistencyLevel == consistencyLevel
+        })
     }
 
     "return a failed future when the ByteBufferCodec returns a failure" in {
@@ -73,21 +91,80 @@ class InterpolatorImplicitSpec
       }
       val name: String = "UserName"
       val future: Future[ResultSet] =
-        cql"SELECT * FROM users WHERE name=$name".attemptResultSet[Future]
+        cql"SELECT * FROM users WHERE name=$name".asResultSet[SessionAPI.Op]().interpret[Future]
+      Await.result(future.failed, Duration.Inf) shouldBe serializeException
+    }
+
+    "return a failed future when the ByteBufferCodec returns a failure when passing a ConsistencyLevel" in {
+      val serializeException = new RuntimeException("Error serializing")
+      implicit val stringByteBufferCodec: ByteBufferCodec[String] = new ByteBufferCodec[String] {
+        override def deserialize[M[_]](bytes: ByteBuffer)(
+            implicit E: MonadError[M, Throwable]): M[String] =
+          E.raiseError(new RuntimeException("Error deserializing"))
+
+        override def serialize[M[_]](value: String)(
+            implicit E: MonadError[M, Throwable]): M[ByteBuffer] =
+          E.raiseError(serializeException)
+      }
+      val name: String = "UserName"
+      val future: Future[ResultSet] =
+        cql"SELECT * FROM users WHERE name=$name"
+          .asResultSet[SessionAPI.Op](Some(consistencyLevel))
+          .interpret[Future]
       Await.result(future.failed, Duration.Inf) shouldBe serializeException
     }
 
   }
 
-  "InterpolatorImplicitDef asResultSet" should {
+  "InterpolatorImplicitDef attemptResultSet()" should {
 
-    implicit val interpreter = sessionAPIHandler[Future] andThen apiInterpreter[Future, Session](
-      sessionMock)
-
-    "return a valid ResultSet from a FreeS" in {
-      val future: Future[ResultSet] =
-        cql"SELECT * FROM users".asResultSet[SessionAPI.Op].interpret[Future]
+    "return a valid ResultSet" in {
+      val future: Future[ResultSet] = cql"SELECT * FROM users".attemptResultSet[Future]()
       Await.result(future, Duration.Inf) shouldBe rsMock
+    }
+
+    "return a valid ResultSet when passing a ConsistencyLevel" in {
+      val future: Future[ResultSet] =
+        cql"SELECT * FROM users".attemptResultSet[Future](Some(consistencyLevel))
+      Await.result(future, Duration.Inf) shouldBe rsMock
+      (sessionMock
+        .executeAsync(_: Statement))
+        .verify(where { (st: Statement) => st.getConsistencyLevel == consistencyLevel
+        })
+    }
+
+    "return a failed future when the ByteBufferCodec returns a failure" in {
+      val serializeException = new RuntimeException("Error serializing")
+      implicit val stringByteBufferCodec: ByteBufferCodec[String] = new ByteBufferCodec[String] {
+        override def deserialize[M[_]](bytes: ByteBuffer)(
+            implicit E: MonadError[M, Throwable]): M[String] =
+          E.raiseError(new RuntimeException("Error deserializing"))
+
+        override def serialize[M[_]](value: String)(
+            implicit E: MonadError[M, Throwable]): M[ByteBuffer] =
+          E.raiseError(serializeException)
+      }
+      val name: String = "UserName"
+      val future: Future[ResultSet] =
+        cql"SELECT * FROM users WHERE name=$name".attemptResultSet[Future]()
+      Await.result(future.failed, Duration.Inf) shouldBe serializeException
+    }
+
+    "return a failed future when the ByteBufferCodec returns a failure when passing a ConsistencyLevel" in {
+      val serializeException = new RuntimeException("Error serializing")
+      implicit val stringByteBufferCodec: ByteBufferCodec[String] = new ByteBufferCodec[String] {
+        override def deserialize[M[_]](bytes: ByteBuffer)(
+            implicit E: MonadError[M, Throwable]): M[String] =
+          E.raiseError(new RuntimeException("Error deserializing"))
+
+        override def serialize[M[_]](value: String)(
+            implicit E: MonadError[M, Throwable]): M[ByteBuffer] =
+          E.raiseError(serializeException)
+      }
+      val name: String = "UserName"
+      val future: Future[ResultSet] =
+        cql"SELECT * FROM users WHERE name=$name".attemptResultSet[Future](Some(consistencyLevel))
+      Await.result(future.failed, Duration.Inf) shouldBe serializeException
     }
 
   }

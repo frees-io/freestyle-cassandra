@@ -40,6 +40,9 @@ trait SessionAPI {
 
   def executeStatement(statement: Statement): FS[ResultSet]
 
-  def executeWithByteBuffer(query: String, values: List[SerializableValueBy[Int]]): FS[ResultSet]
+  def executeWithByteBuffer(
+      query: String,
+      values: List[SerializableValueBy[Int]],
+      consistencyLevel: Option[ConsistencyLevel] = None): FS[ResultSet]
 
 }

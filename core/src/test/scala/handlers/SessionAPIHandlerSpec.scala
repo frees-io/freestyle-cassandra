@@ -17,8 +17,12 @@
 package freestyle.cassandra
 package handlers
 
+import java.nio.ByteBuffer
+
+import cats.MonadError
 import com.datastax.driver.core._
 import freestyle.cassandra.api.SessionAPIOps
+import freestyle.cassandra.query.model.{SerializableValue, SerializableValueBy}
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, OneInstancePerTest, WordSpec}
 
@@ -32,13 +36,32 @@ class SessionAPIHandlerSpec
     with OneInstancePerTest
     with MockFactory {
 
-  val sessionMock: Session           = mock[Session]
-  val regStMock: RegularStatement    = stub[RegularStatement]
-  val prepStMock: PreparedStatement  = stub[PreparedStatement]
-  val rsMock: ResultSet              = stub[ResultSet]
-  val queryString: String            = "SELECT * FROM table;"
-  val mapValues: Map[String, AnyRef] = Map("param1" -> "value1", "param2" -> "value2")
-  val values: Seq[Any]               = Seq("value1", "value2")
+  val sessionMock: Session               = mock[Session]
+  val regStMock: RegularStatement        = stub[RegularStatement]
+  val prepStMock: PreparedStatement      = stub[PreparedStatement]
+  val rsMock: ResultSet                  = stub[ResultSet]
+  val queryString: String                = "SELECT * FROM table;"
+  val mapValues: Map[String, AnyRef]     = Map("param1" -> "value1", "param2" -> "value2")
+  val values: Seq[Any]                   = Seq("value1", "value2")
+  val consistencyLevel: ConsistencyLevel = ConsistencyLevel.LOCAL_QUORUM
+
+  val valueSerializedA: ByteBuffer = TypeCodec.ascii().serialize("Hello World!", ProtocolVersion.V3)
+  val serializableValueByIntMockA: SerializableValueBy[Int] = new SerializableValueBy[Int] {
+    override def position = 0
+    override def serializableValue: SerializableValue = new SerializableValue {
+      override def serialize[M[_]](implicit E: MonadError[M, Throwable]): M[ByteBuffer] =
+        E.pure(valueSerializedA)
+    }
+  }
+
+  val valueSerializedB: ByteBuffer = TypeCodec.bigint().serialize(99l, ProtocolVersion.V3)
+  val serializableValueByIntMockB: SerializableValueBy[Int] = new SerializableValueBy[Int] {
+    override def position = 1
+    override def serializableValue: SerializableValue = new SerializableValue {
+      override def serialize[M[_]](implicit E: MonadError[M, Throwable]): M[ByteBuffer] =
+        E.pure(valueSerializedB)
+    }
+  }
 
   import cats.instances.future._
   import freestyle.async.implicits._
@@ -101,6 +124,43 @@ class SessionAPIHandlerSpec
         .expects(regStMock)
         .returns(ResultSetFutureTest(rsMock))
       run(handler.executeStatement(regStMock)) shouldBe rsMock
+    }
+
+    "call to serializableValue and executeAsync(Statement) when calling executeWithByteBuffer(String, List[SerializableValueBy[Int]], None) method" in {
+
+      val values = List(serializableValueByIntMockA, serializableValueByIntMockB)
+
+      (sessionMock
+        .executeAsync(_: Statement))
+        .expects(where { (st: Statement) =>
+          st.isInstanceOf[SimpleStatement] &&
+            (st
+              .asInstanceOf[SimpleStatement]
+              .getValues(Null[ProtocolVersion], Null[CodecRegistry]) sameElements Array(
+              valueSerializedA,
+              valueSerializedB))
+        })
+        .returns(ResultSetFutureTest(rsMock))
+      run(handler.executeWithByteBuffer(queryString, values)) shouldBe rsMock
+    }
+
+    "call to serializableValue and executeAsync(Statement) when calling executeWithByteBuffer(String, List[SerializableValueBy[Int]], Some(ConsistencyLevel)) method" in {
+
+      val values = List(serializableValueByIntMockA, serializableValueByIntMockB)
+
+      (sessionMock
+        .executeAsync(_: Statement))
+        .expects(where { (st: Statement) =>
+          st.isInstanceOf[SimpleStatement] &&
+            (st
+              .asInstanceOf[SimpleStatement]
+              .getValues(Null[ProtocolVersion], Null[CodecRegistry]) sameElements Array(
+              valueSerializedA,
+              valueSerializedB)) &&
+            (st.getConsistencyLevel == consistencyLevel)
+        })
+        .returns(ResultSetFutureTest(rsMock))
+      run(handler.executeWithByteBuffer(queryString, values, Some(consistencyLevel))) shouldBe rsMock
     }
 
   }

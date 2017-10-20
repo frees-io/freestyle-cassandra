@@ -27,7 +27,7 @@ object model {
     def serialize[M[_]](implicit E: MonadError[M, Throwable]): M[ByteBuffer]
   }
 
-  sealed trait SerializableValueBy[T] {
+  trait SerializableValueBy[T] {
     def position: T
     def serializableValue: SerializableValue
   }
