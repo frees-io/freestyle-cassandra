@@ -1,3 +1,5 @@
+import sbtorgpolicies.templates.badges._
+
 pgpPassphrase := Some(getEnvVar("PGP_PASSPHRASE").getOrElse("").toCharArray)
 pgpPublicRing := file(s"$gpgFolder/pubring.gpg")
 pgpSecretRing := file(s"$gpgFolder/secring.gpg")
@@ -19,6 +21,15 @@ lazy val testDependencies: Seq[ModuleID] =
     .map(_ % "it,test")
 
 lazy val orgSettings = Seq(
+  orgBadgeListSetting := List(
+    TravisBadge.apply,
+    CodecovBadge.apply,
+    MavenCentralBadge.apply,
+    ScalaLangBadge.apply,
+    LicenseBadge.apply,
+    { info => GitterBadge.apply(info.copy(owner = "47deg", repo = "freestyle")) },
+    GitHubIssuesBadge.apply
+  ),
   embeddedCassandraCQLFileSetting := Option(file("macros-tests/src/main/resources/schema.sql"))
 )
 
