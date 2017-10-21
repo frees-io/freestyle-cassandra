@@ -17,6 +17,8 @@
 package freestyle.cassandra
 package mapper
 
+import freestyle.cassandra.mapper.FieldToByteBuffer._
+
 trait ByteBufferMapper[A] {
   def map(a: A): List[FieldMapper]
 }

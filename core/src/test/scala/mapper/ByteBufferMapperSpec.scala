@@ -21,6 +21,7 @@ import java.nio.ByteBuffer
 
 import cats.MonadError
 import com.datastax.driver.core.{ProtocolVersion, TypeCodec}
+import freestyle.cassandra.mapper.FieldToByteBuffer._
 import org.scalacheck.Prop._
 import org.scalatest.{Matchers, WordSpec}
 import org.scalacheck.ScalacheckShapeless._

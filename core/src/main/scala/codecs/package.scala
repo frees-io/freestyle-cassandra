@@ -104,6 +104,21 @@ package object codecs {
       byteBuffer => byteBuffer.getShort(byteBuffer.position())
     }
 
+  implicit def optionalByteBufferCodec[T](
+      implicit codec: ByteBufferCodec[T]): ByteBufferCodec[Option[T]] =
+    new ByteBufferCodec[Option[T]] {
+
+      override def deserialize[M[_]](bytes: ByteBuffer)(
+          implicit E: MonadError[M, Throwable]): M[Option[T]] =
+        Option(bytes) map (b => E.map(codec.deserialize(b))(Option(_))) getOrElse E.pure(None)
+
+      override def serialize[M[_]](value: Option[T])(
+          implicit E: MonadError[M, Throwable]): M[ByteBuffer] =
+        value
+          .map(codec.serialize(_)(E))
+          .getOrElse(E.raiseError(new IllegalArgumentException("Option not supported")))
+    }
+
   implicit def byteBufferCodec[T](
       implicit tc: TypeCodec[T],
       pv: ProtocolVersion): ByteBufferCodec[T] = new ByteBufferCodec[T] {

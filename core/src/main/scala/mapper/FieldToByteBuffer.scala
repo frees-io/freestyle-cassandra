@@ -15,6 +15,7 @@
  */
 
 package freestyle.cassandra
+package mapper
 
 import java.nio.ByteBuffer
 
@@ -23,7 +24,7 @@ import freestyle.cassandra.codecs.ByteBufferCodec
 import shapeless._
 import shapeless.labelled.FieldType
 
-package object mapper {
+object FieldToByteBuffer {
 
   abstract class FieldMapper(val name: String) {
     def serialize[M[_]](implicit E: MonadError[M, Throwable]): M[ByteBuffer]
