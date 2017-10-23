@@ -16,49 +16,22 @@
 
 package freestyle.cassandra
 
-import shapeless._
-import shapeless.labelled.FieldType
-
 package object query {
 
-  trait FieldLister[A] {
-    val list: List[String]
+  trait Printer {
+    def print(name: String): String
   }
 
-  trait FieldListerPrimitive {
-    implicit def primitiveFieldLister[K <: Symbol, H, T <: HList](
-        implicit witness: Witness.Aux[K],
-        tLister: FieldLister[T]): FieldLister[FieldType[K, H] :: T] =
-      new FieldLister[FieldType[K, H] :: T] {
-        override val list: List[String] = witness.value.name :: tLister.list
-      }
-  }
-
-  trait FieldListerGeneric extends FieldListerPrimitive {
-
-    implicit def genericLister[A, R](
-        implicit gen: LabelledGeneric.Aux[A, R],
-        lister: Lazy[FieldLister[R]]): FieldLister[A] = new FieldLister[A] {
-      override val list: List[String] = lister.value.list
+  object Printer {
+    def apply(f: String => String): Printer = new Printer {
+      override def print(name: String): String = f(name)
     }
-
-    implicit val hnilLister: FieldLister[HNil] = new FieldLister[HNil] {
-      override val list: List[String] = Nil
-    }
-
   }
 
-  object FieldLister extends FieldListerGeneric
+  val identityPrinter: Printer = Printer(identity)
 
-  object FieldListerExpanded extends FieldListerGeneric {
+  val lowerCasePrinter: Printer = Printer(_.toLowerCase)
 
-    implicit def hconsLister[K, H, T <: HList](
-        implicit hLister: Lazy[FieldLister[H]],
-        tLister: FieldLister[T]): FieldLister[FieldType[K, H] :: T] =
-      new FieldLister[FieldType[K, H] :: T] {
-        override val list: List[String] = hLister.value.list ++ tLister.list
-      }
-
-  }
+  val upperCasePrinter: Printer = Printer(_.toUpperCase)
 
 }
