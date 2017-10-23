@@ -17,31 +17,25 @@
 package freestyle.cassandra
 package query.mapper
 
-import java.nio.ByteBuffer
-
 import cats.MonadError
 import freestyle.cassandra.codecs.ByteBufferCodec
-import freestyle.cassandra.query.Printer
+import freestyle.cassandra.query._
 import shapeless._
 import shapeless.labelled.{FieldBuilder, FieldType}
 import shapeless.{::, HList, Witness}
-
-trait ByteBufferReader {
-  def read[M[_]](name: String)(implicit ME: MonadError[M, Throwable]): M[ByteBuffer]
-}
 
 trait FromReader[A] {
   def apply[M[_]](reader: ByteBufferReader)(implicit ME: MonadError[M, Throwable]): M[A]
 }
 
-trait GenericFromRow {
+trait GenericFromReader {
 
-  implicit val hnilFromRow: FromReader[HNil] = new FromReader[HNil] {
+  implicit val hnilFromReader: FromReader[HNil] = new FromReader[HNil] {
     override def apply[M[_]](reader: ByteBufferReader)(
         implicit ME: MonadError[M, Throwable]): M[HNil] = ME.pure(HNil)
   }
 
-  implicit def hconsFromRow[K <: Symbol, V, L <: HList](
+  implicit def hconsFromReader[K <: Symbol, V, L <: HList](
       implicit
       witness: Witness.Aux[K],
       codec: ByteBufferCodec[V],
@@ -59,7 +53,7 @@ trait GenericFromRow {
       }
     }
 
-  implicit def productFromRow[A, L <: HList](
+  implicit def productFromReader[A, L <: HList](
       implicit
       gen: LabelledGeneric.Aux[A, L],
       grL: FromReader[L]): FromReader[A] =
@@ -69,38 +63,4 @@ trait GenericFromRow {
     }
 }
 
-object GenericFromRow extends GenericFromRow
-
-//object Test extends App {
-//
-//  import com.datastax.driver.core.{ProtocolVersion, TypeCodec}
-//  import freestyle.cassandra.query.mapper.ByteBufferToField._
-//
-//  object GenericFromRow extends GenericFromRow
-//  import GenericFromRow._
-//
-//  case class User(name: String, age: Int)
-//
-//  implicit val protocolVersion: ProtocolVersion   = ProtocolVersion.V4
-//  implicit val stringTypeCodec: TypeCodec[String] = TypeCodec.ascii()
-//
-//  implicit val printer: Printer = ByteBufferToField.identityPrinter
-//
-//  val fromReader: FromReader[User] = implicitly[FromReader[User]]
-//
-//  val nameByteBuffer = stringTypeCodec.serialize("Username", protocolVersion)
-//  val ageByteBuffer  = TypeCodec.cint().serialize(34, protocolVersion)
-//
-//  val reader = new ByteBufferReader() {
-//    override def read[M[_]](name: String)(implicit ME: MonadError[M, Throwable]): M[ByteBuffer] =
-//      name match {
-//        case "name" => ME.pure(nameByteBuffer)
-//        case "age"  => ME.pure(ageByteBuffer)
-//      }
-//  }
-//
-//  import cats.instances.try_._
-//  val result = fromReader[Try](reader)
-//
-//  println(result)
-//}
+object GenericFromReader extends GenericFromReader

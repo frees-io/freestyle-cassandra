@@ -16,7 +16,15 @@
 
 package freestyle.cassandra
 
+import java.nio.ByteBuffer
+
+import cats.MonadError
+
 package object query {
+
+  trait ByteBufferReader {
+    def read[M[_]](name: String)(implicit ME: MonadError[M, Throwable]): M[ByteBuffer]
+  }
 
   trait Printer {
     def print(name: String): String
