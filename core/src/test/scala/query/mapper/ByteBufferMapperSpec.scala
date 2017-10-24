@@ -15,7 +15,7 @@
  */
 
 package freestyle.cassandra
-package mapper
+package query.mapper
 
 import java.nio.ByteBuffer
 
