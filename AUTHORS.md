@@ -12,4 +12,5 @@ These are the people that have contributed to the freestyle-cassandra project:
 
 * Fede Fernández <[fedefernandez](https://github.com/fedefernandez)>
 * Francisco Pérez Paradas <[FPerezP](https://github.com/FPerezP)>
+* Gerard Madorell <[GMadorell](https://github.com/GMadorell)>
 * Raúl Raja Martínez <[raulraja](https://github.com/raulraja)>
