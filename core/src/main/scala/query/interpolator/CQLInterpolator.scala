@@ -51,19 +51,21 @@ class CQLInterpolator(V: SchemaValidator[Try]) extends Interpolator {
     }
   }
 
-  def evaluate(interpolation: RuntimeInterpolation): ExecutableStatement =
-    new ExecutableStatement {
-      override def attempt[M[_]](
-          implicit E: MonadError[M, Throwable]): M[(String, List[SerializableValueBy[Int]])] =
-        E.pure {
-          interpolation.parts.foldLeft(("", List.empty[SerializableValueBy[Int]])) {
-            case ((cql, values), Literal(_, string)) =>
-              (cql + string, values)
-            case ((cql, values), Substitution(index, value)) =>
-              (cql + "?", values :+ SerializableValueBy(index, value))
-          }
-        }
+  def evaluate(interpolation: RuntimeInterpolation): ExecutableStatement = {
+
+    val (cql, values) = interpolation.parts.foldLeft(("", List.empty[SerializableValueBy[Int]])) {
+      case ((str, list), Literal(_, string)) =>
+        (str + string, list)
+      case ((str, list), Substitution(index, value)) =>
+        (str + "?", list :+ SerializableValueBy(index, value))
     }
+
+    new ExecutableStatement {
+      override def attempt[M[_]](implicit E: MonadError[M, Throwable]): M[
+        (String, Statements, List[SerializableValueBy[Int]])] =
+        E.map(parseStatement[M](cql))((cql, _, values))
+    }
+  }
 
   private[this] def parseStatement[M[_]](cql: String)(
       implicit E: MonadError[M, Throwable]): M[Statements] = {

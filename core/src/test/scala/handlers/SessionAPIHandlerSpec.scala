@@ -23,6 +23,7 @@ import cats.MonadError
 import com.datastax.driver.core._
 import freestyle.cassandra.api.SessionAPIOps
 import freestyle.cassandra.query.model.{ExecutableStatement, SerializableValue, SerializableValueBy}
+import freestyle.cassandra.schema.{ManipulationStatements, Statements}
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, OneInstancePerTest, WordSpec}
 
@@ -45,9 +46,9 @@ class SessionAPIHandlerSpec
   val values: Seq[Any]                   = Seq("value1", "value2")
   val consistencyLevel: ConsistencyLevel = ConsistencyLevel.LOCAL_QUORUM
   def statement(v: List[SerializableValueBy[Int]]): ExecutableStatement = new ExecutableStatement {
-    override def attempt[M[_]](
-        implicit E: MonadError[M, Throwable]): M[(String, List[SerializableValueBy[Int]])] =
-      E.pure((queryString, v))
+    override def attempt[M[_]](implicit E: MonadError[M, Throwable]): M[
+      (String, Statements, List[SerializableValueBy[Int]])] =
+      E.pure((queryString, ManipulationStatements(Seq.empty), v))
   }
 
   val valueSerializedA: ByteBuffer = TypeCodec.ascii().serialize("Hello World!", ProtocolVersion.V3)

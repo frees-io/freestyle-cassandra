@@ -20,6 +20,7 @@ package query
 import java.nio.ByteBuffer
 
 import cats.MonadError
+import freestyle.cassandra.schema.Statements
 
 object model {
 
@@ -48,7 +49,7 @@ object model {
   }
 
   trait ExecutableStatement {
-    def attempt[M[_]](
-        implicit E: MonadError[M, Throwable]): M[(String, List[SerializableValueBy[Int]])]
+    def attempt[M[_]](implicit E: MonadError[M, Throwable]): M[
+      (String, Statements, List[SerializableValueBy[Int]])]
   }
 }

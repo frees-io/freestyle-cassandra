@@ -33,7 +33,12 @@ class RuntimeCQLInterpolatorSpec extends WordSpec with Matchers {
       import RuntimeCQLInterpolator._
       import cats.instances.try_._
 
-      cql"SELECT * FROM users".attempt[Try] shouldBe Success(("SELECT * FROM users", Nil))
+      val statement: ExecutableStatement = cql"SELECT * FROM users"
+
+      val result = statement.attempt[Try]
+      result.isSuccess shouldBe true
+      result.get._1 shouldBe "SELECT * FROM users"
+      result.get._3.isEmpty shouldBe true
     }
 
     "return a success for a query with params" in {
@@ -54,11 +59,11 @@ class RuntimeCQLInterpolatorSpec extends WordSpec with Matchers {
       val result = statement.attempt[Try]
       result.isSuccess shouldBe true
       result.get._1 shouldBe "SELECT * FROM users WHERE id = ? AND name = ?"
-      result.get._2.size shouldBe 2
-      result.get._2.head.position shouldBe 0
-      result.get._2.head.serializableValue.serialize shouldBe intCodec.serialize(id)
-      result.get._2(1).position shouldBe 1
-      result.get._2(1).serializableValue.serialize shouldBe stringCodec.serialize(name)
+      result.get._3.size shouldBe 2
+      result.get._3.head.position shouldBe 0
+      result.get._3.head.serializableValue.serialize shouldBe intCodec.serialize(id)
+      result.get._3(1).position shouldBe 1
+      result.get._3(1).serializableValue.serialize shouldBe stringCodec.serialize(name)
     }
 
     "not compile for a wrong statement" in {

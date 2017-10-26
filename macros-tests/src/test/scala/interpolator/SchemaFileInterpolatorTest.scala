@@ -34,7 +34,12 @@ class SchemaFileInterpolatorTest extends WordSpec with Matchers {
     "works as expected for a simple valid query" in {
 
       import MySchemaInterpolator._
-      cql"SELECT * FROM test.users".attempt[Try] shouldBe Success(("SELECT * FROM test.users", Nil))
+      val statement: ExecutableStatement = cql"SELECT * FROM test.users"
+      val result                         = statement.attempt[Try]
+
+      result.isSuccess shouldBe true
+      result.get._1 shouldBe "SELECT * FROM test.users"
+      result.get._3.isEmpty shouldBe true
     }
 
     "works as expected for a valid query with params" in {
@@ -56,9 +61,9 @@ class SchemaFileInterpolatorTest extends WordSpec with Matchers {
       val result = statement.attempt[Try]
       result.isSuccess shouldBe true
       result.get._1 shouldBe expectedCQL
-      result.get._2.size shouldBe 1
-      result.get._2.head.position shouldBe 0
-      result.get._2.head.serializableValue.serialize[Try] shouldBe Success(expectedValue)
+      result.get._3.size shouldBe 1
+      result.get._3.head.position shouldBe 0
+      result.get._3.head.serializableValue.serialize[Try] shouldBe Success(expectedValue)
     }
 
     "doesn't compile for an invalid query" in {

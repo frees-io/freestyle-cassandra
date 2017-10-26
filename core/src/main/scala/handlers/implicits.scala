@@ -83,7 +83,7 @@ object implicits {
         consistencyLevel: Option[ConsistencyLevel] = None): SessionAPIOps[M, ResultSet] =
       Kleisli { session =>
         E.flatMap(statement.attempt) { tuple =>
-          tuple._2.traverse(_.serializableValue.serialize[M]).flatMap { values =>
+          tuple._3.traverse(_.serializableValue.serialize[M]).flatMap { values =>
             val st = ByteBufferSimpleStatement(tuple._1, values.toArray)
             consistencyLevel.foreach(st.setConsistencyLevel)
             H(session.executeAsync(st))
