@@ -20,6 +20,7 @@ package api
 import cats.{~>, Id}
 import com.datastax.driver.core._
 import freestyle._
+import freestyle.cassandra.query.model.ExecutableStatement
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, OneInstancePerTest, WordSpec}
 
@@ -34,15 +35,15 @@ class SessionAPISpec extends WordSpec with Matchers with OneInstancePerTest with
 
   implicit val sessionAPIHandler: SessionAPI.Op ~> Id = new (SessionAPI.Op ~> Id) {
     override def apply[A](fa: SessionAPI.Op[A]): Id[A] = fa match {
-      case SessionAPI.InitOp()                         => sessionMock
-      case SessionAPI.CloseOp()                        => unit
-      case SessionAPI.PrepareOp(_)                     => prepSt
-      case SessionAPI.PrepareStatementOp(_)            => prepSt
-      case SessionAPI.ExecuteOp(_)                     => resultSet
-      case SessionAPI.ExecuteWithValuesOp(_, _)        => resultSet
-      case SessionAPI.ExecuteWithMapOp(_, _)           => resultSet
-      case SessionAPI.ExecuteStatementOp(_)            => resultSet
-      case SessionAPI.ExecuteWithByteBufferOp(_, _, _) => resultSet
+      case SessionAPI.InitOp()                      => sessionMock
+      case SessionAPI.CloseOp()                     => unit
+      case SessionAPI.PrepareOp(_)                  => prepSt
+      case SessionAPI.PrepareStatementOp(_)         => prepSt
+      case SessionAPI.ExecuteOp(_)                  => resultSet
+      case SessionAPI.ExecuteWithValuesOp(_, _)     => resultSet
+      case SessionAPI.ExecuteWithMapOp(_, _)        => resultSet
+      case SessionAPI.ExecuteStatementOp(_)         => resultSet
+      case SessionAPI.ExecuteWithByteBufferOp(_, _) => resultSet
     }
   }
 
@@ -71,7 +72,7 @@ class SessionAPISpec extends WordSpec with Matchers with OneInstancePerTest with
           v6 <- sessionAPI.executeWithValues("", Null[Any])
           v7 <- sessionAPI.executeWithMap("", Null[Map[String, AnyRef]])
           v8 <- sessionAPI.executeStatement(Null[Statement])
-          v9 <- sessionAPI.executeWithByteBuffer("", Nil, None)
+          v9 <- sessionAPI.executeWithByteBuffer(Null[ExecutableStatement], None)
         } yield (v1, v2, v3, v4, v5, v6, v7, v8, v9)
       }
 

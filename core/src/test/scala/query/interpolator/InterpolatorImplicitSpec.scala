@@ -21,9 +21,6 @@ import java.nio.ByteBuffer
 
 import cats.{~>, MonadError}
 import com.datastax.driver.core._
-import com.google.common.util.concurrent.ListenableFuture
-import freestyle.async.AsyncContext
-import freestyle.cassandra.TestUtils._
 import freestyle.cassandra.api.{apiInterpreter, SessionAPI}
 import freestyle.cassandra.codecs.ByteBufferCodec
 import freestyle.cassandra.handlers.implicits.sessionAPIHandler

@@ -20,16 +20,15 @@ package query.interpolator
 import cats.MonadError
 import cats.data.Validated.{Invalid, Valid}
 import contextual.Interpolator
-import freestyle.cassandra.query.model.{SerializableValue, SerializableValueBy}
-import freestyle.cassandra.schema.{ManipulationStatements, Statements}
+import freestyle.cassandra.query.model.{ExecutableStatement, SerializableValue, SerializableValueBy}
+import freestyle.cassandra.schema.{DefinitionStatements, ManipulationStatements, Statements}
 import freestyle.cassandra.schema.validator.SchemaValidator
-import troy.cql.ast.CqlParser
+import troy.cql.ast.{CqlParser, DataDefinition, DataManipulation}
 
+import scala.util.control.NonFatal
 import scala.util.{Failure, Success, Try}
 
 class CQLInterpolator(V: SchemaValidator[Try]) extends Interpolator {
-
-  import cats.instances.try_._
 
   override type ContextType = CQLContext
   override type Input       = SerializableValue
@@ -42,14 +41,7 @@ class CQLInterpolator(V: SchemaValidator[Try]) extends Interpolator {
       case (prev, _)                     => prev
     }
 
-    def parseStatement[M[_]](cql: String)(implicit E: MonadError[M, Throwable]): M[Statements] =
-      CqlParser.parseDML(cql) match {
-        case CqlParser.Success(dataManipulation, _) =>
-          E.pure(ManipulationStatements(Seq(dataManipulation)))
-        case CqlParser.Failure(msg, _) => E.raiseError(new IllegalArgumentException(msg))
-        case CqlParser.Error(msg, _)   => E.raiseError(new IllegalArgumentException(msg))
-      }
-
+    import cats.instances.try_._
     parseStatement[Try](cql).flatMap(V.validateStatement) match {
       case Success(Valid(_)) =>
         Seq.fill(interpolation.parts.size)(CQLLiteral)
@@ -59,11 +51,53 @@ class CQLInterpolator(V: SchemaValidator[Try]) extends Interpolator {
     }
   }
 
-  def evaluate(interpolation: RuntimeInterpolation): (String, List[SerializableValueBy[Int]]) =
-    interpolation.parts.foldLeft(("", List.empty[SerializableValueBy[Int]])) {
-      case ((cql, values), Literal(_, string)) =>
-        (cql + string, values)
-      case ((cql, values), Substitution(index, value)) =>
-        (cql + "?", values :+ SerializableValueBy(index, value))
+  def evaluate(interpolation: RuntimeInterpolation): ExecutableStatement =
+    new ExecutableStatement {
+      override def attempt[M[_]](
+          implicit E: MonadError[M, Throwable]): M[(String, List[SerializableValueBy[Int]])] =
+        E.pure {
+          interpolation.parts.foldLeft(("", List.empty[SerializableValueBy[Int]])) {
+            case ((cql, values), Literal(_, string)) =>
+              (cql + string, values)
+            case ((cql, values), Substitution(index, value)) =>
+              (cql + "?", values :+ SerializableValueBy(index, value))
+          }
+        }
     }
+
+  private[this] def parseStatement[M[_]](cql: String)(
+      implicit E: MonadError[M, Throwable]): M[Statements] = {
+
+    def parseStatementWith[T](
+        cql: String,
+        parse: (String) => CqlParser.ParseResult[T],
+        map: T => Statements)(implicit E: MonadError[M, Throwable]): M[Statements] =
+      parse(cql) match {
+        case CqlParser.Success(result, _) => E.pure(map(result))
+        case CqlParser.Failure(msg, _)    => E.raiseError(new IllegalArgumentException(msg))
+        case CqlParser.Error(msg, _)      => E.raiseError(new IllegalArgumentException(msg))
+      }
+
+    def parseDataManipulationStatement(cql: String)(
+        implicit E: MonadError[M, Throwable]): M[Statements] =
+      parseStatementWith[DataManipulation](
+        cql,
+        CqlParser.parseDML,
+        dm => ManipulationStatements(Seq(dm)))
+
+    def parseDataDefinitionStatement(cql: String)(
+        implicit E: MonadError[M, Throwable]): M[Statements] =
+      parseStatementWith[Seq[DataDefinition]](
+        cql,
+        CqlParser.parseSchema,
+        seq => DefinitionStatements(seq))
+
+    E.recoverWith(parseDataManipulationStatement(cql)) {
+      case NonFatal(e1) =>
+        E.recoverWith(parseDataDefinitionStatement(cql)) {
+          case NonFatal(e2) =>
+            E.raiseError(ParseError(e1.getMessage :: e2.getMessage :: Nil))
+        }
+    }
+  }
 }

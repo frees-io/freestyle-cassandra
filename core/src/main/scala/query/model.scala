@@ -46,4 +46,9 @@ object model {
         override def serializableValue: SerializableValue = s
       }
   }
+
+  trait ExecutableStatement {
+    def attempt[M[_]](
+        implicit E: MonadError[M, Throwable]): M[(String, List[SerializableValueBy[Int]])]
+  }
 }
