@@ -29,17 +29,14 @@ import org.scalacheck.ScalacheckShapeless._
 
 import scala.util.{Failure, Success, Try}
 
-class ByteBufferToFieldSpec extends WordSpec with Matchers with Checkers {
+class ByteBufferToFieldSpec extends WordSpec with Matchers with Checkers with QueryArbitraries {
 
   case class User(name: String, age: Int)
 
   implicit val stringTypeCodec: TypeCodec[String] = TypeCodec.varchar()
   implicit val protocolVersion: ProtocolVersion   = ProtocolVersion.V3
 
-  implicit val printer: Printer = identityPrinter
-
   import GenericFromReader._
-  val fromReader: FromReader[User] = implicitly[FromReader[User]]
 
   "fromReader" should {
 
@@ -48,17 +45,22 @@ class ByteBufferToFieldSpec extends WordSpec with Matchers with Checkers {
     "return the right value when the reader return a success response" in {
 
       check {
-        forAll { user: User =>
+        forAll { (user: User, printer: Printer) =>
+          implicit val _ = printer
           val reader = new ByteBufferReader() {
             override def read[M[_]](name: String)(
-                implicit ME: MonadError[M, Throwable]): M[ByteBuffer] =
+                implicit ME: MonadError[M, Throwable]): M[ByteBuffer] = {
+
+              val printedName = printer.print("name")
+              val printedAge  = printer.print("age")
               name match {
-                case "name" => ME.pure(stringTypeCodec.serialize(user.name, protocolVersion))
-                case "age"  => ME.pure(TypeCodec.cint().serialize(user.age, protocolVersion))
+                case `printedName` => ME.pure(stringTypeCodec.serialize(user.name, protocolVersion))
+                case `printedAge`  => ME.pure(TypeCodec.cint().serialize(user.age, protocolVersion))
               }
+            }
           }
 
-          fromReader[Try](reader) == Success(user)
+          implicitly[FromReader[User]].apply[Try](reader) == Success(user)
         }
       }
 
@@ -67,18 +69,23 @@ class ByteBufferToFieldSpec extends WordSpec with Matchers with Checkers {
     "return the failure when the reader fails returning the ByteBuffer for the 'name' field" in {
 
       check {
-        forAll { user: User =>
-          val exception = new RuntimeException("Test Exception")
+        forAll { (user: User, printer: Printer) =>
+          implicit val _ = printer
+          val exception  = new RuntimeException("Test Exception")
           val reader = new ByteBufferReader() {
             override def read[M[_]](name: String)(
-                implicit ME: MonadError[M, Throwable]): M[ByteBuffer] =
+                implicit ME: MonadError[M, Throwable]): M[ByteBuffer] = {
+
+              val printedName = printer.print("name")
+              val printedAge  = printer.print("age")
               name match {
-                case "name" => ME.raiseError(exception)
-                case "age"  => ME.pure(TypeCodec.cint().serialize(user.age, protocolVersion))
+                case `printedName` => ME.raiseError(exception)
+                case `printedAge`  => ME.pure(TypeCodec.cint().serialize(user.age, protocolVersion))
               }
+            }
           }
 
-          fromReader[Try](reader) == Failure(exception)
+          implicitly[FromReader[User]].apply[Try](reader) == Failure(exception)
         }
       }
 
@@ -87,18 +94,23 @@ class ByteBufferToFieldSpec extends WordSpec with Matchers with Checkers {
     "return the failure when the reader fails returning the ByteBuffer for the 'age' field" in {
 
       check {
-        forAll { user: User =>
-          val exception = new RuntimeException("Test Exception")
+        forAll { (user: User, printer: Printer) =>
+          implicit val _ = printer
+          val exception  = new RuntimeException("Test Exception")
           val reader = new ByteBufferReader() {
             override def read[M[_]](name: String)(
-                implicit ME: MonadError[M, Throwable]): M[ByteBuffer] =
+                implicit ME: MonadError[M, Throwable]): M[ByteBuffer] = {
+
+              val printedName = printer.print("name")
+              val printedAge  = printer.print("age")
               name match {
-                case "name" => ME.pure(stringTypeCodec.serialize(user.name, protocolVersion))
-                case "age"  => ME.raiseError(exception)
+                case `printedName` => ME.pure(stringTypeCodec.serialize(user.name, protocolVersion))
+                case `printedAge`  => ME.raiseError(exception)
               }
+            }
           }
 
-          fromReader[Try](reader) == Failure(exception)
+          implicitly[FromReader[User]].apply[Try](reader) == Failure(exception)
         }
       }
 
