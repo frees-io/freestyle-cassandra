@@ -70,9 +70,8 @@ class ByteBufferToFieldSpec extends WordSpec with Matchers with Checkers with Qu
 
       check {
         forAll { (user: User, printer: Printer) =>
-          implicit val _                   = printer
-          val fromReader: FromReader[User] = implicitly[FromReader[User]]
-          val exception                    = new RuntimeException("Test Exception")
+          implicit val _ = printer
+          val exception  = new RuntimeException("Test Exception")
           val reader = new ByteBufferReader() {
             override def read[M[_]](name: String)(
                 implicit ME: MonadError[M, Throwable]): M[ByteBuffer] = {
@@ -86,7 +85,7 @@ class ByteBufferToFieldSpec extends WordSpec with Matchers with Checkers with Qu
             }
           }
 
-          fromReader[Try](reader) == Failure(exception)
+          implicitly[FromReader[User]].apply[Try](reader) == Failure(exception)
         }
       }
 
@@ -96,9 +95,8 @@ class ByteBufferToFieldSpec extends WordSpec with Matchers with Checkers with Qu
 
       check {
         forAll { (user: User, printer: Printer) =>
-          implicit val _                   = printer
-          val fromReader: FromReader[User] = implicitly[FromReader[User]]
-          val exception                    = new RuntimeException("Test Exception")
+          implicit val _ = printer
+          val exception  = new RuntimeException("Test Exception")
           val reader = new ByteBufferReader() {
             override def read[M[_]](name: String)(
                 implicit ME: MonadError[M, Throwable]): M[ByteBuffer] = {
@@ -112,7 +110,7 @@ class ByteBufferToFieldSpec extends WordSpec with Matchers with Checkers with Qu
             }
           }
 
-          fromReader[Try](reader) == Failure(exception)
+          implicitly[FromReader[User]].apply[Try](reader) == Failure(exception)
         }
       }
 
