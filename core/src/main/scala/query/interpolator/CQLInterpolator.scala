@@ -85,7 +85,7 @@ class CQLInterpolator(V: SchemaValidator[Try]) extends Interpolator {
       parseStatementWith[DataManipulation](
         cql,
         CqlParser.parseDML,
-        dm => ManipulationStatements(Seq(dm)))
+        dm => ManipulationStatements(dm))
 
     def parseDataDefinitionStatement(cql: String)(
         implicit E: MonadError[M, Throwable]): M[Statements] =

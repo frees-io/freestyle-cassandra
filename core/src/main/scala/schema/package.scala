@@ -40,15 +40,9 @@ package object schema {
 
   type SchemaDefinition = Seq[DataDefinition]
 
-  sealed trait Statements {
-    def statements: Seq[Cql3Statement]
-  }
-  case class DefinitionStatements(statements: Seq[DataDefinition])     extends Statements
-  case class ManipulationStatements(statements: Seq[DataManipulation]) extends Statements
-  object ManipulationStatements {
-    def apply(statement: DataManipulation): ManipulationStatements =
-      new ManipulationStatements(Seq(statement))
-  }
+  sealed trait Statements
+  case class DefinitionStatements(statements: Seq[DataDefinition]) extends Statements
+  case class ManipulationStatements(statement: DataManipulation)   extends Statements
 
   def catchNonFatalAsSchemaError[M[_], A](value: => A)(implicit E: MonadError[M, Throwable]): M[A] =
     E.handleErrorWith {
