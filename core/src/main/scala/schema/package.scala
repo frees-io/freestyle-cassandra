@@ -16,8 +16,9 @@
 
 package freestyle.cassandra
 
-import cats.MonadError
-import troy.cql.ast.{DataDefinition, DataManipulation}
+import cats.{Applicative, MonadError}
+import troy.cql.ast.{Cql3Statement, DataDefinition, DataManipulation}
+import troy.schema.{Result, V}
 
 package object schema {
 
@@ -38,10 +39,28 @@ package object schema {
       extends SchemaError(msg, maybeCause)
 
   type SchemaDefinition = Seq[DataDefinition]
-  type Statement        = DataManipulation
+
+  sealed trait Statements {
+    def statements: Seq[Cql3Statement]
+  }
+  case class DefinitionStatements(statements: Seq[DataDefinition])     extends Statements
+  case class ManipulationStatements(statements: Seq[DataManipulation]) extends Statements
+  object ManipulationStatements {
+    def apply(statement: DataManipulation): ManipulationStatements =
+      new ManipulationStatements(Seq(statement))
+  }
 
   def catchNonFatalAsSchemaError[M[_], A](value: => A)(implicit E: MonadError[M, Throwable]): M[A] =
-    E.handleErrorWith(E.catchNonFatal(value)) { e => E.raiseError(SchemaDefinitionProviderError(e))
-    }
+    E.handleErrorWith {
+      E.catchNonFatal(value)
+    }(e => E.raiseError(SchemaDefinitionProviderError(e)))
+
+  implicit def resultApplicative: Applicative[Result] = new Applicative[Result] {
+
+    override def pure[A](x: A): Result[A] = V.success(x)
+
+    override def ap[A, B](ff: Result[A => B])(fa: Result[A]): Result[B] =
+      fa.flatMap(a => ff.map(_(a)))
+  }
 
 }

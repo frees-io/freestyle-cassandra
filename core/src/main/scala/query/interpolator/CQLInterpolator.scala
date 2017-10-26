@@ -21,7 +21,7 @@ import cats.MonadError
 import cats.data.Validated.{Invalid, Valid}
 import contextual.Interpolator
 import freestyle.cassandra.query.model.{SerializableValue, SerializableValueBy}
-import freestyle.cassandra.schema.Statement
+import freestyle.cassandra.schema.{ManipulationStatements, Statements}
 import freestyle.cassandra.schema.validator.SchemaValidator
 import troy.cql.ast.CqlParser
 
@@ -42,11 +42,12 @@ class CQLInterpolator(V: SchemaValidator[Try]) extends Interpolator {
       case (prev, _)                     => prev
     }
 
-    def parseStatement[M[_]](cql: String)(implicit E: MonadError[M, Throwable]): M[Statement] =
+    def parseStatement[M[_]](cql: String)(implicit E: MonadError[M, Throwable]): M[Statements] =
       CqlParser.parseDML(cql) match {
-        case CqlParser.Success(dataManipulation, _) => E.pure(dataManipulation)
-        case CqlParser.Failure(msg, _)              => E.raiseError(new IllegalArgumentException(msg))
-        case CqlParser.Error(msg, _)                => E.raiseError(new IllegalArgumentException(msg))
+        case CqlParser.Success(dataManipulation, _) =>
+          E.pure(ManipulationStatements(Seq(dataManipulation)))
+        case CqlParser.Failure(msg, _) => E.raiseError(new IllegalArgumentException(msg))
+        case CqlParser.Error(msg, _)   => E.raiseError(new IllegalArgumentException(msg))
       }
 
     parseStatement[Try](cql).flatMap(V.validateStatement) match {

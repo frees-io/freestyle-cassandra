@@ -21,7 +21,7 @@ import cats.MonadError
 import cats.data.Validated.Valid
 import cats.data.ValidatedNel
 import contextual.Interpolator
-import freestyle.cassandra.schema.{SchemaError, Statement}
+import freestyle.cassandra.schema.{SchemaError, Statements}
 import freestyle.cassandra.schema.validator.SchemaValidator
 import org.scalatest.{Matchers, WordSpec}
 
@@ -36,7 +36,7 @@ class CQLInterpolatorSpec extends WordSpec with Matchers {
       implicit val E: MonadError[Try, Throwable] = cats.instances.try_.catsStdInstancesForTry
 
       val schemaValidator: SchemaValidator[Try] = new SchemaValidator[Try] {
-        override def validateStatement(st: Statement)(
+        override def validateStatement(st: Statements)(
             implicit E: MonadError[Try, Throwable]): Try[ValidatedNel[SchemaError, Unit]] =
           Success(Valid((): Unit))
       }

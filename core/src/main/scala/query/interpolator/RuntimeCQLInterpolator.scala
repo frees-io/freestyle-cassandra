@@ -26,14 +26,14 @@ import contextual.{Case, Prefix}
 import freestyle.cassandra.codecs.ByteBufferCodec
 import freestyle.cassandra.query.model.SerializableValue
 import freestyle.cassandra.schema.validator.SchemaValidator
-import freestyle.cassandra.schema.{SchemaError, Statement}
+import freestyle.cassandra.schema.{SchemaError, Statements}
 
 import scala.util.{Success, Try}
 
 object RuntimeCQLInterpolator {
 
   private[this] val schemaValidator: SchemaValidator[Try] = new SchemaValidator[Try] {
-    override def validateStatement(st: Statement)(
+    override def validateStatement(st: Statements)(
         implicit E: MonadError[Try, Throwable]): Try[ValidatedNel[SchemaError, Unit]] =
       Success(Valid((): Unit))
   }
