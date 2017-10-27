@@ -19,10 +19,9 @@ package query.interpolator
 
 import cats.MonadError
 import com.datastax.driver.core.{ProtocolVersion, TypeCodec}
-import freestyle.cassandra.query.model.ExecutableStatement
 import org.scalatest.{Matchers, WordSpec}
 
-import scala.util.{Success, Try}
+import scala.util.Try
 
 class RuntimeCQLInterpolatorSpec extends WordSpec with Matchers {
 
@@ -31,14 +30,8 @@ class RuntimeCQLInterpolatorSpec extends WordSpec with Matchers {
     "return a success for a simple query" in {
 
       import RuntimeCQLInterpolator._
-      import cats.instances.try_._
 
-      val statement: ExecutableStatement = cql"SELECT * FROM users"
-
-      val result = statement.attempt[Try]
-      result.isSuccess shouldBe true
-      result.get._1 shouldBe "SELECT * FROM users"
-      result.get._3.isEmpty shouldBe true
+      cql"SELECT * FROM users" shouldBe (("SELECT * FROM users", Nil))
     }
 
     "return a success for a query with params" in {
@@ -54,16 +47,14 @@ class RuntimeCQLInterpolatorSpec extends WordSpec with Matchers {
       val id: Int      = 1
       val name: String = "username"
 
-      val statement: ExecutableStatement = cql"SELECT * FROM users WHERE id = $id AND name = $name"
-
-      val result = statement.attempt[Try]
-      result.isSuccess shouldBe true
-      result.get._1 shouldBe "SELECT * FROM users WHERE id = ? AND name = ?"
-      result.get._3.size shouldBe 2
-      result.get._3.head.position shouldBe 0
-      result.get._3.head.serializableValue.serialize shouldBe intCodec.serialize(id)
-      result.get._3(1).position shouldBe 1
-      result.get._3(1).serializableValue.serialize shouldBe stringCodec.serialize(name)
+      val (query, values) =
+        cql"SELECT * FROM users WHERE id = $id AND name = $name"
+      query shouldBe "SELECT * FROM users WHERE id = ? AND name = ?"
+      values.size shouldBe 2
+      values.head.position shouldBe 0
+      values.head.serializableValue.serialize shouldBe intCodec.serialize(id)
+      values(1).position shouldBe 1
+      values(1).serializableValue.serialize shouldBe stringCodec.serialize(name)
     }
 
     "not compile for a wrong statement" in {

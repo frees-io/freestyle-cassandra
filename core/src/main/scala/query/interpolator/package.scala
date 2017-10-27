@@ -23,7 +23,7 @@ import contextual.Context
 import freestyle._
 import freestyle.async.AsyncContext
 import freestyle.cassandra.api.{apiInterpreter, SessionAPI}
-import freestyle.cassandra.query.model.ExecutableStatement
+import freestyle.cassandra.query.model.SerializableValueBy
 
 package object interpolator {
 
@@ -33,7 +33,7 @@ package object interpolator {
   case class ParseError(msgList: List[String])
       extends RuntimeException(s"Parse error: ${msgList.mkString(",")}")
 
-  final class InterpolatorOps(statement: ExecutableStatement) {
+  final class InterpolatorOps(tuple: (String, List[SerializableValueBy[Int]])) {
 
     import freestyle.implicits._
     import freestyle.cassandra.handlers.implicits._
@@ -46,7 +46,7 @@ package object interpolator {
 
     def asResultSet[M[_]](consistencyLevel: Option[ConsistencyLevel] = None)(
         implicit API: SessionAPI[M]): FreeS[M, ResultSet] =
-      API.executeWithByteBuffer(statement, consistencyLevel)
+      API.executeWithByteBuffer(tuple._1, tuple._2, consistencyLevel)
 
     def attemptResultSet[M[_]](consistencyLevel: Option[ConsistencyLevel] = None)(
         implicit API: SessionAPI[SessionAPI.Op],
@@ -57,7 +57,7 @@ package object interpolator {
 
   }
 
-  implicit def inserpolatorOps(statement: ExecutableStatement): InterpolatorOps =
-    new InterpolatorOps(statement)
+  implicit def inserpolatorOps(tuple: (String, List[SerializableValueBy[Int]])): InterpolatorOps =
+    new InterpolatorOps(tuple)
 
 }

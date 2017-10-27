@@ -19,7 +19,7 @@ package api
 
 import com.datastax.driver.core._
 import freestyle._
-import freestyle.cassandra.query.model.ExecutableStatement
+import freestyle.cassandra.query.model.SerializableValueBy
 
 @free
 trait SessionAPI {
@@ -41,7 +41,8 @@ trait SessionAPI {
   def executeStatement(statement: Statement): FS[ResultSet]
 
   def executeWithByteBuffer(
-      statement: ExecutableStatement,
+      query: String,
+      values: List[SerializableValueBy[Int]],
       consistencyLevel: Option[ConsistencyLevel] = None): FS[ResultSet]
 
 }

@@ -20,9 +20,8 @@ package interpolator
 import java.nio.ByteBuffer
 import java.util.UUID
 
-import cats.instances.try_._
 import com.datastax.driver.core.{ProtocolVersion, TypeCodec}
-import freestyle.cassandra.query.model.ExecutableStatement
+import freestyle.cassandra.query.model.SerializableValueBy
 import org.scalatest.{Matchers, WordSpec}
 
 import scala.util.{Success, Try}
@@ -34,12 +33,7 @@ class SchemaFileInterpolatorTest extends WordSpec with Matchers {
     "works as expected for a simple valid query" in {
 
       import MySchemaInterpolator._
-      val statement: ExecutableStatement = cql"SELECT * FROM test.users"
-      val result                         = statement.attempt[Try]
-
-      result.isSuccess shouldBe true
-      result.get._1 shouldBe "SELECT * FROM test.users"
-      result.get._3.isEmpty shouldBe true
+      cql"SELECT * FROM test.users" shouldBe (("SELECT * FROM test.users", Nil))
     }
 
     "works as expected for a valid query with params" in {
@@ -55,15 +49,14 @@ class SchemaFileInterpolatorTest extends WordSpec with Matchers {
       val expectedCQL: String       = "SELECT id, name FROM test.users WHERE id = ?"
       val expectedValue: ByteBuffer = uuidTypeCodec.serialize(id, protocolVersion)
 
-      val statement: ExecutableStatement =
+      val (cql: String, values: List[SerializableValueBy[Int]]) =
         cql"SELECT id, name FROM test.users WHERE id = $id"
 
-      val result = statement.attempt[Try]
-      result.isSuccess shouldBe true
-      result.get._1 shouldBe expectedCQL
-      result.get._3.size shouldBe 1
-      result.get._3.head.position shouldBe 0
-      result.get._3.head.serializableValue.serialize[Try] shouldBe Success(expectedValue)
+      cql shouldBe expectedCQL
+      values.size shouldBe 1
+      values.head.position shouldBe 0
+      values.head.serializableValue
+        .serialize[Try](cats.instances.try_.catsStdInstancesForTry) shouldBe Success(expectedValue)
     }
 
     "doesn't compile for an invalid query" in {

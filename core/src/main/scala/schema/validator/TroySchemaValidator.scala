@@ -19,11 +19,9 @@ package schema.validator
 
 import cats.MonadError
 import cats.data.{NonEmptyList, Validated, ValidatedNel}
-import cats.instances.list._
-import cats.syntax.traverse._
 import freestyle.cassandra.schema._
 import freestyle.cassandra.schema.provider.SchemaDefinitionProvider
-import troy.cql.ast.{DataDefinition, DataManipulation}
+import troy.cql.ast.DataDefinition
 import troy.schema.{Message, Result, SchemaEngine, V}
 
 class TroySchemaValidator[M[_]](

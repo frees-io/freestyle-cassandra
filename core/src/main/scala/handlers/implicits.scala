@@ -33,7 +33,7 @@ import freestyle.async.AsyncContext
 import freestyle.cassandra.api.{ClusterAPI, ClusterAPIOps, SessionAPI, SessionAPIOps, StatementAPI}
 import freestyle.cassandra.implicits._
 import freestyle.cassandra.codecs.ByteBufferCodec
-import freestyle.cassandra.query.model.{ExecutableStatement, SerializableValueBy}
+import freestyle.cassandra.query.model.SerializableValueBy
 
 object implicits {
 
@@ -79,15 +79,14 @@ object implicits {
       Kleisli(s => H(s.executeAsync(statement)))
 
     def executeWithByteBuffer(
-        statement: ExecutableStatement,
+        query: String,
+        values: List[SerializableValueBy[Int]],
         consistencyLevel: Option[ConsistencyLevel] = None): SessionAPIOps[M, ResultSet] =
       Kleisli { session =>
-        E.flatMap(statement.attempt) { tuple =>
-          tuple._3.traverse(_.serializableValue.serialize[M]).flatMap { values =>
-            val st = ByteBufferSimpleStatement(tuple._1, values.toArray)
-            consistencyLevel.foreach(st.setConsistencyLevel)
-            H(session.executeAsync(st))
-          }
+        values.traverse(_.serializableValue.serialize[M]).flatMap { values =>
+          val st = ByteBufferSimpleStatement(query, values.toArray)
+          consistencyLevel.foreach(st.setConsistencyLevel)
+          H(session.executeAsync(st))
         }
       }
 

@@ -17,7 +17,7 @@
 package freestyle.cassandra
 
 import cats.{Applicative, MonadError}
-import troy.cql.ast.{Cql3Statement, DataDefinition, DataManipulation}
+import troy.cql.ast.{DataDefinition, DataManipulation}
 import troy.schema.{Result, V}
 
 package object schema {

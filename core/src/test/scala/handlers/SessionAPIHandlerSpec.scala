@@ -21,13 +21,10 @@ import java.nio.ByteBuffer
 
 import cats.MonadError
 import com.datastax.driver.core._
-import freestyle.cassandra.TestUtils.Null
 import freestyle.cassandra.api.SessionAPIOps
-import freestyle.cassandra.query.model.{ExecutableStatement, SerializableValue, SerializableValueBy}
-import freestyle.cassandra.schema.{ManipulationStatements, Statements}
+import freestyle.cassandra.query.model.{SerializableValue, SerializableValueBy}
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, OneInstancePerTest, WordSpec}
-import troy.cql.ast.DataManipulation
 
 import scala.collection.JavaConverters._
 import scala.concurrent.{Await, Future}
@@ -47,11 +44,6 @@ class SessionAPIHandlerSpec
   val mapValues: Map[String, AnyRef]     = Map("param1" -> "value1", "param2" -> "value2")
   val values: Seq[Any]                   = Seq("value1", "value2")
   val consistencyLevel: ConsistencyLevel = ConsistencyLevel.LOCAL_QUORUM
-  def statement(v: List[SerializableValueBy[Int]]): ExecutableStatement = new ExecutableStatement {
-    override def attempt[M[_]](implicit E: MonadError[M, Throwable]): M[
-      (String, Statements, List[SerializableValueBy[Int]])] =
-      E.pure((queryString, ManipulationStatements(Null[DataManipulation]), v))
-  }
 
   val valueSerializedA: ByteBuffer = TypeCodec.ascii().serialize("Hello World!", ProtocolVersion.V3)
   val serializableValueByIntMockA: SerializableValueBy[Int] = new SerializableValueBy[Int] {
@@ -149,7 +141,7 @@ class SessionAPIHandlerSpec
               valueSerializedB))
         })
         .returns(ResultSetFutureTest(rsMock))
-      run(handler.executeWithByteBuffer(statement(values))) shouldBe rsMock
+      run(handler.executeWithByteBuffer(queryString, values)) shouldBe rsMock
     }
 
     "call to serializableValue and executeAsync(Statement) when calling executeWithByteBuffer(String, List[SerializableValueBy[Int]], Some(ConsistencyLevel)) method" in {
@@ -168,7 +160,7 @@ class SessionAPIHandlerSpec
             (st.getConsistencyLevel == consistencyLevel)
         })
         .returns(ResultSetFutureTest(rsMock))
-      run(handler.executeWithByteBuffer(statement(values), Some(consistencyLevel))) shouldBe rsMock
+      run(handler.executeWithByteBuffer(queryString, values, Some(consistencyLevel))) shouldBe rsMock
     }
 
   }
