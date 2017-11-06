@@ -27,8 +27,9 @@ trait FieldLister[A] {
 trait FieldListerPrimitive {
   implicit def primitiveFieldLister[K <: Symbol, H, T <: HList](
       implicit witness: Witness.Aux[K],
+      printer: Printer,
       tLister: FieldLister[T]): FieldLister[FieldType[K, H] :: T] =
-    FieldLister[FieldType[K, H] :: T](witness.value.name :: tLister.list)
+    FieldLister[FieldType[K, H] :: T](printer.print(witness.value.name) :: tLister.list)
 }
 
 trait FieldListerGeneric extends FieldListerPrimitive {
