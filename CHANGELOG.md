@@ -1,5 +1,22 @@
 # Changelog
 
+## 11/06/2017 - Version 0.0.2
+
+Release changes:
+
+* Update CHANGELOG.md ([#87](https://github.com/frees-io/freestyle-cassandra/pull/87))
+* Macro for expanding interpolator ([#89](https://github.com/frees-io/freestyle-cassandra/pull/89))
+* Uses sbt-embedded-cassandra and introduce the Integration Tests ([#90](https://github.com/frees-io/freestyle-cassandra/pull/90))
+* Removes the ScalaJS badge from README ([#97](https://github.com/frees-io/freestyle-cassandra/pull/97))
+* Allows setting the consistency level at query level ([#96](https://github.com/frees-io/freestyle-cassandra/pull/96))
+* Adds the code for creating case classes from rows ([#103](https://github.com/frees-io/freestyle-cassandra/pull/103))
+* Add printer arbitrary for scalacheck testing ([#108](https://github.com/frees-io/freestyle-cassandra/pull/108))
+* Allows the validation of schema definition statements ([#109](https://github.com/frees-io/freestyle-cassandra/pull/109))
+* Adds the printer to the FieldLister ([#110](https://github.com/frees-io/freestyle-cassandra/pull/110))
+* Use the printer in the FieldMapper ([#111](https://github.com/frees-io/freestyle-cassandra/pull/111))
+* Release v0.0.2 ([#112](https://github.com/frees-io/freestyle-cassandra/pull/112))
+
+
 ## 10/09/2017 - Version 0.0.1
 
 Release changes:
