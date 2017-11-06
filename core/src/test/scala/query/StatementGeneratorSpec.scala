@@ -17,10 +17,17 @@
 package freestyle.cassandra
 package query
 
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.WordSpec
 import StatementGenerator._
+import freestyle.cassandra.TestUtils.MatchersUtil
+import org.scalacheck.Prop._
+import org.scalatest.prop.Checkers
 
-class StatementGeneratorSpec extends WordSpec with Matchers {
+class StatementGeneratorSpec
+    extends WordSpec
+    with MatchersUtil
+    with Checkers
+    with QueryArbitraries {
 
   case class A(a1: Int, a2: String, a3: Boolean)
 
@@ -33,14 +40,26 @@ class StatementGeneratorSpec extends WordSpec with Matchers {
     "generate a right statement for a regular case class" in {
 
       import FieldLister._
-      StatementGenerator[A].insert("A") shouldBe "INSERT INTO A (a1,a2,a3) VALUES (?,?,?)"
+      check {
+        forAll { printer: Printer =>
+          implicit val _ = printer
+          import printer._
+          StatementGenerator[A].insert("A") isEqualTo s"INSERT INTO A (${print("a1")},${print("a2")},${print("a3")}) VALUES (?,?,?)"
+        }
+      }
 
     }
 
     "generate a right statement for a case class with another embedded case class" in {
 
       import FieldLister._
-      StatementGenerator[C].insert("C") shouldBe "INSERT INTO C (c1,c2) VALUES (?,?)"
+      check {
+        forAll { printer: Printer =>
+          implicit val _ = printer
+          import printer._
+          StatementGenerator[C].insert("C") isEqualTo s"INSERT INTO C (${print("c1")},${print("c2")}) VALUES (?,?)"
+        }
+      }
 
     }
 
@@ -48,7 +67,13 @@ class StatementGeneratorSpec extends WordSpec with Matchers {
 
       import StatementGenerator._
       import FieldListerExpanded._
-      StatementGenerator[C].insert("C") shouldBe "INSERT INTO C (c1,b1,b2) VALUES (?,?,?)"
+      check {
+        forAll { printer: Printer =>
+          implicit val _ = printer
+          import printer._
+          StatementGenerator[C].insert("C") isEqualTo s"INSERT INTO C (${print("c1")},${print("b1")},${print("b2")}) VALUES (?,?,?)"
+        }
+      }
 
     }
 
@@ -59,21 +84,39 @@ class StatementGeneratorSpec extends WordSpec with Matchers {
     "generate a right statement for a regular case class" in {
 
       import FieldLister._
-      StatementGenerator[A].select("A") shouldBe "SELECT a1,a2,a3 FROM A"
+      check {
+        forAll { printer: Printer =>
+          implicit val _ = printer
+          import printer._
+          StatementGenerator[A].select("A") isEqualTo s"SELECT ${print("a1")},${print("a2")},${print("a3")} FROM A"
+        }
+      }
 
     }
 
     "generate a right statement for a case class with another embedded case class" in {
 
       import FieldLister._
-      StatementGenerator[C].select("C") shouldBe "SELECT c1,c2 FROM C"
+      check {
+        forAll { printer: Printer =>
+          implicit val _ = printer
+          import printer._
+          StatementGenerator[C].select("C") isEqualTo s"SELECT ${print("c1")},${print("c2")} FROM C"
+        }
+      }
 
     }
 
     "generate a right expanded statement for a case class with another embedded case class" in {
 
       import FieldListerExpanded._
-      StatementGenerator[C].select("C") shouldBe "SELECT c1,b1,b2 FROM C"
+      check {
+        forAll { printer: Printer =>
+          implicit val _ = printer
+          import printer._
+          StatementGenerator[C].select("C") isEqualTo s"SELECT ${print("c1")},${print("b1")},${print("b2")} FROM C"
+        }
+      }
 
     }
 
