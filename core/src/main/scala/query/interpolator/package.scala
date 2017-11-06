@@ -30,6 +30,9 @@ package object interpolator {
   sealed trait CQLContext extends Context
   case object CQLLiteral  extends CQLContext
 
+  case class ParseError(msgList: List[String])
+      extends RuntimeException(s"Parse error: ${msgList.mkString(",")}")
+
   final class InterpolatorOps(tuple: (String, List[SerializableValueBy[Int]])) {
 
     import freestyle.implicits._
@@ -45,12 +48,23 @@ package object interpolator {
         implicit API: SessionAPI[M]): FreeS[M, ResultSet] =
       API.executeWithByteBuffer(tuple._1, tuple._2, consistencyLevel)
 
+    def asFree[M[_]](consistencyLevel: Option[ConsistencyLevel] = None)(
+        implicit API: SessionAPI[M]): FreeS[M, Unit] =
+      asResultSet[M](consistencyLevel).map(_ => (): Unit)
+
     def attemptResultSet[M[_]](consistencyLevel: Option[ConsistencyLevel] = None)(
         implicit API: SessionAPI[SessionAPI.Op],
         S: Session,
         AC: AsyncContext[M],
         E: MonadError[M, Throwable]): M[ResultSet] =
       asResultSet[SessionAPI.Op](consistencyLevel).interpret[M]
+
+    def attempt[M[_]](consistencyLevel: Option[ConsistencyLevel] = None)(
+        implicit API: SessionAPI[SessionAPI.Op],
+        S: Session,
+        AC: AsyncContext[M],
+        E: MonadError[M, Throwable]): M[Unit] =
+      asFree[SessionAPI.Op](consistencyLevel).interpret[M]
 
   }
 

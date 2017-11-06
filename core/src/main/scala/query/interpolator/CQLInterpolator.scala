@@ -21,15 +21,14 @@ import cats.MonadError
 import cats.data.Validated.{Invalid, Valid}
 import contextual.Interpolator
 import freestyle.cassandra.query.model.{SerializableValue, SerializableValueBy}
-import freestyle.cassandra.schema.Statement
+import freestyle.cassandra.schema.{DDL, DML, Statements}
 import freestyle.cassandra.schema.validator.SchemaValidator
-import troy.cql.ast.CqlParser
+import troy.cql.ast.{CqlParser, DataDefinition, DataManipulation}
 
+import scala.util.control.NonFatal
 import scala.util.{Failure, Success, Try}
 
 class CQLInterpolator(V: SchemaValidator[Try]) extends Interpolator {
-
-  import cats.instances.try_._
 
   override type ContextType = CQLContext
   override type Input       = SerializableValue
@@ -42,20 +41,14 @@ class CQLInterpolator(V: SchemaValidator[Try]) extends Interpolator {
       case (prev, _)                     => prev
     }
 
-    def parseStatement[M[_]](cql: String)(implicit E: MonadError[M, Throwable]): M[Statement] =
-      CqlParser.parseDML(cql) match {
-        case CqlParser.Success(dataManipulation, _) => E.pure(dataManipulation)
-        case CqlParser.Failure(msg, _)              => E.raiseError(new IllegalArgumentException(msg))
-        case CqlParser.Error(msg, _)                => E.raiseError(new IllegalArgumentException(msg))
-      }
-
-    parseStatement[Try](cql).flatMap(V.validateStatement) match {
+    parseStatement(cql).flatMap(V.validateStatement(_)(cats.instances.try_.catsStdInstancesForTry)) match {
       case Success(Valid(_)) =>
         Seq.fill(interpolation.parts.size)(CQLLiteral)
       case Success(Invalid(list)) =>
         interpolation.abort(Literal(0, cql), 0, list.map(_.getMessage).toList.mkString(","))
       case Failure(e) => interpolation.abort(Literal(0, cql), 0, e.getMessage)
     }
+
   }
 
   def evaluate(interpolation: RuntimeInterpolation): (String, List[SerializableValueBy[Int]]) =
@@ -65,4 +58,34 @@ class CQLInterpolator(V: SchemaValidator[Try]) extends Interpolator {
       case ((cql, values), Substitution(index, value)) =>
         (cql + "?", values :+ SerializableValueBy(index, value))
     }
+
+  private[this] def parseStatement(cql: String): Try[Statements] = {
+
+    def parseStatementWith[T](
+        parseFunction: (String) => CqlParser.ParseResult[T],
+        mapResult: T => Statements): Try[Statements] =
+      parseFunction(cql) match {
+        case CqlParser.Success(result, _) => Success(mapResult(result))
+        case CqlParser.Failure(msg, _)    => Failure(new IllegalArgumentException(msg))
+        case CqlParser.Error(msg, _)      => Failure(new IllegalArgumentException(msg))
+      }
+
+    def parseDataManipulationStatement(cql: String): Try[Statements] =
+      parseStatementWith[DataManipulation](
+        parseFunction = CqlParser.parseDML,
+        mapResult = dm => DML(dm))
+
+    def parseDataDefinitionStatement(cql: String): Try[Statements] =
+      parseStatementWith[Seq[DataDefinition]](
+        parseFunction = CqlParser.parseSchema,
+        mapResult = seq => DDL(seq))
+
+    parseDataManipulationStatement(cql).recoverWith {
+      case NonFatal(e1) =>
+        parseDataDefinitionStatement(cql).recoverWith {
+          case NonFatal(e2) =>
+            Failure(ParseError(e1.getMessage :: e2.getMessage :: Nil))
+        }
+    }
+  }
 }

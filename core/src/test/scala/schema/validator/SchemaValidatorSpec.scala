@@ -30,22 +30,23 @@ import troy.cql.ast.dml.Select
 
 class SchemaValidatorSpec extends WordSpec with Matchers with MockFactory {
 
-  val mockStatement: Statement = SelectStatement(
-    mod = None,
-    selection = Select.SelectClause(Seq.empty),
-    from = TableName(None, ""),
-    where = None,
-    orderBy = None,
-    perPartitionLimit = None,
-    limit = None,
-    allowFiltering = false
-  )
+  val mockStatement: Statements = DML(
+    SelectStatement(
+      mod = None,
+      selection = Select.SelectClause(Seq.empty),
+      from = TableName(None, ""),
+      where = None,
+      orderBy = None,
+      perPartitionLimit = None,
+      limit = None,
+      allowFiltering = false
+    ))
 
   "apply method" should {
 
     "return Unit if the schema provider and the provided function works as expected" in {
       val sv: SchemaValidator[EitherM] = new SchemaValidator[EitherM] {
-        override def validateStatement(st: Statement)(
+        override def validateStatement(st: Statements)(
             implicit E: MonadError[EitherM, Throwable]): Either[
           Throwable,
           ValidatedNel[SchemaError, Unit]] = Right(Validated.valid((): Unit))
@@ -58,7 +59,7 @@ class SchemaValidatorSpec extends WordSpec with Matchers with MockFactory {
 
       val exc = SchemaDefinitionProviderError("Test error")
       val sv: SchemaValidator[EitherM] = new SchemaValidator[EitherM] {
-        override def validateStatement(st: Statement)(
+        override def validateStatement(st: Statements)(
             implicit E: MonadError[EitherM, Throwable]): Either[
           Throwable,
           ValidatedNel[SchemaError, Unit]] = Left(exc)

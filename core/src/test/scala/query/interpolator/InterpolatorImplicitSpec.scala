@@ -21,9 +21,6 @@ import java.nio.ByteBuffer
 
 import cats.{~>, MonadError}
 import com.datastax.driver.core._
-import com.google.common.util.concurrent.ListenableFuture
-import freestyle.async.AsyncContext
-import freestyle.cassandra.TestUtils._
 import freestyle.cassandra.api.{apiInterpreter, SessionAPI}
 import freestyle.cassandra.codecs.ByteBufferCodec
 import freestyle.cassandra.handlers.implicits.sessionAPIHandler
@@ -116,6 +113,31 @@ class InterpolatorImplicitSpec
 
   }
 
+  "InterpolatorImplicitDef asFree" should {
+
+    implicit val interpreter = sessionAPIHandler[Future] andThen apiInterpreter[Future, Session](
+      sessionMock)
+
+    "return a valid result from a FreeS" in {
+      val future: Future[Unit] =
+        cql"CREATE TABLE users (id uuid PRIMARY KEY)".asFree[SessionAPI.Op]().interpret[Future]
+      Await.result(future, Duration.Inf) shouldBe ((): Unit)
+    }
+
+    "return a valid result from a FreeS when passing a ConsistencyLevel" in {
+      val future: Future[Unit] =
+        cql"CREATE TABLE users (id uuid PRIMARY KEY)"
+          .asFree[SessionAPI.Op](Some(consistencyLevel))
+          .interpret[Future]
+      Await.result(future, Duration.Inf) shouldBe ((): Unit)
+      (sessionMock
+        .executeAsync(_: Statement))
+        .verify(where { (st: Statement) => st.getConsistencyLevel == consistencyLevel
+        })
+    }
+
+  }
+
   "InterpolatorImplicitDef attemptResultSet()" should {
 
     "return a valid ResultSet" in {
@@ -165,6 +187,25 @@ class InterpolatorImplicitSpec
       val future: Future[ResultSet] =
         cql"SELECT * FROM users WHERE name=$name".attemptResultSet[Future](Some(consistencyLevel))
       Await.result(future.failed, Duration.Inf) shouldBe serializeException
+    }
+
+  }
+
+  "InterpolatorImplicitDef attempt()" should {
+
+    "return a valid result" in {
+      val future: Future[Unit] = cql"CREATE TABLE users (id uuid PRIMARY KEY)".attempt[Future]()
+      Await.result(future, Duration.Inf) shouldBe ((): Unit)
+    }
+
+    "return a valid result when passing a ConsistencyLevel" in {
+      val future: Future[Unit] =
+        cql"CREATE TABLE users (id uuid PRIMARY KEY)".attempt[Future](Some(consistencyLevel))
+      Await.result(future, Duration.Inf) shouldBe ((): Unit)
+      (sessionMock
+        .executeAsync(_: Statement))
+        .verify(where { (st: Statement) => st.getConsistencyLevel == consistencyLevel
+        })
     }
 
   }

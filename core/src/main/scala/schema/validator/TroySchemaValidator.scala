@@ -21,6 +21,7 @@ import cats.MonadError
 import cats.data.{NonEmptyList, Validated, ValidatedNel}
 import freestyle.cassandra.schema._
 import freestyle.cassandra.schema.provider.SchemaDefinitionProvider
+import troy.cql.ast.DataDefinition
 import troy.schema.{Message, Result, SchemaEngine, V}
 
 class TroySchemaValidator[M[_]](
@@ -28,7 +29,7 @@ class TroySchemaValidator[M[_]](
     SDP: SchemaDefinitionProvider[M])
     extends SchemaValidator[M] {
 
-  override def validateStatement(st: Statement)(
+  override def validateStatement(st: Statements)(
       implicit E: MonadError[M, Throwable]): M[ValidatedNel[SchemaError, Unit]] = {
 
     def toSchemaValidatorError(message: Message): SchemaValidatorError =
@@ -45,15 +46,23 @@ class TroySchemaValidator[M[_]](
       }
 
     def validateStatement(
-        schema: SchemaDefinition,
-        st: Statement): M[ValidatedNel[SchemaError, Unit]] =
+        schema: Seq[DataDefinition],
+        st: Statements): M[ValidatedNel[SchemaError, Unit]] = {
+
+      type ValidatedNelSchemaError[T] = ValidatedNel[SchemaError, T]
+
+      def validateWithSchema(schemaEngine: SchemaEngine): Result[Unit] =
+        (st match {
+          case DML(sts) => schemaEngine(sts)
+          case DDL(sts) => SchemaEngine(schema ++ sts)
+        }).map(_ => (): Unit)
+
       catchNonFatalAsSchemaError {
         toValidatedNel {
-          SchemaEngine(schema)
-            .flatMap(schemaEngine => schemaEngine(st))
-            .map(_ => (): Unit)
+          SchemaEngine(schema).flatMap(validateWithSchema)
         }
       }
+    }
 
     E.flatMap(SDP.schemaDefinition)(validateStatement(_, st))
   }

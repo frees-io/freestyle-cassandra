@@ -30,13 +30,13 @@ class MetadataInterpolatorTest extends WordSpec with Matchers {
 
   "MetadataInterpolator" should {
 
-    "works as expected for a simple valid query" in {
+    "work as expected for a simple valid query" in {
 
       import MyMetadataInterpolator._
       cql"SELECT * FROM test.users" shouldBe (("SELECT * FROM test.users", Nil))
     }
 
-    "works as expected for a valid query with params" in {
+    "work as expected for a valid query with params" in {
 
       import MyMetadataInterpolator._
       implicit val protocolVersion: ProtocolVersion   = ProtocolVersion.V4
@@ -59,10 +59,19 @@ class MetadataInterpolatorTest extends WordSpec with Matchers {
         .serialize[Try](cats.instances.try_.catsStdInstancesForTry) shouldBe Success(expectedValue)
     }
 
-    "doesn't compile when passing an invalid schema path" in {
+    "not compile when passing an invalid schema path" in {
 
       import MyInvalidMetadataInterpolator._
       """cql"SELECT * FROM unknownTable"""" shouldNot compile
+    }
+
+    "work as expected for a data definition statement" in {
+
+      import MyMetadataInterpolator._
+      cql"CREATE TABLE test.users2 (id uuid, name text, PRIMARY KEY (id))" shouldBe (
+        (
+          "CREATE TABLE test.users2 (id uuid, name text, PRIMARY KEY (id))",
+          Nil))
     }
 
   }

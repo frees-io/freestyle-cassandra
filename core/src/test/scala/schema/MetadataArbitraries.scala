@@ -104,6 +104,11 @@ trait MetadataArbitraries {
       validStatement: (String, SelectStatement),
       invalidStatement: (String, SelectStatement))
 
+  case class GeneratedKeyspaceWithTables(
+      keyspace: CreateKeyspace,
+      validTables: List[CreateTable],
+      invalidTables: List[CreateTable])
+
   val identifierGen: Gen[String] =
     (for {
       size <- Gen.chooseNum[Int](2, 15)
@@ -490,6 +495,24 @@ trait MetadataArbitraries {
       } yield GeneratedStatement(keyspace.createKeyspace, table.createTable, validSt, invalidSt)
     }
 
+  }
+
+  implicit val generatedKeyspaceWithTablesArb: Arbitrary[GeneratedKeyspaceWithTables] = Arbitrary {
+    for {
+      keyspaces <- distinctListOfGen[GeneratedKeyspace](
+        generatedKeyspaceArb.arbitrary,
+        Gen.const(2))(_.createKeyspace.keyspaceName)
+      validTables <- distinctListOfGen[GeneratedTable](
+        generatedTableArb(Some(keyspaces.head)).arbitrary,
+        Gen.chooseNum[Int](1, 3))(_.createTable.tableName)
+      invalidTables <- distinctListOfGen[GeneratedTable](
+        generatedTableArb(Some(keyspaces.last)).arbitrary,
+        Gen.chooseNum[Int](1, 3))(_.createTable.tableName)
+    } yield
+      GeneratedKeyspaceWithTables(
+        keyspaces.head.createKeyspace,
+        validTables.map(_.createTable),
+        invalidTables.map(_.createTable))
   }
 
   val schemaGen: Gen[(

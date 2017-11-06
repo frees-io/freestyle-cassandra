@@ -21,7 +21,7 @@ import cats.MonadError
 import cats.instances.either._
 import cats.data.Validated.Valid
 import freestyle.cassandra.TestUtils.{EitherM, MatchersUtil}
-import freestyle.cassandra.schema.SchemaDefinition
+import freestyle.cassandra.schema.{DDL, DML, SchemaDefinition}
 import freestyle.cassandra.schema.provider.SchemaDefinitionProvider
 import org.scalacheck.Prop.forAll
 import org.scalatest.WordSpec
@@ -34,7 +34,7 @@ class TroySchemaValidatorSpec extends WordSpec with MatchersUtil with Checkers {
 
   "validateStatement" should {
 
-    "work as expected" in {
+    "work as expected for data manipulation statements" in {
 
       check {
         forAll { st: GeneratedStatement =>
@@ -45,9 +45,30 @@ class TroySchemaValidatorSpec extends WordSpec with MatchersUtil with Checkers {
                 Right(Seq(st.keyspace, st.table))
             }
 
-          (instance[EitherM].validateStatement(st.validStatement._2) isEqualTo Right(
+          (instance[EitherM].validateStatement(DML(st.validStatement._2)) isEqualTo Right(
             Valid((): Unit))) &&
-          (instance[EitherM].validateStatement(st.invalidStatement._2) isLikeTo { either =>
+          (instance[EitherM].validateStatement(DML(st.invalidStatement._2)) isLikeTo { either =>
+            either.isRight && either.right.get.isInvalid
+          })
+        }
+      }
+
+    }
+
+    "work as expected for data definition statements" in {
+
+      check {
+        forAll { st: GeneratedKeyspaceWithTables =>
+          implicit val sdp: SchemaDefinitionProvider[EitherM] =
+            new SchemaDefinitionProvider[EitherM] {
+              override def schemaDefinition(
+                  implicit E: MonadError[EitherM, Throwable]): EitherM[SchemaDefinition] =
+                Right(Seq(st.keyspace))
+            }
+
+          (instance[EitherM].validateStatement(DDL(st.validTables)) isEqualTo Right(
+            Valid((): Unit))) &&
+          (instance[EitherM].validateStatement(DDL(st.invalidTables)) isLikeTo { either =>
             either.isRight && either.right.get.isInvalid
           })
         }

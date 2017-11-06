@@ -38,10 +38,12 @@ package object schema {
       extends SchemaError(msg, maybeCause)
 
   type SchemaDefinition = Seq[DataDefinition]
-  type Statement        = DataManipulation
+
+  sealed trait Statements
+  case class DDL(statements: Seq[DataDefinition]) extends Statements
+  case class DML(statement: DataManipulation)     extends Statements
 
   def catchNonFatalAsSchemaError[M[_], A](value: => A)(implicit E: MonadError[M, Throwable]): M[A] =
-    E.handleErrorWith(E.catchNonFatal(value)) { e => E.raiseError(SchemaDefinitionProviderError(e))
-    }
+    E.handleErrorWith(E.catchNonFatal(value))(e => E.raiseError(SchemaDefinitionProviderError(e)))
 
 }

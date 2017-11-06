@@ -30,13 +30,13 @@ class SchemaFileInterpolatorTest extends WordSpec with Matchers {
 
   "SchemaFileInterpolator" should {
 
-    "works as expected for a simple valid query" in {
+    "work as expected for a simple valid query" in {
 
       import MySchemaInterpolator._
       cql"SELECT * FROM test.users" shouldBe (("SELECT * FROM test.users", Nil))
     }
 
-    "works as expected for a valid query with params" in {
+    "work as expected for a valid query with params" in {
 
       import MySchemaInterpolator._
       implicit val protocolVersion: ProtocolVersion   = ProtocolVersion.V4
@@ -59,16 +59,37 @@ class SchemaFileInterpolatorTest extends WordSpec with Matchers {
         .serialize[Try](cats.instances.try_.catsStdInstancesForTry) shouldBe Success(expectedValue)
     }
 
-    "doesn't compile for an invalid query" in {
+    "not compile for an invalid query" in {
 
       import MySchemaInterpolator._
       """cql"SELECT * FROM unknownTable"""" shouldNot compile
     }
 
-    "doesn't compile when passing an invalid schema path" in {
+    "not compile when passing an invalid schema path" in {
 
       import MyInvalidSchemaInterpolator._
       """cql"SELECT * FROM unknownTable"""" shouldNot compile
+    }
+
+    "work as expected for a data definition statement" in {
+
+      import MySchemaInterpolator._
+      cql"CREATE TABLE test.users2 (id uuid, name text, PRIMARY KEY (id))" shouldBe (
+        (
+          "CREATE TABLE test.users2 (id uuid, name text, PRIMARY KEY (id))",
+          Nil))
+    }
+
+    "not compile for a data definition statement using a unknown keyspace" in {
+
+      import MySchemaInterpolator._
+      """cql"CREATE table unknownKeyspace.users2 (id uuid, name text, PRIMARY KEY (id))"""" shouldNot compile
+    }
+
+    "not compile for an invalid data definition statement" in {
+
+      import MySchemaInterpolator._
+      """cql"CREATEtable test.users2 (id uuid, PRIMARY KEY (id))"""" shouldNot compile
     }
 
   }
