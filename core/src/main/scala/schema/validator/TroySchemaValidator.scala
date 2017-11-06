@@ -53,7 +53,7 @@ class TroySchemaValidator[M[_]](
 
       def validateWithSchema(schemaEngine: SchemaEngine): Result[Unit] =
         (st match {
-          case ManipulationStatements(sts) => schemaEngine(sts).map(_ => (): Unit)
+          case ManipulationStatements(sts) => schemaEngine(sts)
           case DefinitionStatements(sts)   => SchemaEngine(schema ++ sts)
         }).map(_ => (): Unit)
 

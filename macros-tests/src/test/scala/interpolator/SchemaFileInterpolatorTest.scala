@@ -71,6 +71,27 @@ class SchemaFileInterpolatorTest extends WordSpec with Matchers {
       """cql"SELECT * FROM unknownTable"""" shouldNot compile
     }
 
+    "works as expected for a data definition statement" in {
+
+      import MySchemaInterpolator._
+      cql"CREATE TABLE test.users2 (id uuid, name text, PRIMARY KEY (id))" shouldBe (
+        (
+          "CREATE TABLE test.users2 (id uuid, name text, PRIMARY KEY (id))",
+          Nil))
+    }
+
+    "doesn't compile for a data definition statement using a unknown keyspace" in {
+
+      import MySchemaInterpolator._
+      """cql"CREATE table unknownKeyspace.users2 (id uuid, name text, PRIMARY KEY (id))"""" shouldNot compile
+    }
+
+    "doesn't compile for an invalid data definition statement" in {
+
+      import MySchemaInterpolator._
+      """cql"CREATEtable test.users2 (id uuid, PRIMARY KEY (id))"""" shouldNot compile
+    }
+
   }
 
 }

@@ -44,8 +44,6 @@ package object schema {
   case class ManipulationStatements(statement: DataManipulation)   extends Statements
 
   def catchNonFatalAsSchemaError[M[_], A](value: => A)(implicit E: MonadError[M, Throwable]): M[A] =
-    E.handleErrorWith {
-      E.catchNonFatal(value)
-    }(e => E.raiseError(SchemaDefinitionProviderError(e)))
+    E.handleErrorWith(E.catchNonFatal(value))(e => E.raiseError(SchemaDefinitionProviderError(e)))
 
 }

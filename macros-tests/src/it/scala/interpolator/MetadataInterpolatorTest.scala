@@ -65,5 +65,14 @@ class MetadataInterpolatorTest extends WordSpec with Matchers {
       """cql"SELECT * FROM unknownTable"""" shouldNot compile
     }
 
+    "works as expected for a data definition statement" in {
+
+      import MyMetadataInterpolator._
+      cql"CREATE TABLE test.users2 (id uuid, name text, PRIMARY KEY (id))" shouldBe (
+        (
+          "CREATE TABLE test.users2 (id uuid, name text, PRIMARY KEY (id))",
+          Nil))
+    }
+
   }
 }
