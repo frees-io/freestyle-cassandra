@@ -30,7 +30,7 @@ import troy.cql.ast.dml.Select
 
 class SchemaValidatorSpec extends WordSpec with Matchers with MockFactory {
 
-  val mockStatement: Statements = ManipulationStatements(
+  val mockStatement: Statements = DML(
     SelectStatement(
       mod = None,
       selection = Select.SelectClause(Seq.empty),

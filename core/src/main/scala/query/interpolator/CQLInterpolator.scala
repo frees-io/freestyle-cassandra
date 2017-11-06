@@ -21,7 +21,7 @@ import cats.MonadError
 import cats.data.Validated.{Invalid, Valid}
 import contextual.Interpolator
 import freestyle.cassandra.query.model.{SerializableValue, SerializableValueBy}
-import freestyle.cassandra.schema.{DefinitionStatements, ManipulationStatements, Statements}
+import freestyle.cassandra.schema.{DDL, DML, Statements}
 import freestyle.cassandra.schema.validator.SchemaValidator
 import troy.cql.ast.{CqlParser, DataDefinition, DataManipulation}
 
@@ -73,12 +73,12 @@ class CQLInterpolator(V: SchemaValidator[Try]) extends Interpolator {
     def parseDataManipulationStatement(cql: String): Try[Statements] =
       parseStatementWith[DataManipulation](
         parseFunction = CqlParser.parseDML,
-        mapResult = dm => ManipulationStatements(dm))
+        mapResult = dm => DML(dm))
 
     def parseDataDefinitionStatement(cql: String): Try[Statements] =
       parseStatementWith[Seq[DataDefinition]](
         parseFunction = CqlParser.parseSchema,
-        mapResult = seq => DefinitionStatements(seq))
+        mapResult = seq => DDL(seq))
 
     parseDataManipulationStatement(cql).recoverWith {
       case NonFatal(e1) =>

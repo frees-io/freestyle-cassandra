@@ -21,7 +21,7 @@ import cats.MonadError
 import cats.instances.either._
 import cats.data.Validated.Valid
 import freestyle.cassandra.TestUtils.{EitherM, MatchersUtil}
-import freestyle.cassandra.schema.{DefinitionStatements, ManipulationStatements, SchemaDefinition}
+import freestyle.cassandra.schema.{DDL, DML, SchemaDefinition}
 import freestyle.cassandra.schema.provider.SchemaDefinitionProvider
 import org.scalacheck.Prop.forAll
 import org.scalatest.WordSpec
@@ -45,10 +45,10 @@ class TroySchemaValidatorSpec extends WordSpec with MatchersUtil with Checkers {
                 Right(Seq(st.keyspace, st.table))
             }
 
-          (instance[EitherM].validateStatement(ManipulationStatements(st.validStatement._2)) isEqualTo Right(
+          (instance[EitherM].validateStatement(DML(st.validStatement._2)) isEqualTo Right(
             Valid((): Unit))) &&
-          (instance[EitherM].validateStatement(ManipulationStatements(st.invalidStatement._2)) isLikeTo {
-            either => either.isRight && either.right.get.isInvalid
+          (instance[EitherM].validateStatement(DML(st.invalidStatement._2)) isLikeTo { either =>
+            either.isRight && either.right.get.isInvalid
           })
         }
       }
@@ -66,10 +66,10 @@ class TroySchemaValidatorSpec extends WordSpec with MatchersUtil with Checkers {
                 Right(Seq(st.keyspace))
             }
 
-          (instance[EitherM].validateStatement(DefinitionStatements(st.validTables)) isEqualTo Right(
+          (instance[EitherM].validateStatement(DDL(st.validTables)) isEqualTo Right(
             Valid((): Unit))) &&
-          (instance[EitherM].validateStatement(DefinitionStatements(st.invalidTables)) isLikeTo {
-            either => either.isRight && either.right.get.isInvalid
+          (instance[EitherM].validateStatement(DDL(st.invalidTables)) isLikeTo { either =>
+            either.isRight && either.right.get.isInvalid
           })
         }
       }
