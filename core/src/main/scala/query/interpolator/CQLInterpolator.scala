@@ -41,8 +41,7 @@ class CQLInterpolator(V: SchemaValidator[Try]) extends Interpolator {
       case (prev, _)                     => prev
     }
 
-    import cats.instances.try_._
-    parseStatement[Try](cql).flatMap(V.validateStatement) match {
+    parseStatement(cql).flatMap(V.validateStatement(_)(cats.instances.try_.catsStdInstancesForTry)) match {
       case Success(Valid(_)) =>
         Seq.fill(interpolation.parts.size)(CQLLiteral)
       case Success(Invalid(list)) =>
@@ -60,38 +59,32 @@ class CQLInterpolator(V: SchemaValidator[Try]) extends Interpolator {
         (cql + "?", values :+ SerializableValueBy(index, value))
     }
 
-  private[this] def parseStatement[M[_]](cql: String)(
-      implicit E: MonadError[M, Throwable]): M[Statements] = {
+  private[this] def parseStatement(cql: String): Try[Statements] = {
 
     def parseStatementWith[T](
-        cql: String,
-        parse: (String) => CqlParser.ParseResult[T],
-        map: T => Statements)(implicit E: MonadError[M, Throwable]): M[Statements] =
-      parse(cql) match {
-        case CqlParser.Success(result, _) => E.pure(map(result))
-        case CqlParser.Failure(msg, _)    => E.raiseError(new IllegalArgumentException(msg))
-        case CqlParser.Error(msg, _)      => E.raiseError(new IllegalArgumentException(msg))
+        parseFunction: (String) => CqlParser.ParseResult[T],
+        mapResult: T => Statements): Try[Statements] =
+      parseFunction(cql) match {
+        case CqlParser.Success(result, _) => Success(mapResult(result))
+        case CqlParser.Failure(msg, _)    => Failure(new IllegalArgumentException(msg))
+        case CqlParser.Error(msg, _)      => Failure(new IllegalArgumentException(msg))
       }
 
-    def parseDataManipulationStatement(cql: String)(
-        implicit E: MonadError[M, Throwable]): M[Statements] =
+    def parseDataManipulationStatement(cql: String): Try[Statements] =
       parseStatementWith[DataManipulation](
-        cql,
-        CqlParser.parseDML,
-        dm => ManipulationStatements(dm))
+        parseFunction = CqlParser.parseDML,
+        mapResult = dm => ManipulationStatements(dm))
 
-    def parseDataDefinitionStatement(cql: String)(
-        implicit E: MonadError[M, Throwable]): M[Statements] =
+    def parseDataDefinitionStatement(cql: String): Try[Statements] =
       parseStatementWith[Seq[DataDefinition]](
-        cql,
-        CqlParser.parseSchema,
-        seq => DefinitionStatements(seq))
+        parseFunction = CqlParser.parseSchema,
+        mapResult = seq => DefinitionStatements(seq))
 
-    E.recoverWith(parseDataManipulationStatement(cql)) {
+    parseDataManipulationStatement(cql).recoverWith {
       case NonFatal(e1) =>
-        E.recoverWith(parseDataDefinitionStatement(cql)) {
+        parseDataDefinitionStatement(cql).recoverWith {
           case NonFatal(e2) =>
-            E.raiseError(ParseError(e1.getMessage :: e2.getMessage :: Nil))
+            Failure(ParseError(e1.getMessage :: e2.getMessage :: Nil))
         }
     }
   }

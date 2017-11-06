@@ -16,9 +16,8 @@
 
 package freestyle.cassandra
 
-import cats.{Applicative, MonadError}
+import cats.MonadError
 import troy.cql.ast.{DataDefinition, DataManipulation}
-import troy.schema.{Result, V}
 
 package object schema {
 
@@ -48,13 +47,5 @@ package object schema {
     E.handleErrorWith {
       E.catchNonFatal(value)
     }(e => E.raiseError(SchemaDefinitionProviderError(e)))
-
-  implicit def resultApplicative: Applicative[Result] = new Applicative[Result] {
-
-    override def pure[A](x: A): Result[A] = V.success(x)
-
-    override def ap[A, B](ff: Result[A => B])(fa: Result[A]): Result[B] =
-      fa.flatMap(a => ff.map(_(a)))
-  }
 
 }
