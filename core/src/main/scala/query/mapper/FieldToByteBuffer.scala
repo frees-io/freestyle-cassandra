@@ -21,6 +21,7 @@ import java.nio.ByteBuffer
 
 import cats.MonadError
 import freestyle.cassandra.codecs.ByteBufferCodec
+import freestyle.cassandra.query.Printer
 import shapeless._
 import shapeless.labelled.FieldType
 
@@ -36,9 +37,10 @@ trait FieldMapperPrimitive {
 
   implicit def primitiveFieldMapper[K <: Symbol, H, T <: HList](
       implicit witness: Witness.Aux[K],
+      printer: Printer,
       codec: Lazy[ByteBufferCodec[H]],
       tMapper: FieldListMapper[T]): FieldListMapper[FieldType[K, H] :: T] = {
-    val fieldName = witness.value.name
+    val fieldName = printer.print(witness.value.name)
     FieldListMapper { hlist =>
       val fieldMapper = new FieldMapper(fieldName) {
         override def serialize[M[_]](implicit E: MonadError[M, Throwable]): M[ByteBuffer] =

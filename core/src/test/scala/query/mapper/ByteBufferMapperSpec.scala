@@ -21,6 +21,7 @@ import java.nio.ByteBuffer
 
 import cats.MonadError
 import com.datastax.driver.core.{ProtocolVersion, TypeCodec}
+import freestyle.cassandra.query.{Printer, QueryArbitraries}
 import org.scalacheck.Prop._
 import org.scalatest.{Matchers, WordSpec}
 import org.scalacheck.ScalacheckShapeless._
@@ -28,7 +29,7 @@ import org.scalatest.prop.Checkers
 
 import scala.util.matching.Regex
 
-class ByteBufferMapperSpec extends WordSpec with Matchers with Checkers {
+class ByteBufferMapperSpec extends WordSpec with Matchers with Checkers with QueryArbitraries {
 
   case class A(a1: Int, a2: String, a3: Boolean)
 
@@ -50,12 +51,16 @@ class ByteBufferMapperSpec extends WordSpec with Matchers with Checkers {
       import cats.instances.try_._
 
       check {
-        forAll { a: A =>
+        forAll { (a: A, printer: Printer) =>
+          implicit val _                    = printer
           val mapper: ByteBufferMapper[A]   = ByteBufferMapper[A]
           val mapperList: List[FieldMapper] = mapper.map(a)
           mapperList.size == 3 &&
+          mapperList.head.name == printer.print("a1") &&
           mapperList.head.serialize == intCodec.serialize(a.a1) &&
+          mapperList(1).name == printer.print("a2") &&
           mapperList(1).serialize == stringCodec.serialize(a.a2) &&
+          mapperList(2).name == printer.print("a3") &&
           mapperList(2).serialize == booleanCodec.serialize(a.a3)
         }
       }
@@ -85,11 +90,14 @@ class ByteBufferMapperSpec extends WordSpec with Matchers with Checkers {
       import cats.instances.try_._
 
       check {
-        forAll { c: C =>
+        forAll { (c: C, printer: Printer) =>
+          implicit val _                    = printer
           val mapper: ByteBufferMapper[C]   = ByteBufferMapper[C]
           val mapperList: List[FieldMapper] = mapper.map(c)
           mapperList.size == 2 &&
+          mapperList.head.name == printer.print("c1") &&
           mapperList.head.serialize == stringCodec.serialize(c.c1) &&
+          mapperList(1).name == printer.print("c2") &&
           mapperList(1).serialize == decoder.serialize(c.c2)
         }
       }
@@ -102,12 +110,16 @@ class ByteBufferMapperSpec extends WordSpec with Matchers with Checkers {
       import cats.instances.try_._
 
       check {
-        forAll { c: C =>
+        forAll { (c: C, printer: Printer) =>
+          implicit val _                    = printer
           val mapper                        = ByteBufferMapper[C]
           val mapperList: List[FieldMapper] = mapper.map(c)
           mapperList.size == 3 &&
+          mapperList.head.name == printer.print("c1") &&
           mapperList.head.serialize == stringCodec.serialize(c.c1) &&
+          mapperList(1).name == printer.print("b1") &&
           mapperList(1).serialize == longCodec.serialize(c.c2.b1) &&
+          mapperList(2).name == printer.print("b2") &&
           mapperList(2).serialize == stringCodec.serialize(c.c2.b2)
         }
       }
