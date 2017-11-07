@@ -17,6 +17,7 @@
 package com.datastax.driver.core
 import java.net.InetSocketAddress
 import java.nio.ByteBuffer
+import java.util
 import java.util.concurrent.{Executor, TimeUnit}
 
 import com.google.common.util.concurrent.ListenableFuture
@@ -220,6 +221,7 @@ object ListBackedRow {
 }
 
 object ResultSetBuilder {
+
   def apply(columns: List[String], rows: List[Row]): ResultSet = {
     import scala.collection.JavaConverters._
     val definitions = columns.map { name =>
@@ -229,7 +231,7 @@ object ResultSetBuilder {
 
     new ResultSet {
 
-      override def one(): Row = rows.head
+      override def one(): Row = rows.headOption.orNull
 
       override def getColumnDefinitions: ColumnDefinitions = columnDefinitions
 
@@ -253,5 +255,32 @@ object ResultSetBuilder {
       override def fetchMoreResults(): ListenableFuture[ResultSet] =
         Null[ListenableFuture[ResultSet]]
     }
+  }
+
+  val exception: Throwable = new RuntimeException("Stub!")
+
+  def error: ResultSet = new ResultSet {
+
+    override def one(): Row = throw exception
+
+    override def getColumnDefinitions: ColumnDefinitions = throw exception
+
+    override def wasApplied(): Boolean = throw exception
+
+    override def isExhausted: Boolean = throw exception
+
+    override def all(): util.List[Row] = throw exception
+
+    override def getExecutionInfo: ExecutionInfo = throw exception
+
+    override def getAvailableWithoutFetching: Int = throw exception
+
+    override def isFullyFetched: Boolean = throw exception
+
+    override def iterator(): util.Iterator[Row] = throw exception
+
+    override def getAllExecutionInfo: util.List[ExecutionInfo] = throw exception
+
+    override def fetchMoreResults(): ListenableFuture[ResultSet] = throw exception
   }
 }

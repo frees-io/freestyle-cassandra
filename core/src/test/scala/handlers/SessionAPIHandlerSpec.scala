@@ -50,21 +50,17 @@ class SessionAPIHandlerSpec
   import TestUtils._
   val handler: SessionAPIHandler[Future] = sessionAPIHandler[Future]
 
-  import scala.concurrent.duration._
-  def run[T](k: SessionAPIOps[Future, T], session: Session = sessionMock): T =
-    Await.result(k.run(session), 5.seconds)
-
   "SessionAPIHandler" should {
 
     "call to initAsync when calling init() method" in {
       val result = successfulFuture(sessionMock)
       (sessionMock.initAsync _).expects().returns(result)
-      run(handler.init) shouldBe sessionMock
+      runK(handler.init, sessionMock) shouldBe sessionMock
     }
 
     "call to closeAsync when calling close() method" in {
       (sessionMock.closeAsync _).expects().returns(CloseFutureTest)
-      run(handler.close) shouldBe ((): Unit)
+      runK(handler.close, sessionMock) shouldBe ((): Unit)
     }
 
     "call to prepareAsync(String) when calling prepare(String) method" in {
@@ -75,7 +71,7 @@ class SessionAPIHandlerSpec
             .prepareAsync(_: String))
             .expects(query)
             .returns(successfulFuture(prepStMock))
-          run(handler.prepare(query), session) isEqualTo prepStMock
+          runK(handler.prepare(query), session) isEqualTo prepStMock
         }
       }
     }
@@ -83,7 +79,7 @@ class SessionAPIHandlerSpec
     "call to prepareAsync(RegularStatement) when calling prepare(RegularStatement) method" in {
       val result = successfulFuture(prepStMock)
       (sessionMock.prepareAsync(_: RegularStatement)).expects(regStMock).returns(result)
-      run(handler.prepareStatement(regStMock)) shouldBe prepStMock
+      runK(handler.prepareStatement(regStMock), sessionMock) shouldBe prepStMock
     }
 
     "call to executeAsync(String) when calling execute(String) method" in {
@@ -94,7 +90,7 @@ class SessionAPIHandlerSpec
             .executeAsync(_: String))
             .expects(query)
             .returns(ResultSetFutureTest(rsMock))
-          run(handler.execute(query), session) isEqualTo rsMock
+          runK(handler.execute(query), session) isEqualTo rsMock
         }
       }
     }
@@ -111,7 +107,7 @@ class SessionAPIHandlerSpec
                 where((s, m) => s == query && m.asScala == values)
               }
               .returns(ResultSetFutureTest(rsMock))
-            run(handler.executeWithMap(query, values), session) isEqualTo rsMock
+            runK(handler.executeWithMap(query, values), session) isEqualTo rsMock
         }
       }
     }
@@ -121,7 +117,7 @@ class SessionAPIHandlerSpec
         .executeAsync(_: Statement))
         .expects(regStMock)
         .returns(ResultSetFutureTest(rsMock))
-      run(handler.executeStatement(regStMock)) shouldBe rsMock
+      runK(handler.executeStatement(regStMock), sessionMock) shouldBe rsMock
     }
 
     "call to serializableValue and executeAsync(Statement) when calling executeWithByteBuffer method" in {
@@ -146,7 +142,7 @@ class SessionAPIHandlerSpec
                   cl.forall(_ == st.getConsistencyLevel)
               })
               .returns(ResultSetFutureTest(rsMock))
-            run(handler.executeWithByteBuffer(query, values.map(_._2), cl), session) isEqualTo rsMock
+            runK(handler.executeWithByteBuffer(query, values.map(_._2), cl), session) isEqualTo rsMock
         }
       }
     }

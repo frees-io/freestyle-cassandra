@@ -18,8 +18,12 @@ package freestyle.cassandra
 
 import java.util.concurrent.{Callable, Executors}
 
+import cats.data.Kleisli
 import com.google.common.util.concurrent.{ListenableFuture, ListeningExecutorService, MoreExecutors}
 import org.scalatest.Matchers
+
+import scala.concurrent.{Await, ExecutionContext, Future}
+import scala.concurrent.duration._
 
 object TestUtils {
 
@@ -53,8 +57,7 @@ object TestUtils {
         value == other
       }
 
-      def isLikeTo(f: T => Boolean): Boolean =
-        f(value)
+      def isLikeTo(f: T => Boolean): Boolean = f(value)
 
     }
 
@@ -63,6 +66,16 @@ object TestUtils {
   }
 
   type EitherM[T] = Either[Throwable, T]
+
+  def runF[T](k: Future[T]): T = Await.result(k, 5.seconds)
+
+  def runFFailed[T](k: Future[T]): Throwable = Await.result(k.failed, 5.seconds)
+
+  def runK[A, B](k: Kleisli[Future, A, B], a: A): B =
+    Await.result(k.run(a), 5.seconds)
+
+  def runKFailed[A, B](k: Kleisli[Future, A, B], a: A): Throwable =
+    Await.result(k.run(a).failed, 5.seconds)
 
   val reservedKeywords = List(
     "ADD",

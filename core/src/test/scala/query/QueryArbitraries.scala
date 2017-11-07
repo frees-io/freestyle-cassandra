@@ -136,7 +136,7 @@ trait QueryArbitraries {
       }
     }
 
-  implicit def rowAndDataGen[A](
+  def rowAndDataGen[A](
       implicit arb: Arbitrary[A],
       fieldListMapper: FieldListMapper[A],
       fieldLister: FieldLister[A],

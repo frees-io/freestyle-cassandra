@@ -21,6 +21,7 @@ import java.nio.ByteBuffer
 
 import cats.{~>, MonadError}
 import com.datastax.driver.core._
+import freestyle.cassandra.TestUtils._
 import freestyle.cassandra.api.{apiInterpreter, SessionAPI}
 import freestyle.cassandra.codecs.ByteBufferCodec
 import freestyle.cassandra.handlers.implicits.sessionAPIHandler
@@ -60,7 +61,7 @@ class InterpolatorImplicitSpec
     "return a valid ResultSet from a FreeS" in {
       val future: Future[ResultSet] =
         cql"SELECT * FROM users".asResultSet[SessionAPI.Op]().interpret[Future]
-      Await.result(future, Duration.Inf) shouldBe rsMock
+      runF(future) shouldBe rsMock
     }
 
     "return a valid ResultSet from a FreeS when passing a ConsistencyLevel" in {
@@ -68,7 +69,7 @@ class InterpolatorImplicitSpec
         cql"SELECT * FROM users"
           .asResultSet[SessionAPI.Op](Some(consistencyLevel))
           .interpret[Future]
-      Await.result(future, Duration.Inf) shouldBe rsMock
+      runF(future) shouldBe rsMock
       (sessionMock
         .executeAsync(_: Statement))
         .verify(where { (st: Statement) => st.getConsistencyLevel == consistencyLevel
@@ -89,7 +90,7 @@ class InterpolatorImplicitSpec
       val name: String = "UserName"
       val future: Future[ResultSet] =
         cql"SELECT * FROM users WHERE name=$name".asResultSet[SessionAPI.Op]().interpret[Future]
-      Await.result(future.failed, Duration.Inf) shouldBe serializeException
+      runF(future.failed) shouldBe serializeException
     }
 
     "return a failed future when the ByteBufferCodec returns a failure when passing a ConsistencyLevel" in {
@@ -108,7 +109,7 @@ class InterpolatorImplicitSpec
         cql"SELECT * FROM users WHERE name=$name"
           .asResultSet[SessionAPI.Op](Some(consistencyLevel))
           .interpret[Future]
-      Await.result(future.failed, Duration.Inf) shouldBe serializeException
+      runF(future.failed) shouldBe serializeException
     }
 
   }
@@ -121,7 +122,7 @@ class InterpolatorImplicitSpec
     "return a valid result from a FreeS" in {
       val future: Future[Unit] =
         cql"CREATE TABLE users (id uuid PRIMARY KEY)".asFree[SessionAPI.Op]().interpret[Future]
-      Await.result(future, Duration.Inf) shouldBe ((): Unit)
+      runF(future) shouldBe ((): Unit)
     }
 
     "return a valid result from a FreeS when passing a ConsistencyLevel" in {
@@ -129,7 +130,7 @@ class InterpolatorImplicitSpec
         cql"CREATE TABLE users (id uuid PRIMARY KEY)"
           .asFree[SessionAPI.Op](Some(consistencyLevel))
           .interpret[Future]
-      Await.result(future, Duration.Inf) shouldBe ((): Unit)
+      runF(future) shouldBe ((): Unit)
       (sessionMock
         .executeAsync(_: Statement))
         .verify(where { (st: Statement) => st.getConsistencyLevel == consistencyLevel
@@ -142,13 +143,13 @@ class InterpolatorImplicitSpec
 
     "return a valid ResultSet" in {
       val future: Future[ResultSet] = cql"SELECT * FROM users".attemptResultSet[Future]()
-      Await.result(future, Duration.Inf) shouldBe rsMock
+      runF(future) shouldBe rsMock
     }
 
     "return a valid ResultSet when passing a ConsistencyLevel" in {
       val future: Future[ResultSet] =
         cql"SELECT * FROM users".attemptResultSet[Future](Some(consistencyLevel))
-      Await.result(future, Duration.Inf) shouldBe rsMock
+      runF(future) shouldBe rsMock
       (sessionMock
         .executeAsync(_: Statement))
         .verify(where { (st: Statement) => st.getConsistencyLevel == consistencyLevel
@@ -169,7 +170,7 @@ class InterpolatorImplicitSpec
       val name: String = "UserName"
       val future: Future[ResultSet] =
         cql"SELECT * FROM users WHERE name=$name".attemptResultSet[Future]()
-      Await.result(future.failed, Duration.Inf) shouldBe serializeException
+      runF(future.failed) shouldBe serializeException
     }
 
     "return a failed future when the ByteBufferCodec returns a failure when passing a ConsistencyLevel" in {
@@ -186,7 +187,7 @@ class InterpolatorImplicitSpec
       val name: String = "UserName"
       val future: Future[ResultSet] =
         cql"SELECT * FROM users WHERE name=$name".attemptResultSet[Future](Some(consistencyLevel))
-      Await.result(future.failed, Duration.Inf) shouldBe serializeException
+      runF(future.failed) shouldBe serializeException
     }
 
   }
@@ -195,13 +196,13 @@ class InterpolatorImplicitSpec
 
     "return a valid result" in {
       val future: Future[Unit] = cql"CREATE TABLE users (id uuid PRIMARY KEY)".attempt[Future]()
-      Await.result(future, Duration.Inf) shouldBe ((): Unit)
+      runF(future) shouldBe ((): Unit)
     }
 
     "return a valid result when passing a ConsistencyLevel" in {
       val future: Future[Unit] =
         cql"CREATE TABLE users (id uuid PRIMARY KEY)".attempt[Future](Some(consistencyLevel))
-      Await.result(future, Duration.Inf) shouldBe ((): Unit)
+      runF(future) shouldBe ((): Unit)
       (sessionMock
         .executeAsync(_: Statement))
         .verify(where { (st: Statement) => st.getConsistencyLevel == consistencyLevel
