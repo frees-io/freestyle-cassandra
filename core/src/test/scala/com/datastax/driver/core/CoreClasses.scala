@@ -203,3 +203,55 @@ object PreparedIdTest
       Null[ColumnDefinitions],
       Array.empty[Int],
       ProtocolVersion.V4)
+
+object ListBackedRow {
+  def apply(columns: List[String], values: List[ByteBuffer]): Row = {
+    import scala.collection.JavaConverters._
+    val definitions = columns.map { name =>
+      new ColumnDefinitions.Definition("", "", name, DataType.blob())
+    }
+    val columnDefinitions = new ColumnDefinitions(definitions.toArray, Null[CodecRegistry])
+    ArrayBackedRow.fromData(
+      columnDefinitions,
+      Null[Token.Factory],
+      Null[ProtocolVersion],
+      values.asJava)
+  }
+}
+
+object ResultSetBuilder {
+  def apply(columns: List[String], rows: List[Row]): ResultSet = {
+    import scala.collection.JavaConverters._
+    val definitions = columns.map { name =>
+      new ColumnDefinitions.Definition("", "", name, DataType.blob())
+    }
+    val columnDefinitions = new ColumnDefinitions(definitions.toArray, Null[CodecRegistry])
+
+    new ResultSet {
+
+      override def one(): Row = rows.head
+
+      override def getColumnDefinitions: ColumnDefinitions = columnDefinitions
+
+      override def wasApplied(): Boolean = false
+
+      override def isExhausted: Boolean = false
+
+      override def all(): java.util.List[Row] = rows.asJava
+
+      override def getExecutionInfo: ExecutionInfo = Null[ExecutionInfo]
+
+      override def getAvailableWithoutFetching: Int = rows.size
+
+      override def isFullyFetched: Boolean = false
+
+      override def iterator(): java.util.Iterator[Row] = rows.iterator.asJava
+
+      override def getAllExecutionInfo: java.util.List[ExecutionInfo] =
+        List.empty[ExecutionInfo].asJava
+
+      override def fetchMoreResults(): ListenableFuture[ResultSet] =
+        Null[ListenableFuture[ResultSet]]
+    }
+  }
+}
