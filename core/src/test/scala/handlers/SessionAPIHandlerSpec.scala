@@ -17,14 +17,16 @@
 package freestyle.cassandra
 package handlers
 
-import java.nio.ByteBuffer
-
-import cats.MonadError
 import com.datastax.driver.core._
+import freestyle.cassandra.TestUtils.MatchersUtil
 import freestyle.cassandra.api.SessionAPIOps
-import freestyle.cassandra.query.model.{SerializableValue, SerializableValueBy}
+import freestyle.cassandra.config.ConfigArbitraries._
+import freestyle.cassandra.query.QueryArbitraries._
+import org.scalacheck.Gen
 import org.scalamock.scalatest.MockFactory
-import org.scalatest.{Matchers, OneInstancePerTest, WordSpec}
+import org.scalacheck.Prop._
+import org.scalatest.prop.Checkers
+import org.scalatest.{OneInstancePerTest, WordSpec}
 
 import scala.collection.JavaConverters._
 import scala.concurrent.{Await, Future}
@@ -32,36 +34,15 @@ import scala.concurrent.ExecutionContext.Implicits.global
 
 class SessionAPIHandlerSpec
     extends WordSpec
-    with Matchers
+    with MatchersUtil
+    with Checkers
     with OneInstancePerTest
     with MockFactory {
 
-  val sessionMock: Session               = mock[Session]
-  val regStMock: RegularStatement        = stub[RegularStatement]
-  val prepStMock: PreparedStatement      = stub[PreparedStatement]
-  val rsMock: ResultSet                  = stub[ResultSet]
-  val queryString: String                = "SELECT * FROM table;"
-  val mapValues: Map[String, AnyRef]     = Map("param1" -> "value1", "param2" -> "value2")
-  val values: Seq[Any]                   = Seq("value1", "value2")
-  val consistencyLevel: ConsistencyLevel = ConsistencyLevel.LOCAL_QUORUM
-
-  val valueSerializedA: ByteBuffer = TypeCodec.ascii().serialize("Hello World!", ProtocolVersion.V3)
-  val serializableValueByIntMockA: SerializableValueBy[Int] = new SerializableValueBy[Int] {
-    override def position = 0
-    override def serializableValue: SerializableValue = new SerializableValue {
-      override def serialize[M[_]](implicit E: MonadError[M, Throwable]): M[ByteBuffer] =
-        E.pure(valueSerializedA)
-    }
-  }
-
-  val valueSerializedB: ByteBuffer = TypeCodec.bigint().serialize(99l, ProtocolVersion.V3)
-  val serializableValueByIntMockB: SerializableValueBy[Int] = new SerializableValueBy[Int] {
-    override def position = 1
-    override def serializableValue: SerializableValue = new SerializableValue {
-      override def serialize[M[_]](implicit E: MonadError[M, Throwable]): M[ByteBuffer] =
-        E.pure(valueSerializedB)
-    }
-  }
+  val sessionMock: Session          = mock[Session]
+  val regStMock: RegularStatement   = stub[RegularStatement]
+  val prepStMock: PreparedStatement = stub[PreparedStatement]
+  val rsMock: ResultSet             = stub[ResultSet]
 
   import cats.instances.future._
   import freestyle.async.implicits._
@@ -70,8 +51,8 @@ class SessionAPIHandlerSpec
   val handler: SessionAPIHandler[Future] = sessionAPIHandler[Future]
 
   import scala.concurrent.duration._
-  def run[T](k: SessionAPIOps[Future, T]): T =
-    Await.result(k.run(sessionMock), 5.seconds)
+  def run[T](k: SessionAPIOps[Future, T], session: Session = sessionMock): T =
+    Await.result(k.run(session), 5.seconds)
 
   "SessionAPIHandler" should {
 
@@ -87,12 +68,16 @@ class SessionAPIHandlerSpec
     }
 
     "call to prepareAsync(String) when calling prepare(String) method" in {
-      val result = successfulFuture(prepStMock)
-      (sessionMock
-        .prepareAsync(_: String))
-        .expects(queryString)
-        .returns(result)
-      run(handler.prepare(queryString)) shouldBe prepStMock
+      check {
+        forAll(selectQueryGen) { query =>
+          val session = mock[Session]
+          (session
+            .prepareAsync(_: String))
+            .expects(query)
+            .returns(successfulFuture(prepStMock))
+          run(handler.prepare(query), session) isEqualTo prepStMock
+        }
+      }
     }
 
     "call to prepareAsync(RegularStatement) when calling prepare(RegularStatement) method" in {
@@ -102,20 +87,33 @@ class SessionAPIHandlerSpec
     }
 
     "call to executeAsync(String) when calling execute(String) method" in {
-      (sessionMock
-        .executeAsync(_: String))
-        .expects(queryString)
-        .returns(ResultSetFutureTest(rsMock))
-      run(handler.execute(queryString)) shouldBe rsMock
+      check {
+        forAll(selectQueryGen) { query =>
+          val session = mock[Session]
+          (session
+            .executeAsync(_: String))
+            .expects(query)
+            .returns(ResultSetFutureTest(rsMock))
+          run(handler.execute(query), session) isEqualTo rsMock
+        }
+      }
     }
 
     "call to executeAsync(String, java.util.Map) when calling executeWithMap(String, Map) method" in {
-      (sessionMock
-        .executeAsync(_: String, _: java.util.Map[String, AnyRef]))
-        .expects(where { (s, m) => s == queryString && m.asScala == mapValues
-        })
-        .returns(ResultSetFutureTest(rsMock))
-      run(handler.executeWithMap(queryString, mapValues)) shouldBe rsMock
+      check {
+        forAll(selectQueryGen, dataGen) {
+          case (query, values) =>
+            val session = mock[Session]
+
+            (session
+              .executeAsync(_: String, _: java.util.Map[String, AnyRef]))
+              .expects {
+                where((s, m) => s == query && m.asScala == values)
+              }
+              .returns(ResultSetFutureTest(rsMock))
+            run(handler.executeWithMap(query, values), session) isEqualTo rsMock
+        }
+      }
     }
 
     "call to executeAsync(Statement) when calling executeStatement(Statement) method" in {
@@ -126,41 +124,31 @@ class SessionAPIHandlerSpec
       run(handler.executeStatement(regStMock)) shouldBe rsMock
     }
 
-    "call to serializableValue and executeAsync(Statement) when calling executeWithByteBuffer(String, List[SerializableValueBy[Int]], None) method" in {
+    "call to serializableValue and executeAsync(Statement) when calling executeWithByteBuffer method" in {
 
-      val values = List(serializableValueByIntMockA, serializableValueByIntMockB)
+      check {
+        forAll(
+          Gen.option(consistencyLevelArb.arbitrary),
+          serializableValueByIntListArb.arbitrary,
+          selectQueryGen) {
+          case (cl, values, query) =>
+            val session = mock[Session]
 
-      (sessionMock
-        .executeAsync(_: Statement))
-        .expects(where { (st: Statement) =>
-          st.isInstanceOf[SimpleStatement] &&
-            (st
-              .asInstanceOf[SimpleStatement]
-              .getValues(Null[ProtocolVersion], Null[CodecRegistry]) sameElements Array(
-              valueSerializedA,
-              valueSerializedB))
-        })
-        .returns(ResultSetFutureTest(rsMock))
-      run(handler.executeWithByteBuffer(queryString, values)) shouldBe rsMock
-    }
-
-    "call to serializableValue and executeAsync(Statement) when calling executeWithByteBuffer(String, List[SerializableValueBy[Int]], Some(ConsistencyLevel)) method" in {
-
-      val values = List(serializableValueByIntMockA, serializableValueByIntMockB)
-
-      (sessionMock
-        .executeAsync(_: Statement))
-        .expects(where { (st: Statement) =>
-          st.isInstanceOf[SimpleStatement] &&
-            (st
-              .asInstanceOf[SimpleStatement]
-              .getValues(Null[ProtocolVersion], Null[CodecRegistry]) sameElements Array(
-              valueSerializedA,
-              valueSerializedB)) &&
-            (st.getConsistencyLevel == consistencyLevel)
-        })
-        .returns(ResultSetFutureTest(rsMock))
-      run(handler.executeWithByteBuffer(queryString, values, Some(consistencyLevel))) shouldBe rsMock
+            (session
+              .executeAsync(_: Statement))
+              .expects(where { (st: Statement) =>
+                st.isInstanceOf[SimpleStatement] &&
+                  st.asInstanceOf[SimpleStatement].getQueryString() == query &&
+                  (st
+                    .asInstanceOf[SimpleStatement]
+                    .getValues(Null[ProtocolVersion], Null[CodecRegistry])
+                    .toList == values.map(_._1)) &&
+                  cl.forall(_ == st.getConsistencyLevel)
+              })
+              .returns(ResultSetFutureTest(rsMock))
+            run(handler.executeWithByteBuffer(query, values.map(_._2), cl), session) isEqualTo rsMock
+        }
+      }
     }
 
   }
