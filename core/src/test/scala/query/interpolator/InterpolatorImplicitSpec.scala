@@ -19,17 +19,16 @@ package query.interpolator
 
 import java.nio.ByteBuffer
 
-import cats.{~>, MonadError}
+import cats.MonadError
 import com.datastax.driver.core._
 import freestyle.cassandra.TestUtils._
 import freestyle.cassandra.api.{apiInterpreter, SessionAPI}
 import freestyle.cassandra.codecs.ByteBufferCodec
-import freestyle.cassandra.handlers.implicits.sessionAPIHandler
+import freestyle.cassandra.implicits._
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, OneInstancePerTest, WordSpec}
 
-import scala.concurrent.{Await, Future}
-import scala.concurrent.duration.Duration
+import scala.concurrent.Future
 
 class InterpolatorImplicitSpec
     extends WordSpec
@@ -54,9 +53,6 @@ class InterpolatorImplicitSpec
   val consistencyLevel = ConsistencyLevel.EACH_QUORUM
 
   "InterpolatorImplicitDef asResultSet" should {
-
-    implicit val interpreter = sessionAPIHandler[Future] andThen apiInterpreter[Future, Session](
-      sessionMock)
 
     "return a valid ResultSet from a FreeS" in {
       val future: Future[ResultSet] =
@@ -115,9 +111,6 @@ class InterpolatorImplicitSpec
   }
 
   "InterpolatorImplicitDef asFree" should {
-
-    implicit val interpreter = sessionAPIHandler[Future] andThen apiInterpreter[Future, Session](
-      sessionMock)
 
     "return a valid result from a FreeS" in {
       val future: Future[Unit] =

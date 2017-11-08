@@ -16,25 +16,37 @@
 
 package freestyle.cassandra
 
-import com.google.common.util.concurrent._
-import freestyle._
+import cats.{~>, MonadError}
+import com.datastax.driver.core.{Cluster, Session}
 import freestyle.async.AsyncContext
+import freestyle.asyncGuava.implicits._
+import freestyle.cassandra.api._
+import freestyle.cassandra.handlers._
+
+import scala.concurrent.ExecutionContext
 
 object implicits {
 
-  class ListenableFuture2AsyncM[M[_]](implicit AC: AsyncContext[M])
-      extends FSHandler[ListenableFuture, M] {
-    override def apply[A](fa: ListenableFuture[A]): M[A] =
-      AC.runAsync { cb =>
-        Futures.addCallback(fa, new FutureCallback[A] {
-          override def onSuccess(result: A): Unit    = cb(Right(result))
-          override def onFailure(t: Throwable): Unit = cb(Left(t))
-        })
-      }
+  implicit def clusterAPIInterpreter[M[_]](
+      implicit cluster: Cluster,
+      AC: AsyncContext[M],
+      E: ExecutionContext,
+      ME: MonadError[M, Throwable]): ClusterAPI.Op ~> M =
+    new ClusterAPIHandler[M] andThen apiInterpreter[M, Cluster](cluster)
 
-  }
+  implicit def sessionAPIInterpreter[M[_]](
+      implicit session: Session,
+      AC: AsyncContext[M],
+      E: ExecutionContext,
+      ME: MonadError[M, Throwable]): SessionAPI.Op ~> M =
+    new SessionAPIHandler[M] andThen apiInterpreter[M, Session](session)
 
-  implicit def listenableFuture2Async[M[_]](implicit AC: AsyncContext[M]) =
-    new ListenableFuture2AsyncM[M]
+  implicit def statementAPIHandler[M[_]](
+      implicit ME: MonadError[M, Throwable]): StatementAPIHandler[M] =
+    new StatementAPIHandler[M]
+
+  implicit def resultSetAPIHandler[M[_]](
+      implicit ME: MonadError[M, Throwable]): ResultSetAPIHandler[M] =
+    new ResultSetAPIHandler[M]
 
 }

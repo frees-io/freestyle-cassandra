@@ -42,17 +42,14 @@ class ResultSetAPIHandlerSpec
     with OneInstancePerTest {
 
   import cats.instances.future._
-  import freestyle.async.implicits._
-  import freestyle.cassandra.handlers.implicits._
 
-  val handler: ResultSetAPIHandler[Future] = resultSetAPIHandler[Future]
+  val handler: ResultSetAPIHandler[Future] = new ResultSetAPIHandler[Future]
 
   implicit val printer: Printer = identityPrinter
 
   implicit val protocolVersion: ProtocolVersion   = ProtocolVersion.V3
   implicit val stringTypeCodec: TypeCodec[String] = TypeCodec.ascii()
   implicit val uuidTypeCodec: TypeCodec[UUID]     = TypeCodec.uuid()
-  import freestyle.cassandra.codecs._
 
   val reader: FromReader[User] = implicitly[FromReader[User]]
 

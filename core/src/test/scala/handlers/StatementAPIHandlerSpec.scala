@@ -57,8 +57,8 @@ class StatementAPIHandlerSpec
   }
 
   import cats.instances.future._
-  import freestyle.cassandra.handlers.implicits._
-  val handler: StatementAPIHandler[Future] = statementAPIHandler[Future]
+  import freestyle.cassandra.implicits._
+  val handler: StatementAPIHandler[Future] = new StatementAPIHandler[Future]
 
   "StatementAPIHandler" should {
 

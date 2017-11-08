@@ -16,12 +16,13 @@
 
 package freestyle.cassandra
 
+import cats.~>
+import com.google.common.util.concurrent.ListenableFuture
 import freestyle.cassandra.TestUtils._
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, OneInstancePerTest, WordSpec}
 
 import scala.concurrent.Future
-
 import scala.concurrent.ExecutionContext.Implicits.global
 
 class ListenableFuture2AsyncMSpec
@@ -31,9 +32,9 @@ class ListenableFuture2AsyncMSpec
     with MockFactory {
 
   import freestyle.async.implicits._
-  import freestyle.cassandra.implicits._
+  import freestyle.asyncGuava.implicits._
 
-  val handler: ListenableFuture2AsyncM[Future] = listenableFuture2Async[Future]
+  val handler: ListenableFuture ~> Future = listenableFuture2Async[Future]
 
   "ListenableFuture2AsyncM" should {
 

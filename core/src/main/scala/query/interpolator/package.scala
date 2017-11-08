@@ -22,8 +22,10 @@ import com.datastax.driver.core.{ConsistencyLevel, ResultSet, Session}
 import contextual.Context
 import freestyle._
 import freestyle.async.AsyncContext
-import freestyle.cassandra.api.{apiInterpreter, SessionAPI}
+import freestyle.cassandra.api._
 import freestyle.cassandra.query.model.SerializableValueBy
+
+import scala.concurrent.ExecutionContext
 
 package object interpolator {
 
@@ -35,14 +37,7 @@ package object interpolator {
 
   final class InterpolatorOps(tuple: (String, List[SerializableValueBy[Int]])) {
 
-    import freestyle.implicits._
-    import freestyle.cassandra.handlers.implicits._
-
-    implicit def sessionAPIInterpreter[M[_]](
-        implicit S: Session,
-        AC: AsyncContext[M],
-        E: MonadError[M, Throwable]): SessionAPI.Op ~> M =
-      sessionAPIHandler andThen apiInterpreter[M, Session](S)
+    import freestyle.cassandra.implicits._
 
     def asResultSet[M[_]](consistencyLevel: Option[ConsistencyLevel] = None)(
         implicit API: SessionAPI[M]): FreeS[M, ResultSet] =
@@ -56,14 +51,16 @@ package object interpolator {
         implicit API: SessionAPI[SessionAPI.Op],
         S: Session,
         AC: AsyncContext[M],
-        E: MonadError[M, Throwable]): M[ResultSet] =
+        E: ExecutionContext,
+        ME: MonadError[M, Throwable]): M[ResultSet] =
       asResultSet[SessionAPI.Op](consistencyLevel).interpret[M]
 
     def attempt[M[_]](consistencyLevel: Option[ConsistencyLevel] = None)(
         implicit API: SessionAPI[SessionAPI.Op],
         S: Session,
         AC: AsyncContext[M],
-        E: MonadError[M, Throwable]): M[Unit] =
+        E: ExecutionContext,
+        ME: MonadError[M, Throwable]): M[Unit] =
       asFree[SessionAPI.Op](consistencyLevel).interpret[M]
 
   }
