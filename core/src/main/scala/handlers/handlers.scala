@@ -34,31 +34,32 @@ import freestyle.cassandra.query.model.SerializableValueBy
 import scala.collection.JavaConverters._
 
 class SessionAPIHandler[M[_]: FlatMap](
-    implicit H: ListenableFuture[?] ~> M,
+    implicit H1: ListenableFuture ~> M,
+    H2: CloseFuture => ListenableFuture[Unit],
     ME: MonadError[M, Throwable])
     extends SessionAPI.Handler[SessionAPIOps[M, ?]] {
 
-  def init: SessionAPIOps[M, Session] = kleisli(s => H(s.initAsync()))
+  def init: SessionAPIOps[M, Session] = kleisli(s => H1(s.initAsync()))
 
-  def close: SessionAPIOps[M, Unit] = closeFuture2unit[M, Session](_.closeAsync())
+  def close: SessionAPIOps[M, Unit] = kleisli(s => H1(s.closeAsync()))
 
   def prepare(query: String): SessionAPIOps[M, PreparedStatement] =
-    kleisli(s => H(s.prepareAsync(query)))
+    kleisli(s => H1(s.prepareAsync(query)))
 
   def prepareStatement(statement: RegularStatement): SessionAPIOps[M, PreparedStatement] =
-    kleisli(s => H(s.prepareAsync(statement)))
+    kleisli(s => H1(s.prepareAsync(statement)))
 
   def execute(query: String): SessionAPIOps[M, ResultSet] =
-    kleisli(s => H(s.executeAsync(query)))
+    kleisli(s => H1(s.executeAsync(query)))
 
   def executeWithValues(query: String, values: Any*): SessionAPIOps[M, ResultSet] =
-    kleisli(s => H(s.executeAsync(query, values)))
+    kleisli(s => H1(s.executeAsync(query, values)))
 
   def executeWithMap(query: String, values: Map[String, AnyRef]): SessionAPIOps[M, ResultSet] =
-    kleisli(s => H(s.executeAsync(query, values.asJava)))
+    kleisli(s => H1(s.executeAsync(query, values.asJava)))
 
   def executeStatement(statement: Statement): SessionAPIOps[M, ResultSet] =
-    kleisli(s => H(s.executeAsync(statement)))
+    kleisli(s => H1(s.executeAsync(statement)))
 
   def executeWithByteBuffer(
       query: String,
@@ -68,7 +69,7 @@ class SessionAPIHandler[M[_]: FlatMap](
       values.traverse(_.serializableValue.serialize[M]).flatMap { values =>
         val st = ByteBufferSimpleStatement(query, values.toArray)
         consistencyLevel.foreach(st.setConsistencyLevel)
-        H(session.executeAsync(st))
+        H1(session.executeAsync(st))
       }
     }
 
@@ -81,15 +82,18 @@ class SessionAPIHandler[M[_]: FlatMap](
 
 }
 
-class ClusterAPIHandler[M[_]](implicit H: ListenableFuture[?] ~> M, ME: MonadError[M, Throwable])
+class ClusterAPIHandler[M[_]](
+    implicit H1: ListenableFuture ~> M,
+    H2: CloseFuture => ListenableFuture[Unit],
+    ME: MonadError[M, Throwable])
     extends ClusterAPI.Handler[ClusterAPIOps[M, ?]] {
 
-  def connect: ClusterAPIOps[M, Session] = kleisli(c => H(c.connectAsync()))
+  def connect: ClusterAPIOps[M, Session] = kleisli(c => H1(c.connectAsync()))
 
   def connectKeyspace(keyspace: String): ClusterAPIOps[M, Session] =
-    kleisli(c => H(c.connectAsync(keyspace)))
+    kleisli(c => H1(c.connectAsync(keyspace)))
 
-  def close: ClusterAPIOps[M, Unit] = closeFuture2unit[M, Cluster](_.closeAsync())
+  def close: ClusterAPIOps[M, Unit] = kleisli(c => H1(c.closeAsync()))
 
   def configuration: ClusterAPIOps[M, Configuration] =
     kleisli(c => ME.catchNonFatal(c.getConfiguration))

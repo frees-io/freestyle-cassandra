@@ -17,11 +17,13 @@
 package freestyle.cassandra
 
 import cats.{~>, MonadError}
-import com.datastax.driver.core.{Cluster, Session}
+import com.datastax.driver.core.{CloseFuture, Cluster, Session}
+import com.google.common.util.concurrent.{AsyncFunction, Futures, ListenableFuture}
 import freestyle.async.AsyncContext
 import freestyle.asyncGuava.implicits._
 import freestyle.cassandra.api._
 import freestyle.cassandra.handlers._
+import java.util.concurrent.{Executor => JavaExecutor}
 
 import scala.concurrent.ExecutionContext
 
@@ -48,5 +50,18 @@ object implicits {
   implicit def resultSetAPIHandler[M[_]](
       implicit ME: MonadError[M, Throwable]): ResultSetAPIHandler[M] =
     new ResultSetAPIHandler[M]
+
+  implicit def closeToListenable(future: CloseFuture)(
+      implicit E: ExecutionContext): ListenableFuture[Unit] =
+    Futures.transformAsync(
+      future,
+      new AsyncFunction[Void, Unit] {
+        override def apply(input: Void): ListenableFuture[Unit] =
+          Futures.immediateFuture((): Unit)
+      },
+      new JavaExecutor {
+        override def execute(command: Runnable): Unit = E.execute(command)
+      }
+    )
 
 }

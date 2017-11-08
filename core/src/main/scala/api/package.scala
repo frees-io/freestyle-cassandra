@@ -18,8 +18,7 @@ package freestyle.cassandra
 
 import cats.data.Kleisli
 import cats.{~>, MonadError}
-import com.datastax.driver.core.{CloseFuture, Cluster, ResultSet, Session}
-import com.google.common.util.concurrent.{AsyncFunction, Futures, ListenableFuture, MoreExecutors}
+import com.datastax.driver.core.{Cluster, ResultSet, Session}
 
 import scala.reflect.ClassTag
 
@@ -43,23 +42,5 @@ package object api {
         .getOrElse(ME.raiseError(
           new IllegalArgumentException(s"Instance of class ${TAG.runtimeClass.getName} is null")))
     }
-
-  def closeFuture2unit[M[_], A](f: A => CloseFuture)(
-      implicit H: ListenableFuture[?] ~> M,
-      ME: MonadError[M, Throwable],
-      TAG: ClassTag[A]): Kleisli[M, A, Unit] = {
-
-    def listenableFuture(a: A): ListenableFuture[Unit] = Futures.transformAsync(
-      f(a),
-      new AsyncFunction[Void, Unit] {
-        override def apply(input: Void): ListenableFuture[Unit] =
-          Futures.immediateFuture((): Unit)
-      },
-      MoreExecutors.directExecutor()
-    )
-
-    kleisli(c => H(listenableFuture(c)))
-
-  }
 
 }
