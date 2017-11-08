@@ -17,7 +17,7 @@
 package freestyle.cassandra
 
 import cats.{~>, MonadError}
-import com.datastax.driver.core.{CloseFuture, Cluster, Session}
+import com.datastax.driver.core.{Cluster, Session}
 import com.google.common.util.concurrent.{AsyncFunction, Futures, ListenableFuture}
 import freestyle.async.AsyncContext
 import freestyle.asyncGuava.implicits._
@@ -51,7 +51,7 @@ object implicits {
       implicit ME: MonadError[M, Throwable]): ResultSetAPIHandler[M] =
     new ResultSetAPIHandler[M]
 
-  implicit def closeToListenable(future: CloseFuture)(
+  implicit def listenableVoidToListenableUnit(future: ListenableFuture[Void])(
       implicit E: ExecutionContext): ListenableFuture[Unit] =
     Futures.transformAsync(
       future,

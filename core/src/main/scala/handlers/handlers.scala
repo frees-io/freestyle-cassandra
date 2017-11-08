@@ -35,7 +35,7 @@ import scala.collection.JavaConverters._
 
 class SessionAPIHandler[M[_]: FlatMap](
     implicit H1: ListenableFuture ~> M,
-    H2: CloseFuture => ListenableFuture[Unit],
+    H2: ListenableFuture[Void] => ListenableFuture[Unit],
     ME: MonadError[M, Throwable])
     extends SessionAPI.Handler[SessionAPIOps[M, ?]] {
 
@@ -84,7 +84,7 @@ class SessionAPIHandler[M[_]: FlatMap](
 
 class ClusterAPIHandler[M[_]](
     implicit H1: ListenableFuture ~> M,
-    H2: CloseFuture => ListenableFuture[Unit],
+    H2: ListenableFuture[Void] => ListenableFuture[Unit],
     ME: MonadError[M, Throwable])
     extends ClusterAPI.Handler[ClusterAPIOps[M, ?]] {
 
