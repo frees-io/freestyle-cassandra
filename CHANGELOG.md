@@ -1,5 +1,14 @@
 # Changelog
 
+## 11/08/2017 - Version 0.0.3
+
+Release changes:
+
+* ResultSet API implementations ([#116](https://github.com/frees-io/freestyle-cassandra/pull/116))
+* Refactorizes handlers and provides implicits ([#117](https://github.com/frees-io/freestyle-cassandra/pull/117))
+* Adds the operations for fetching model from a query ([#118](https://github.com/frees-io/freestyle-cassandra/pull/118))
+
+
 ## 11/06/2017 - Version 0.0.2
 
 Release changes:
