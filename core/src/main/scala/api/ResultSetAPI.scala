@@ -15,21 +15,18 @@
  */
 
 package freestyle.cassandra
+package api
 
-import cats.data.Kleisli
-import cats.~>
-import com.datastax.driver.core.{Cluster, ResultSet, Session}
+import freestyle._
+import freestyle.cassandra.query.mapper.FromReader
 
-package object api {
+@free
+trait ResultSetAPI {
 
-  type SessionAPIOps[F[_], A] = Kleisli[F, Session, A]
+  def read[A](implicit FR: FromReader[A]): FS[A]
 
-  type ClusterAPIOps[F[_], A] = Kleisli[F, Cluster, A]
+  def readOption[A](implicit FR: FromReader[A]): FS[Option[A]]
 
-  type ResultSetAPIOps[F[_], A] = Kleisli[F, ResultSet, A]
-
-  def apiInterpreter[F[_], A](a: A): (Kleisli[F, A, ?] ~> F) = new (Kleisli[F, A, ?] ~> F) {
-    override def apply[B](fa: Kleisli[F, A, B]): F[B] = fa(a)
-  }
+  def readList[A](implicit FR: FromReader[A]): FS[List[A]]
 
 }

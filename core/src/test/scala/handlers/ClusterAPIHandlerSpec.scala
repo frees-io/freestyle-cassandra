@@ -44,69 +44,65 @@ class ClusterAPIHandlerSpec
   import TestUtils._
   val handler: ClusterAPIHandler[Future] = clusterAPIHandler[Future]
 
-  import scala.concurrent.duration._
-  def run[T](k: ClusterAPIOps[Future, T]): T =
-    Await.result(k.run(clusterMock), 5.seconds)
-
   "ListenableFutureHandler" should {
 
     "call to connectAsync when calling connect() method" in {
       val result = successfulFuture(sessionMock)
       (clusterMock.connectAsync _: () => ListenableFuture[Session]).expects().returns(result)
-      run(handler.connect) shouldBe sessionMock
+      runK(handler.connect, clusterMock) shouldBe sessionMock
     }
 
     "call to connectAsync when calling connectKeyspace(String) method" in {
       val result = successfulFuture(sessionMock)
       (clusterMock.connectAsync(_: String)).expects(keyspace).returns(result)
-      run(handler.connectKeyspace(keyspace)) shouldBe sessionMock
+      runK(handler.connectKeyspace(keyspace), clusterMock) shouldBe sessionMock
     }
 
     "call to closeAsync when calling close() method" in {
       (clusterMock.closeAsync _).expects().returns(CloseFutureTest)
-      run(handler.close) shouldBe ((): Unit)
+      runK(handler.close, clusterMock) shouldBe ((): Unit)
     }
 
     "call to getConfiguration when calling configuration method" in {
       (clusterMock.getConfiguration _)
         .expects()
         .returns(configuration)
-      run(handler.configuration) shouldBe configuration
+      runK(handler.configuration, clusterMock) shouldBe configuration
     }
 
     "throw the exception when calling configuration method" in {
       (clusterMock.getConfiguration _)
         .expects()
         .throws(new RuntimeException(""))
-      intercept[RuntimeException](run(handler.configuration))
+      intercept[RuntimeException](runK(handler.configuration, clusterMock))
     }
 
     "call to getMetadata when calling metadata method" in {
       (clusterMock.getMetadata _)
         .expects()
         .returns(metadataTest)
-      run(handler.metadata) shouldBe metadataTest
+      runK(handler.metadata, clusterMock) shouldBe metadataTest
     }
 
     "throw the exception when calling metadata method" in {
       (clusterMock.getMetadata _)
         .expects()
         .throws(new RuntimeException(""))
-      intercept[RuntimeException](run(handler.metadata))
+      intercept[RuntimeException](runK(handler.metadata, clusterMock))
     }
 
     "call to getMetrics when calling metrics method" in {
       (clusterMock.getMetrics _)
         .expects()
         .returns(MetricsTest)
-      run(handler.metrics) shouldBe MetricsTest
+      runK(handler.metrics, clusterMock) shouldBe MetricsTest
     }
 
     "throw the exception when calling metrics method" in {
       (clusterMock.getMetrics _)
         .expects()
         .throws(new RuntimeException(""))
-      intercept[RuntimeException](run(handler.metrics))
+      intercept[RuntimeException](runK(handler.metrics, clusterMock))
     }
 
   }

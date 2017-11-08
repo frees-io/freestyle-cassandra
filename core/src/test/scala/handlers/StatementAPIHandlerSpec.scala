@@ -21,6 +21,7 @@ import java.nio.ByteBuffer
 
 import cats.MonadError
 import com.datastax.driver.core._
+import freestyle.cassandra.TestUtils._
 import freestyle.cassandra.codecs._
 import freestyle.cassandra.query.model.{SerializableValue, SerializableValueBy}
 import org.scalamock.scalatest.MockFactory
@@ -59,34 +60,31 @@ class StatementAPIHandlerSpec
   import freestyle.cassandra.handlers.implicits._
   val handler: StatementAPIHandler[Future] = statementAPIHandler[Future]
 
-  import scala.concurrent.duration._
-  def run[T](k: Future[T]): T = Await.result(k, 5.seconds)
-
   "StatementAPIHandler" should {
 
     "call to bind when calling bind(PreparedStatement) method" in {
-      run(handler.bind(prepStMock)) shouldBe boundStMock
+      runF(handler.bind(prepStMock)) shouldBe boundStMock
       (prepStMock.bind _).verify()
     }
 
     "call to setBytesUnsafe when calling setByteBufferByIndex(BoundStatement, Int, ByteBuffer) method" in {
-      run(handler.setByteBufferByIndex(boundStMock, 10, byteBuffer)) shouldBe boundedStMock
+      runF(handler.setByteBufferByIndex(boundStMock, 10, byteBuffer)) shouldBe boundedStMock
     }
 
     "call to setBytesUnsafe when calling setByteBufferByName(BoundStatement, String, ByteBuffer) method" in {
-      run(handler.setByteBufferByName(boundStMock, "name", byteBuffer)) shouldBe boundedStMock
+      runF(handler.setByteBufferByName(boundStMock, "name", byteBuffer)) shouldBe boundedStMock
     }
 
     "call to setBytesUnsafe when calling setValueByIndex[T](BoundStatement, Int, T, ByteBufferCodec[T]) method" in {
-      run(handler.setValueByIndex(boundStMock, 10, 99.9, doubleCodec)) shouldBe boundedStMock
+      runF(handler.setValueByIndex(boundStMock, 10, 99.9, doubleCodec)) shouldBe boundedStMock
     }
 
     "call to setBytesUnsafe when calling setValueByName[T](BoundStatement, Int, T, ByteBufferCodec[T]) method" in {
-      run(handler.setValueByName(boundStMock, "name", 99.9, doubleCodec)) shouldBe boundedStMock
+      runF(handler.setValueByName(boundStMock, "name", 99.9, doubleCodec)) shouldBe boundedStMock
     }
 
     "call to bind and setBytesUnsafe when calling setByteBufferListByIndex(PreparedStatement, List[SerializableValueByIndex]) method" in {
-      run(
+      runF(
         handler.setByteBufferListByIndex(
           prepStMock,
           List(SerializableValueBy(10, serializableValue)))) shouldBe boundedStMock
@@ -94,7 +92,7 @@ class StatementAPIHandlerSpec
     }
 
     "call to bind and setBytesUnsafe when calling setByteBufferListByName(PreparedStatement, List[SerializableValueByName]) method" in {
-      run(
+      runF(
         handler.setByteBufferListByName(
           prepStMock,
           List(SerializableValueBy("name", serializableValue)))) shouldBe boundedStMock

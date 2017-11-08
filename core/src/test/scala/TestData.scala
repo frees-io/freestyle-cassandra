@@ -16,20 +16,26 @@
 
 package freestyle.cassandra
 
-import cats.data.Kleisli
-import cats.~>
-import com.datastax.driver.core.{Cluster, ResultSet, Session}
+import java.util.UUID
 
-package object api {
+import org.scalacheck.{Arbitrary, Gen}
 
-  type SessionAPIOps[F[_], A] = Kleisli[F, Session, A]
+trait TestData {
 
-  type ClusterAPIOps[F[_], A] = Kleisli[F, Cluster, A]
+  case class User(id: UUID, firstName: String, lastName: String, age: Int)
 
-  type ResultSetAPIOps[F[_], A] = Kleisli[F, ResultSet, A]
+  val usAsciiStringGen: Gen[String] =
+    Gen.containerOf[Array, Char](Gen.choose[Char](0, 127)).map(_.mkString)
 
-  def apiInterpreter[F[_], A](a: A): (Kleisli[F, A, ?] ~> F) = new (Kleisli[F, A, ?] ~> F) {
-    override def apply[B](fa: Kleisli[F, A, B]): F[B] = fa(a)
+  implicit val userArb: Arbitrary[User] = Arbitrary {
+    for {
+      id        <- Gen.uuid
+      firstName <- usAsciiStringGen
+      lastName  <- usAsciiStringGen
+      age       <- Gen.posNum[Int]
+    } yield User(id, firstName, lastName, age)
   }
 
 }
+
+object TestData extends TestData

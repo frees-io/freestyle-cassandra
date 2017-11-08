@@ -20,13 +20,14 @@ package schema.provider
 import java.io.{ByteArrayInputStream, InputStream}
 
 import com.datastax.driver.core._
+import freestyle.cassandra.TestUtils._
 import freestyle.cassandra.config.TestDecoderUtils
 import freestyle.cassandra.schema.SchemaDefinition
 import org.scalacheck.Prop._
 import troy.cql.ast.TableName
 
 import scala.collection.JavaConverters._
-import scala.concurrent.{Await, Future}
+import scala.concurrent.Future
 
 class MetadataSchemaProviderSpec extends TestDecoderUtils {
 
@@ -78,9 +79,7 @@ class MetadataSchemaProviderSpec extends TestDecoderUtils {
               indexedWithTableName.map(_.createIndex) ++
               userTypes.map(_.createType)
 
-            Await.result(
-              metadataSchemaProvider.schemaDefinition,
-              scala.concurrent.duration.Duration.Inf) isEqualTo expected
+            runF(metadataSchemaProvider.schemaDefinition) isEqualTo expected
         }
       }
     }
@@ -92,9 +91,7 @@ class MetadataSchemaProviderSpec extends TestDecoderUtils {
       (clusterMock.connect _: () => Session).expects().returns(sessionMock)
       (clusterMock.getMetadata _).expects().throws(exception)
 
-      Await.result(MetadataSchemaProvider.metadataSchemaProvider[Future].schemaDefinition.recover {
-        case _ => Seq.empty
-      }, scala.concurrent.duration.Duration.Inf) shouldBe Seq.empty
+      runFFailed(MetadataSchemaProvider.metadataSchemaProvider[Future].schemaDefinition) shouldBe exception
     }
 
     "clusterProvider" should {
@@ -104,18 +101,14 @@ class MetadataSchemaProviderSpec extends TestDecoderUtils {
 
         val clusterProvider = MetadataSchemaProvider.clusterProvider[Future](is)
 
-        Await.result(clusterProvider.recover {
-          case _ => Seq.empty
-        }, scala.concurrent.duration.Duration.Inf) shouldBe Seq.empty
+        runFFailed(clusterProvider) shouldBe a[IllegalArgumentException]
       }
 
       "return the valid configuration" in {
         val is: InputStream =
           new ByteArrayInputStream(s"cluster = ${validClusterConfiguration.print}".getBytes)
 
-        val cluster = Await.result(
-          MetadataSchemaProvider.clusterProvider[Future](is),
-          scala.concurrent.duration.Duration.Inf)
+        val cluster = runF(MetadataSchemaProvider.clusterProvider[Future](is))
 
         Option(cluster.getClusterName) shouldBe validClusterConfiguration.name
       }

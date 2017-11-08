@@ -16,10 +16,11 @@
 
 package freestyle.cassandra
 
+import freestyle.cassandra.TestUtils._
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, OneInstancePerTest, WordSpec}
 
-import scala.concurrent.{duration, Await, Future}
+import scala.concurrent.Future
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
@@ -31,7 +32,6 @@ class ListenableFuture2AsyncMSpec
 
   import freestyle.async.implicits._
   import freestyle.cassandra.implicits._
-  import TestUtils._
 
   val handler: ListenableFuture2AsyncM[Future] = listenableFuture2Async[Future]
 
@@ -39,15 +39,12 @@ class ListenableFuture2AsyncMSpec
 
     "return a successfully future when a successfully listenable future is passed" in {
       val value = "Hello World!"
-      Await.result(handler(successfulFuture(value)), duration.Duration.Inf) shouldEqual value
+      runF(handler(successfulFuture(value))) shouldEqual value
     }
 
     "return a failed future when a failed listenable future is passed" in {
       val value = "Hello World!"
-      val future = handler(failedFuture[String]) recover {
-        case _ => value
-      }
-      Await.result(future, duration.Duration.Inf) shouldEqual value
+      runFFailed(handler(failedFuture[String])) shouldBe exception
     }
 
   }

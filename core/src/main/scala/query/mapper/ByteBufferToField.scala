@@ -17,7 +17,10 @@
 package freestyle.cassandra
 package query.mapper
 
+import java.nio.ByteBuffer
+
 import cats.MonadError
+import com.datastax.driver.core.Row
 import freestyle.cassandra.codecs.ByteBufferCodec
 import freestyle.cassandra.query._
 import shapeless._
@@ -26,6 +29,11 @@ import shapeless.{::, HList, Witness}
 
 trait FromReader[A] {
   def apply[M[_]](reader: ByteBufferReader)(implicit ME: MonadError[M, Throwable]): M[A]
+}
+
+case class DatastaxRowReader(row: Row) extends ByteBufferReader {
+  override def read[M[_]](name: String)(implicit ME: MonadError[M, Throwable]): M[ByteBuffer] =
+    ME.catchNonFatal(row.getBytesUnsafe(name))
 }
 
 trait GenericFromReader {

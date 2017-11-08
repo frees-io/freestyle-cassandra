@@ -32,7 +32,7 @@ import org.scalacheck.{Arbitrary, Gen}
 
 trait ConfigArbitraries {
 
-  implicit val consistencyLevelArbitrary: Arbitrary[ConsistencyLevel] = Arbitrary {
+  implicit val consistencyLevelArb: Arbitrary[ConsistencyLevel] = Arbitrary {
     Gen.oneOf(
       ConsistencyLevel.ALL,
       ConsistencyLevel.ANY,
