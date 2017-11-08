@@ -21,8 +21,10 @@ import cats.{~>, MonadError}
 import com.datastax.driver.core.{ConsistencyLevel, ResultSet, Session}
 import contextual.Context
 import freestyle._
+import freestyle.implicits._
 import freestyle.async.AsyncContext
 import freestyle.cassandra.api._
+import freestyle.cassandra.query.mapper.FromReader
 import freestyle.cassandra.query.model.SerializableValueBy
 
 import scala.concurrent.ExecutionContext
@@ -39,33 +41,75 @@ package object interpolator {
 
     import freestyle.cassandra.implicits._
 
-    def asResultSet[M[_]](consistencyLevel: Option[ConsistencyLevel] = None)(
-        implicit API: SessionAPI[M]): FreeS[M, ResultSet] =
-      API.executeWithByteBuffer(tuple._1, tuple._2, consistencyLevel)
+    def asResultSet(consistencyLevel: Option[ConsistencyLevel] = None)(
+        implicit Q: QueryModule[QueryModule.Op]): FreeS[QueryModule.Op, ResultSet] =
+      Q.sessionAPI.executeWithByteBuffer(tuple._1, tuple._2, consistencyLevel)
 
-    def asFree[M[_]](consistencyLevel: Option[ConsistencyLevel] = None)(
-        implicit API: SessionAPI[M]): FreeS[M, Unit] =
-      asResultSet[M](consistencyLevel).map(_ => (): Unit)
+    def asFree(consistencyLevel: Option[ConsistencyLevel] = None)(
+        implicit Q: QueryModule[QueryModule.Op]): FreeS[QueryModule.Op, Unit] =
+      asResultSet(consistencyLevel).map(_ => (): Unit)
+
+    def as[A](consistencyLevel: Option[ConsistencyLevel] = None)(
+        implicit Q: QueryModule[QueryModule.Op],
+        FR: FromReader[A]): FreeS[QueryModule.Op, A] =
+      asResultSet(consistencyLevel).flatMap(Q.resultSetAPI.read[A](_))
+
+    def asOption[A](consistencyLevel: Option[ConsistencyLevel] = None)(
+        implicit Q: QueryModule[QueryModule.Op],
+        FR: FromReader[A]): FreeS[QueryModule.Op, Option[A]] =
+      asResultSet(consistencyLevel).flatMap(Q.resultSetAPI.readOption[A](_))
+
+    def asList[A](consistencyLevel: Option[ConsistencyLevel] = None)(
+        implicit Q: QueryModule[QueryModule.Op],
+        FR: FromReader[A]): FreeS[QueryModule.Op, List[A]] =
+      asResultSet(consistencyLevel).flatMap(Q.resultSetAPI.readList[A](_))
 
     def attemptResultSet[M[_]](consistencyLevel: Option[ConsistencyLevel] = None)(
-        implicit API: SessionAPI[SessionAPI.Op],
+        implicit Q: QueryModule[QueryModule.Op],
         S: Session,
         AC: AsyncContext[M],
         E: ExecutionContext,
         ME: MonadError[M, Throwable]): M[ResultSet] =
-      asResultSet[SessionAPI.Op](consistencyLevel).interpret[M]
+      asResultSet(consistencyLevel).interpret[M]
 
     def attempt[M[_]](consistencyLevel: Option[ConsistencyLevel] = None)(
-        implicit API: SessionAPI[SessionAPI.Op],
+        implicit Q: QueryModule[QueryModule.Op],
         S: Session,
         AC: AsyncContext[M],
         E: ExecutionContext,
         ME: MonadError[M, Throwable]): M[Unit] =
-      asFree[SessionAPI.Op](consistencyLevel).interpret[M]
+      asFree(consistencyLevel).interpret[M]
+
+    def attemptAs[M[_], A](consistencyLevel: Option[ConsistencyLevel] = None)(
+        implicit Q: QueryModule[QueryModule.Op],
+        S: Session,
+        AC: AsyncContext[M],
+        E: ExecutionContext,
+        ME: MonadError[M, Throwable],
+        FR: FromReader[A]): M[A] =
+      as[A](consistencyLevel).interpret[M]
+
+    def attemptAsOption[M[_], A](consistencyLevel: Option[ConsistencyLevel] = None)(
+        implicit Q: QueryModule[QueryModule.Op],
+        S: Session,
+        AC: AsyncContext[M],
+        E: ExecutionContext,
+        ME: MonadError[M, Throwable],
+        FR: FromReader[A]): M[Option[A]] =
+      asOption[A](consistencyLevel).interpret[M]
+
+    def attemptAsList[M[_], A](consistencyLevel: Option[ConsistencyLevel] = None)(
+        implicit Q: QueryModule[QueryModule.Op],
+        S: Session,
+        AC: AsyncContext[M],
+        E: ExecutionContext,
+        ME: MonadError[M, Throwable],
+        FR: FromReader[A]): M[List[A]] =
+      asList[A](consistencyLevel).interpret[M]
 
   }
 
-  implicit def inserpolatorOps(tuple: (String, List[SerializableValueBy[Int]])): InterpolatorOps =
+  implicit def interpolatorOps(tuple: (String, List[SerializableValueBy[Int]])): InterpolatorOps =
     new InterpolatorOps(tuple)
 
 }

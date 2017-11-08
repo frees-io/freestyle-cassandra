@@ -59,17 +59,17 @@ class ResultSetAPIHandlerSpec
       check {
         forAll(rowAndDataGen[User]) {
           case (resultSet, Nil) =>
-            runKFailed(handler.read[User](reader), resultSet) isLikeTo {
+            runFFailed(handler.read[User](resultSet, reader)) isLikeTo {
               _.isInstanceOf[IllegalStateException]
             }
           case (resultSet, list) =>
-            runK(handler.read[User](reader), resultSet) isEqualTo list.head
+            runF(handler.read[User](resultSet, reader)) isEqualTo list.head
         }
       }
     }
 
     "return a failed future for an invalid ResultSet" in {
-      runKFailed(handler.read[User](reader), ResultSetBuilder.error) shouldBe ResultSetBuilder.exception
+      runFFailed(handler.read[User](ResultSetBuilder.error, reader)) shouldBe ResultSetBuilder.exception
     }
   }
 
@@ -79,15 +79,15 @@ class ResultSetAPIHandlerSpec
       check {
         forAll(rowAndDataGen[User]) {
           case (resultSet, Nil) =>
-            runK(handler.readOption[User](reader), resultSet).isEmpty
+            runF(handler.readOption[User](resultSet, reader)).isEmpty
           case (resultSet, list) =>
-            runK(handler.readOption[User](reader), resultSet) == list.headOption
+            runF(handler.readOption[User](resultSet, reader)) == list.headOption
         }
       }
     }
 
     "return a failed future for an invalid ResultSet" in {
-      runKFailed(handler.readOption[User](reader), ResultSetBuilder.error) shouldBe ResultSetBuilder.exception
+      runFFailed(handler.readOption[User](ResultSetBuilder.error, reader)) shouldBe ResultSetBuilder.exception
     }
   }
 
@@ -97,13 +97,13 @@ class ResultSetAPIHandlerSpec
       check {
         forAll(rowAndDataGen[User]) {
           case (resultSet, list) =>
-            runK(handler.readList[User](reader), resultSet) == list
+            runF(handler.readList[User](resultSet, reader)) == list
         }
       }
     }
 
     "return a failed future for an invalid ResultSet" in {
-      runKFailed(handler.readList[User](reader), ResultSetBuilder.error) shouldBe ResultSetBuilder.exception
+      runFFailed(handler.readList[User](ResultSetBuilder.error, reader)) shouldBe ResultSetBuilder.exception
     }
   }
 

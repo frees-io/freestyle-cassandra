@@ -37,9 +37,9 @@ class ResultSetAPISpec extends WordSpec with Matchers with OneInstancePerTest wi
 
   implicit val resultSetAPIHandler: ResultSetAPI.Op ~> Id = new (ResultSetAPI.Op ~> Id) {
     override def apply[A](fa: ResultSetAPI.Op[A]): Id[A] = fa match {
-      case ResultSetAPI.ReadOp(_)       => test.asInstanceOf[A]
-      case ResultSetAPI.ReadOptionOp(_) => Some(test)
-      case ResultSetAPI.ReadListOp(_)   => List(test)
+      case ResultSetAPI.ReadOp(_, _)       => test.asInstanceOf[A]
+      case ResultSetAPI.ReadOptionOp(_, _) => Some(test)
+      case ResultSetAPI.ReadListOp(_, _)   => List(test)
     }
   }
 
@@ -51,9 +51,9 @@ class ResultSetAPISpec extends WordSpec with Matchers with OneInstancePerTest wi
 
       def program[F[_]](implicit api: ResultSetAPI[F]): FreeS[F, ReturnResult] = {
         for {
-          v1 <- api.read[Test]
-          v2 <- api.readOption[Test]
-          v3 <- api.readList[Test]
+          v1 <- api.read[Test](resultSet)
+          v2 <- api.readOption[Test](resultSet)
+          v3 <- api.readList[Test](resultSet)
         } yield (v1, v2, v3)
       }
 
