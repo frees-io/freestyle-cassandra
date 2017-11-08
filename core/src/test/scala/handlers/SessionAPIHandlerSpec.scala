@@ -18,8 +18,8 @@ package freestyle.cassandra
 package handlers
 
 import com.datastax.driver.core._
+import freestyle.asyncGuava.implicits._
 import freestyle.cassandra.TestUtils.MatchersUtil
-import freestyle.cassandra.api.SessionAPIOps
 import freestyle.cassandra.config.ConfigArbitraries._
 import freestyle.cassandra.query.QueryArbitraries._
 import org.scalacheck.Gen
@@ -29,7 +29,7 @@ import org.scalatest.prop.Checkers
 import org.scalatest.{OneInstancePerTest, WordSpec}
 
 import scala.collection.JavaConverters._
-import scala.concurrent.{Await, Future}
+import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 
 class SessionAPIHandlerSpec
@@ -46,9 +46,9 @@ class SessionAPIHandlerSpec
 
   import cats.instances.future._
   import freestyle.async.implicits._
-  import freestyle.cassandra.handlers.implicits._
+  import freestyle.cassandra.implicits._
   import TestUtils._
-  val handler: SessionAPIHandler[Future] = sessionAPIHandler[Future]
+  val handler: SessionAPIHandler[Future] = new SessionAPIHandler[Future]
 
   "SessionAPIHandler" should {
 

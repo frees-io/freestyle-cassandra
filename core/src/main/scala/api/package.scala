@@ -17,8 +17,10 @@
 package freestyle.cassandra
 
 import cats.data.Kleisli
-import cats.~>
+import cats.{~>, MonadError}
 import com.datastax.driver.core.{Cluster, ResultSet, Session}
+
+import scala.reflect.ClassTag
 
 package object api {
 
@@ -31,5 +33,14 @@ package object api {
   def apiInterpreter[F[_], A](a: A): (Kleisli[F, A, ?] ~> F) = new (Kleisli[F, A, ?] ~> F) {
     override def apply[B](fa: Kleisli[F, A, B]): F[B] = fa(a)
   }
+
+  def kleisli[M[_], A, B](
+      f: A => M[B])(implicit ME: MonadError[M, Throwable], TAG: ClassTag[A]): Kleisli[M, A, B] =
+    Kleisli { (a: A) =>
+      Option(a)
+        .map(f)
+        .getOrElse(ME.raiseError(
+          new IllegalArgumentException(s"Instance of class ${TAG.runtimeClass.getName} is null")))
+    }
 
 }

@@ -15,14 +15,35 @@
  */
 
 package freestyle.cassandra
-package schema
+package api
 
-import cats.MonadError
+import cats.instances.try_._
+import freestyle.cassandra.TestUtils._
+import org.scalacheck.Prop._
+import org.scalatest.WordSpec
+import org.scalatest.prop.Checkers
 
-package object provider {
+import scala.util.{Success, Try}
 
-  trait SchemaDefinitionProvider[M[_]] {
-    def schemaDefinition(implicit E: MonadError[M, Throwable]): M[SchemaDefinition]
+class PackageAPISpec extends WordSpec with MatchersUtil with Checkers {
+
+  def sample(s: String): Try[Int] = Success(s.length)
+
+  "kleisli" should {
+
+    "apply the Kleisli function for a valid dependency" in {
+
+      check {
+        forAll { s: String => kleisli(sample).run(s) isEqualTo Success(s.length)
+        }
+      }
+
+    }
+
+    "return an error for a null dependency" in {
+      kleisli(sample).run(Null[String]).isFailure shouldBe true
+    }
+
   }
 
 }

@@ -26,7 +26,7 @@ import org.scalatest.{Matchers, WordSpec}
 
 import scala.util.{Success, Try}
 
-class SchemaFileInterpolatorTest extends WordSpec with Matchers {
+class MacroInterpolatorTest extends WordSpec with Matchers {
 
   "SchemaFileInterpolator" should {
 
@@ -90,6 +90,42 @@ class SchemaFileInterpolatorTest extends WordSpec with Matchers {
 
       import MySchemaInterpolator._
       """cql"CREATEtable test.users2 (id uuid, PRIMARY KEY (id))"""" shouldNot compile
+    }
+
+    "not compile when passing an empty string to the macro interpolator" in {
+      """
+        |import freestyle.cassandra.query.interpolator.MacroInterpolator.SchemaFileInterpolator
+        |@SchemaFileInterpolator("")
+        |trait MyInterpolator
+      """.stripMargin shouldNot compile
+    }
+
+    "not compile when trying to apply the macro interpolator to a class" in {
+      """
+        |import freestyle.cassandra.query.interpolator.MacroInterpolator.SchemaFileInterpolator
+        |@SchemaFileInterpolator("/schema.sql")
+        |class MyInterpolator
+      """.stripMargin shouldNot compile
+    }
+
+  }
+
+  "SchemaMetadataInterpolator" should {
+
+    "not compile when passing an empty string to the macro interpolator" in {
+      """
+        |import freestyle.cassandra.query.interpolator.MacroInterpolator.SchemaMetadataInterpolator
+        |@SchemaMetadataInterpolator("")
+        |trait MyInterpolator
+      """.stripMargin shouldNot compile
+    }
+
+    "not compile when trying to apply the macro interpolator to a class" in {
+      """
+        |import freestyle.cassandra.query.interpolator.MacroInterpolator.SchemaMetadataInterpolator
+        |@SchemaMetadataInterpolator("/cluster.conf")
+        |class MyInterpolator
+      """.stripMargin shouldNot compile
     }
 
   }
