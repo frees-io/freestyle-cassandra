@@ -17,17 +17,13 @@
 package freestyle.cassandra
 package api
 
-import com.datastax.driver.core.ResultSet
 import freestyle._
-import freestyle.cassandra.query.mapper.FromReader
 
-@free
-trait ResultSetAPI {
+@module
+trait QueryModule {
 
-  def read[A](resultSet: ResultSet)(implicit FR: FromReader[A]): FS[A]
-
-  def readOption[A](resultSet: ResultSet)(implicit FR: FromReader[A]): FS[Option[A]]
-
-  def readList[A](resultSet: ResultSet)(implicit FR: FromReader[A]): FS[List[A]]
+  val sessionAPI: SessionAPI
+  val statementAPI: StatementAPI
+  val resultSetAPI: ResultSetAPI
 
 }

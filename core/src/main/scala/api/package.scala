@@ -28,8 +28,6 @@ package object api {
 
   type ClusterAPIOps[F[_], A] = Kleisli[F, Cluster, A]
 
-  type ResultSetAPIOps[F[_], A] = Kleisli[F, ResultSet, A]
-
   def apiInterpreter[F[_], A](a: A): (Kleisli[F, A, ?] ~> F) = new (Kleisli[F, A, ?] ~> F) {
     override def apply[B](fa: Kleisli[F, A, B]): F[B] = fa(a)
   }

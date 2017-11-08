@@ -161,31 +161,25 @@ class StatementAPIHandler[M[_]](implicit ME: MonadError[M, Throwable])
 }
 
 class ResultSetAPIHandler[M[_]](implicit ME: MonadError[M, Throwable])
-    extends ResultSetAPI.Handler[ResultSetAPIOps[M, ?]] {
+    extends ResultSetAPI.Handler[M] {
 
-  def read[A](FR: FromReader[A]): ResultSetAPIOps[M, A] =
-    kleisli { resultSet =>
-      ME.flatMap(ME.catchNonFatal(resultSet.one())) {
-        Option(_)
-          .map(readRow(_, FR))
-          .getOrElse(ME.raiseError(new IllegalStateException("Row is empty")))
-      }
+  def read[A](resultSet: ResultSet, FR: FromReader[A]): M[A] =
+    ME.flatMap(ME.catchNonFatal(resultSet.one())) {
+      Option(_)
+        .map(readRow(_, FR))
+        .getOrElse(ME.raiseError(new IllegalStateException("Row is empty")))
     }
 
-  def readOption[A](FR: FromReader[A]): ResultSetAPIOps[M, Option[A]] =
-    kleisli { resultSet =>
-      ME.flatMap(ME.catchNonFatal(resultSet.one())) {
-        Option(_)
-          .map(row => ME.map(readRow(row, FR))(Option(_)))
-          .getOrElse(ME.pure(None))
-      }
+  def readOption[A](resultSet: ResultSet, FR: FromReader[A]): M[Option[A]] =
+    ME.flatMap(ME.catchNonFatal(resultSet.one())) {
+      Option(_)
+        .map(row => ME.map(readRow(row, FR))(Option(_)))
+        .getOrElse(ME.pure(None))
     }
 
-  def readList[A](FR: FromReader[A]): ResultSetAPIOps[M, List[A]] = {
+  def readList[A](resultSet: ResultSet, FR: FromReader[A]): M[List[A]] = {
     import scala.collection.JavaConverters._
-    kleisli { resultSet =>
-      ME.flatMap(ME.catchNonFatal(resultSet.iterator().asScala.toList))(_.traverse(readRow(_, FR)))
-    }
+    ME.flatMap(ME.catchNonFatal(resultSet.iterator().asScala.toList))(_.traverse(readRow(_, FR)))
   }
 
   private[this] def readRow[A](row: Row, fromReader: FromReader[A]): M[A] =

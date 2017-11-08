@@ -18,26 +18,39 @@ package freestyle.cassandra
 package query.interpolator
 
 import java.nio.ByteBuffer
+import java.util.UUID
 
 import cats.MonadError
 import com.datastax.driver.core._
+import freestyle._
+import freestyle.implicits._
+import freestyle.cassandra.TestData._
 import freestyle.cassandra.TestUtils._
-import freestyle.cassandra.api.{apiInterpreter, SessionAPI}
 import freestyle.cassandra.codecs.ByteBufferCodec
+import freestyle.cassandra.config.ConfigArbitraries._
 import freestyle.cassandra.implicits._
+import freestyle.cassandra.query.FieldLister._
+import freestyle.cassandra.query.mapper.FieldListMapper._
+import freestyle.cassandra.query._
+import freestyle.cassandra.query.QueryArbitraries._
+import freestyle.cassandra.query.mapper.FromReader
+import freestyle.cassandra.query.mapper.GenericFromReader._
+import org.scalacheck.Gen
+import org.scalacheck.Prop._
 import org.scalamock.scalatest.MockFactory
-import org.scalatest.{Matchers, OneInstancePerTest, WordSpec}
+import org.scalatest.prop.Checkers
+import org.scalatest.{OneInstancePerTest, WordSpec}
 
 import scala.concurrent.Future
 
 class InterpolatorImplicitSpec
     extends WordSpec
-    with Matchers
+    with MatchersUtil
+    with Checkers
     with OneInstancePerTest
     with MockFactory {
 
   import RuntimeCQLInterpolator._
-  import freestyle.cassandra.query.interpolator._
 
   import freestyle.async.implicits._
   import scala.concurrent.ExecutionContext.Implicits.global
@@ -45,89 +58,131 @@ class InterpolatorImplicitSpec
   implicit val E: MonadError[Future, Throwable] =
     cats.instances.future.catsStdInstancesForFuture
 
-  implicit val sessionMock: Session = stub[Session]
-
   val rsMock: ResultSet = stub[ResultSet]
-  (sessionMock.executeAsync(_: Statement)).when(*).returns(ResultSetFutureTest(rsMock))
 
-  val consistencyLevel = ConsistencyLevel.EACH_QUORUM
+  def mockSession(cl: Option[ConsistencyLevel], resultSet: ResultSet = rsMock): Session = {
+    val sessionMock: Session = mock[Session]
+    (sessionMock
+      .executeAsync(_: Statement))
+      .expects(where((st: Statement) => cl.forall(v => st.getConsistencyLevel == v)))
+      .returns(ResultSetFutureTest(resultSet))
+    sessionMock
+  }
+
+  implicit val printer: Printer = identityPrinter
+
+  implicit val protocolVersion: ProtocolVersion   = ProtocolVersion.V3
+  implicit val stringTypeCodec: TypeCodec[String] = TypeCodec.ascii()
+  implicit val uuidTypeCodec: TypeCodec[UUID]     = TypeCodec.uuid()
+
+  val reader: FromReader[User] = implicitly[FromReader[User]]
 
   "InterpolatorImplicitDef asResultSet" should {
 
     "return a valid ResultSet from a FreeS" in {
-      val future: Future[ResultSet] =
-        cql"SELECT * FROM users".asResultSet[SessionAPI.Op]().interpret[Future]
-      runF(future) shouldBe rsMock
-    }
+      check {
+        forAll { cl: Option[ConsistencyLevel] =>
+          implicit val sessionMock: Session = mockSession(cl)
 
-    "return a valid ResultSet from a FreeS when passing a ConsistencyLevel" in {
-      val future: Future[ResultSet] =
-        cql"SELECT * FROM users"
-          .asResultSet[SessionAPI.Op](Some(consistencyLevel))
-          .interpret[Future]
-      runF(future) shouldBe rsMock
-      (sessionMock
-        .executeAsync(_: Statement))
-        .verify(where { (st: Statement) => st.getConsistencyLevel == consistencyLevel
-        })
+          val future: Future[ResultSet] =
+            cql"CREATE TABLE users (id uuid PRIMARY KEY)".asResultSet(cl).interpret[Future]
+          runF(future) isEqualTo rsMock
+        }
+      }
     }
 
     "return a failed future when the ByteBufferCodec returns a failure" in {
-      val serializeException = new RuntimeException("Error serializing")
-      implicit val stringByteBufferCodec: ByteBufferCodec[String] = new ByteBufferCodec[String] {
-        override def deserialize[M[_]](bytes: ByteBuffer)(
-            implicit E: MonadError[M, Throwable]): M[String] =
-          E.raiseError(new RuntimeException("Error deserializing"))
+      check {
+        forAll { cl: Option[ConsistencyLevel] =>
+          implicit val sessionMock: Session = mock[Session]
+          val serializeException            = new RuntimeException("Error serializing")
+          implicit val stringByteBufferCodec: ByteBufferCodec[String] =
+            new ByteBufferCodec[String] {
+              override def deserialize[M[_]](bytes: ByteBuffer)(
+                  implicit E: MonadError[M, Throwable]): M[String] =
+                E.raiseError(new RuntimeException("Error deserializing"))
 
-        override def serialize[M[_]](value: String)(
-            implicit E: MonadError[M, Throwable]): M[ByteBuffer] =
-          E.raiseError(serializeException)
+              override def serialize[M[_]](value: String)(
+                  implicit E: MonadError[M, Throwable]): M[ByteBuffer] =
+                E.raiseError(serializeException)
+            }
+          val name: String = "UserName"
+          val future: Future[ResultSet] =
+            cql"SELECT * FROM users WHERE name=$name".asResultSet().interpret[Future]
+          runF(future.failed) isEqualTo serializeException
+        }
       }
-      val name: String = "UserName"
-      val future: Future[ResultSet] =
-        cql"SELECT * FROM users WHERE name=$name".asResultSet[SessionAPI.Op]().interpret[Future]
-      runF(future.failed) shouldBe serializeException
     }
-
-    "return a failed future when the ByteBufferCodec returns a failure when passing a ConsistencyLevel" in {
-      val serializeException = new RuntimeException("Error serializing")
-      implicit val stringByteBufferCodec: ByteBufferCodec[String] = new ByteBufferCodec[String] {
-        override def deserialize[M[_]](bytes: ByteBuffer)(
-            implicit E: MonadError[M, Throwable]): M[String] =
-          E.raiseError(new RuntimeException("Error deserializing"))
-
-        override def serialize[M[_]](value: String)(
-            implicit E: MonadError[M, Throwable]): M[ByteBuffer] =
-          E.raiseError(serializeException)
-      }
-      val name: String = "UserName"
-      val future: Future[ResultSet] =
-        cql"SELECT * FROM users WHERE name=$name"
-          .asResultSet[SessionAPI.Op](Some(consistencyLevel))
-          .interpret[Future]
-      runF(future.failed) shouldBe serializeException
-    }
-
   }
 
   "InterpolatorImplicitDef asFree" should {
 
     "return a valid result from a FreeS" in {
-      val future: Future[Unit] =
-        cql"CREATE TABLE users (id uuid PRIMARY KEY)".asFree[SessionAPI.Op]().interpret[Future]
-      runF(future) shouldBe ((): Unit)
+
+      check {
+        forAll { cl: Option[ConsistencyLevel] =>
+          implicit val sessionMock: Session = mockSession(cl)
+
+          val future: Future[Unit] =
+            cql"CREATE TABLE users (id uuid PRIMARY KEY)".asFree(cl).interpret[Future]
+          runF(future) isEqualTo ((): Unit)
+        }
+      }
     }
 
-    "return a valid result from a FreeS when passing a ConsistencyLevel" in {
-      val future: Future[Unit] =
-        cql"CREATE TABLE users (id uuid PRIMARY KEY)"
-          .asFree[SessionAPI.Op](Some(consistencyLevel))
-          .interpret[Future]
-      runF(future) shouldBe ((): Unit)
-      (sessionMock
-        .executeAsync(_: Statement))
-        .verify(where { (st: Statement) => st.getConsistencyLevel == consistencyLevel
-        })
+  }
+
+  "InterpolatorImplicitDef as[A]" should {
+
+    "return a valid result from a FreeS" in {
+
+      check {
+        forAll(rowAndDataGen[User], Gen.option(consistencyLevelArb.arbitrary)) {
+          case ((resultSet, list), cl) =>
+            implicit val sessionMock: Session = mockSession(cl, resultSet)
+            val future: Future[User] =
+              cql"SELECT * FROM users".as[User](cl).interpret[Future]
+            if (list.isEmpty) {
+              runFFailed(future) isLikeTo (_.isInstanceOf[IllegalStateException])
+            } else {
+              runF(future) isEqualTo list.head
+            }
+        }
+      }
+    }
+
+  }
+
+  "InterpolatorImplicitDef asOption[A]" should {
+
+    "return a valid result from a FreeS" in {
+
+      check {
+        forAll(rowAndDataGen[User], Gen.option(consistencyLevelArb.arbitrary)) {
+          case ((resultSet, list), cl) =>
+            implicit val sessionMock: Session = mockSession(cl, resultSet)
+            val future: Future[Option[User]] =
+              cql"SELECT * FROM users".asOption[User](cl).interpret[Future]
+            runF(future) isEqualTo list.headOption
+        }
+      }
+    }
+
+  }
+
+  "InterpolatorImplicitDef asList[A]" should {
+
+    "return a valid result from a FreeS" in {
+
+      check {
+        forAll(rowAndDataGen[User], Gen.option(consistencyLevelArb.arbitrary)) {
+          case ((resultSet, list), cl) =>
+            implicit val sessionMock: Session = mockSession(cl, resultSet)
+            val future: Future[List[User]] =
+              cql"SELECT * FROM users".asList[User](cl).interpret[Future]
+            runF(future) isEqualTo list
+        }
+      }
     }
 
   }
@@ -135,52 +190,38 @@ class InterpolatorImplicitSpec
   "InterpolatorImplicitDef attemptResultSet()" should {
 
     "return a valid ResultSet" in {
-      val future: Future[ResultSet] = cql"SELECT * FROM users".attemptResultSet[Future]()
-      runF(future) shouldBe rsMock
-    }
+      check {
+        forAll { cl: Option[ConsistencyLevel] =>
+          implicit val sessionMock: Session = mockSession(cl)
 
-    "return a valid ResultSet when passing a ConsistencyLevel" in {
-      val future: Future[ResultSet] =
-        cql"SELECT * FROM users".attemptResultSet[Future](Some(consistencyLevel))
-      runF(future) shouldBe rsMock
-      (sessionMock
-        .executeAsync(_: Statement))
-        .verify(where { (st: Statement) => st.getConsistencyLevel == consistencyLevel
-        })
+          val future: Future[ResultSet] = cql"SELECT * FROM users".attemptResultSet[Future](cl)
+          runF(future) isEqualTo rsMock
+        }
+      }
     }
 
     "return a failed future when the ByteBufferCodec returns a failure" in {
-      val serializeException = new RuntimeException("Error serializing")
-      implicit val stringByteBufferCodec: ByteBufferCodec[String] = new ByteBufferCodec[String] {
-        override def deserialize[M[_]](bytes: ByteBuffer)(
-            implicit E: MonadError[M, Throwable]): M[String] =
-          E.raiseError(new RuntimeException("Error deserializing"))
+      check {
+        forAll { cl: Option[ConsistencyLevel] =>
+          implicit val sessionMock: Session = mock[Session]
 
-        override def serialize[M[_]](value: String)(
-            implicit E: MonadError[M, Throwable]): M[ByteBuffer] =
-          E.raiseError(serializeException)
+          val serializeException = new RuntimeException("Error serializing")
+          implicit val stringByteBufferCodec: ByteBufferCodec[String] =
+            new ByteBufferCodec[String] {
+              override def deserialize[M[_]](bytes: ByteBuffer)(
+                  implicit E: MonadError[M, Throwable]): M[String] =
+                E.raiseError(new RuntimeException("Error deserializing"))
+
+              override def serialize[M[_]](value: String)(
+                  implicit E: MonadError[M, Throwable]): M[ByteBuffer] =
+                E.raiseError(serializeException)
+            }
+          val name: String = "UserName"
+          val future: Future[ResultSet] =
+            cql"SELECT * FROM users WHERE name=$name".attemptResultSet[Future](cl)
+          runFFailed(future) isEqualTo serializeException
+        }
       }
-      val name: String = "UserName"
-      val future: Future[ResultSet] =
-        cql"SELECT * FROM users WHERE name=$name".attemptResultSet[Future]()
-      runF(future.failed) shouldBe serializeException
-    }
-
-    "return a failed future when the ByteBufferCodec returns a failure when passing a ConsistencyLevel" in {
-      val serializeException = new RuntimeException("Error serializing")
-      implicit val stringByteBufferCodec: ByteBufferCodec[String] = new ByteBufferCodec[String] {
-        override def deserialize[M[_]](bytes: ByteBuffer)(
-            implicit E: MonadError[M, Throwable]): M[String] =
-          E.raiseError(new RuntimeException("Error deserializing"))
-
-        override def serialize[M[_]](value: String)(
-            implicit E: MonadError[M, Throwable]): M[ByteBuffer] =
-          E.raiseError(serializeException)
-      }
-      val name: String = "UserName"
-      val future: Future[ResultSet] =
-        cql"SELECT * FROM users WHERE name=$name".attemptResultSet[Future](Some(consistencyLevel))
-      runF(future.failed) shouldBe serializeException
     }
 
   }
@@ -188,18 +229,71 @@ class InterpolatorImplicitSpec
   "InterpolatorImplicitDef attempt()" should {
 
     "return a valid result" in {
-      val future: Future[Unit] = cql"CREATE TABLE users (id uuid PRIMARY KEY)".attempt[Future]()
-      runF(future) shouldBe ((): Unit)
+
+      check {
+        forAll { cl: Option[ConsistencyLevel] =>
+          implicit val sessionMock: Session = mockSession(cl)
+
+          val future: Future[Unit] =
+            cql"CREATE TABLE users (id uuid PRIMARY KEY)".attempt[Future](cl)
+          runF(future) isEqualTo ((): Unit)
+        }
+      }
     }
 
-    "return a valid result when passing a ConsistencyLevel" in {
-      val future: Future[Unit] =
-        cql"CREATE TABLE users (id uuid PRIMARY KEY)".attempt[Future](Some(consistencyLevel))
-      runF(future) shouldBe ((): Unit)
-      (sessionMock
-        .executeAsync(_: Statement))
-        .verify(where { (st: Statement) => st.getConsistencyLevel == consistencyLevel
-        })
+  }
+
+  "InterpolatorImplicitDef attemptAs[A]" should {
+
+    "return a valid result from a FreeS" in {
+
+      check {
+        forAll(rowAndDataGen[User], Gen.option(consistencyLevelArb.arbitrary)) {
+          case ((resultSet, list), cl) =>
+            implicit val sessionMock: Session = mockSession(cl, resultSet)
+            val future: Future[User] =
+              cql"SELECT * FROM users".attemptAs[Future, User](cl)
+            if (list.isEmpty) {
+              runFFailed(future) isLikeTo (_.isInstanceOf[IllegalStateException])
+            } else {
+              runF(future) isEqualTo list.head
+            }
+        }
+      }
+    }
+
+  }
+
+  "InterpolatorImplicitDef attemptAsOption[A]" should {
+
+    "return a valid result from a FreeS" in {
+
+      check {
+        forAll(rowAndDataGen[User], Gen.option(consistencyLevelArb.arbitrary)) {
+          case ((resultSet, list), cl) =>
+            implicit val sessionMock: Session = mockSession(cl, resultSet)
+            val future: Future[Option[User]] =
+              cql"SELECT * FROM users".attemptAsOption[Future, User](cl)
+            runF(future) isEqualTo list.headOption
+        }
+      }
+    }
+
+  }
+
+  "InterpolatorImplicitDef attemptAsList[A]" should {
+
+    "return a valid result from a FreeS" in {
+
+      check {
+        forAll(rowAndDataGen[User], Gen.option(consistencyLevelArb.arbitrary)) {
+          case ((resultSet, list), cl) =>
+            implicit val sessionMock: Session = mockSession(cl, resultSet)
+            val future: Future[List[User]] =
+              cql"SELECT * FROM users".attemptAsList[Future, User](cl)
+            runF(future) isEqualTo list
+        }
+      }
     }
 
   }
