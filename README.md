@@ -6,7 +6,32 @@
 [comment]: # (End Badges)
 # Freestyle Cassandra
 
-Freestyle Cassandra
+[Cassandra] atop **Freestyle** is **`frees-cassandra`**.
+Freestyle Cassandra is Scala Purely Functional driver for Cassandra based on the datastax Java Driver.
+
+## What’s frees-cassandra
+
+[frees-cassandra] is a library to interact with cassandra built atop Free and using the Datastax 
+Cassandra Driver for connecting to a Cassandra instance. It follows the [Freestyle] philosophy, 
+being macro-powered. 
+
+## Installation
+
+Add the following resolver and library dependency to your project's build file. 
+
+For Scala `2.11.x` and `2.12.x`:
+
+[comment]: # (Start Replace)
+```scala
+Resolver.bintrayRepo("tabdulradi", "maven")
+libraryDependencies += "io.frees" %% "frees-cassandra" % "0.0.4" 
+``` 
+
+[comment]: # (End Replace)
+
+## Documentation
+
+Access to the documentation [here](http://frees.io/docs/cassandra)
 
 [comment]: # (Start Copyright)
 # Copyright
