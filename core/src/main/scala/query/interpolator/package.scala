@@ -51,10 +51,8 @@ package object interpolator {
 
     def as[A](consistencyLevel: Option[ConsistencyLevel] = None)(
         implicit Q: QueryModule[QueryModule.Op],
-        FR: FromReader[A]): FreeS[QueryModule.Op, A] = {
-      implicit val sessionAPI: SessionAPI[QueryModule.Op] = Q.sessionAPI
+        FR: FromReader[A]): FreeS[QueryModule.Op, A] =
       asResultSet[QueryModule.Op](consistencyLevel).flatMap(Q.resultSetAPI.read[A](_))
-    }
 
     def asOption[A](consistencyLevel: Option[ConsistencyLevel] = None)(
         implicit Q: QueryModule[QueryModule.Op],
