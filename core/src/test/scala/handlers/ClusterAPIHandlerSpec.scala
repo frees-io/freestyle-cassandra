@@ -19,12 +19,11 @@ package handlers
 
 import com.datastax.driver.core._
 import com.google.common.util.concurrent.ListenableFuture
-import freestyle.cassandra.api.ClusterAPIOps
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, OneInstancePerTest, WordSpec}
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.{Await, Future}
+import scala.concurrent.Future
 
 class ClusterAPIHandlerSpec
     extends WordSpec
@@ -39,8 +38,6 @@ class ClusterAPIHandlerSpec
   val metadataTest: Metadata       = MetadataTest()
 
   import cats.instances.future._
-  import freestyle.async.implicits._
-  import freestyle.asyncGuava.implicits._
   import freestyle.cassandra.implicits._
   import TestUtils._
   val handler: ClusterAPIHandler[Future] = new ClusterAPIHandler[Future]

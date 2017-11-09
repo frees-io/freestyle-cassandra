@@ -19,6 +19,7 @@ package freestyle.cassandra
 import cats.~>
 import com.google.common.util.concurrent.ListenableFuture
 import freestyle.cassandra.TestUtils._
+import freestyle.cassandra.implicits._
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, OneInstancePerTest, WordSpec}
 
@@ -30,9 +31,6 @@ class ListenableFuture2AsyncMSpec
     with Matchers
     with OneInstancePerTest
     with MockFactory {
-
-  import freestyle.async.implicits._
-  import freestyle.asyncGuava.implicits._
 
   val handler: ListenableFuture ~> Future = listenableFuture2Async[Future]
 

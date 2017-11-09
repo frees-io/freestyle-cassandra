@@ -25,7 +25,6 @@ import freestyle.cassandra.codecs.ByteBufferCodec
 import freestyle.cassandra.query._
 import shapeless._
 import shapeless.labelled.{FieldBuilder, FieldType}
-import shapeless.{::, HList, Witness}
 
 trait FromReader[A] {
   def apply[M[_]](reader: ByteBufferReader)(implicit ME: MonadError[M, Throwable]): M[A]
