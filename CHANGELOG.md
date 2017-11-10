@@ -1,5 +1,14 @@
 # Changelog
 
+## 11/10/2017 - Version 0.0.4
+
+Release changes:
+
+* Uuse the async traits for implicits from freestyle ([#121](https://github.com/frees-io/freestyle-cassandra/pull/121))
+* Restores asResultSet[M[_]] definition ([#120](https://github.com/frees-io/freestyle-cassandra/pull/120))
+* Release 0.0.4 ([#122](https://github.com/frees-io/freestyle-cassandra/pull/122))
+
+
 ## 11/08/2017 - Version 0.0.3
 
 Release changes:
