@@ -41,44 +41,44 @@ package object interpolator {
 
     import freestyle.cassandra.implicits._
 
-    def asResultSet(consistencyLevel: Option[ConsistencyLevel] = None)(
-        implicit Q: QueryModule[QueryModule.Op]): FreeS[QueryModule.Op, ResultSet] =
-      Q.sessionAPI.executeWithByteBuffer(tuple._1, tuple._2, consistencyLevel)
+    def asResultSet[M[_]](consistencyLevel: Option[ConsistencyLevel] = None)(
+        implicit API: SessionAPI[M]): FreeS[M, ResultSet] =
+      API.executeWithByteBuffer(tuple._1, tuple._2, consistencyLevel)
 
-    def asFree(consistencyLevel: Option[ConsistencyLevel] = None)(
-        implicit Q: QueryModule[QueryModule.Op]): FreeS[QueryModule.Op, Unit] =
-      asResultSet(consistencyLevel).map(_ => (): Unit)
+    def asFree[M[_]](consistencyLevel: Option[ConsistencyLevel] = None)(
+        implicit API: SessionAPI[M]): FreeS[M, Unit] =
+      asResultSet[M](consistencyLevel).map(_ => (): Unit)
 
     def as[A](consistencyLevel: Option[ConsistencyLevel] = None)(
         implicit Q: QueryModule[QueryModule.Op],
         FR: FromReader[A]): FreeS[QueryModule.Op, A] =
-      asResultSet(consistencyLevel).flatMap(Q.resultSetAPI.read[A](_))
+      asResultSet[QueryModule.Op](consistencyLevel).flatMap(Q.resultSetAPI.read[A](_))
 
     def asOption[A](consistencyLevel: Option[ConsistencyLevel] = None)(
         implicit Q: QueryModule[QueryModule.Op],
         FR: FromReader[A]): FreeS[QueryModule.Op, Option[A]] =
-      asResultSet(consistencyLevel).flatMap(Q.resultSetAPI.readOption[A](_))
+      asResultSet[QueryModule.Op](consistencyLevel).flatMap(Q.resultSetAPI.readOption[A](_))
 
     def asList[A](consistencyLevel: Option[ConsistencyLevel] = None)(
         implicit Q: QueryModule[QueryModule.Op],
         FR: FromReader[A]): FreeS[QueryModule.Op, List[A]] =
-      asResultSet(consistencyLevel).flatMap(Q.resultSetAPI.readList[A](_))
+      asResultSet[QueryModule.Op](consistencyLevel).flatMap(Q.resultSetAPI.readList[A](_))
 
     def attemptResultSet[M[_]](consistencyLevel: Option[ConsistencyLevel] = None)(
-        implicit Q: QueryModule[QueryModule.Op],
+        implicit API: SessionAPI[SessionAPI.Op],
         S: Session,
         AC: AsyncContext[M],
         E: ExecutionContext,
         ME: MonadError[M, Throwable]): M[ResultSet] =
-      asResultSet(consistencyLevel).interpret[M]
+      asResultSet[SessionAPI.Op](consistencyLevel).interpret[M]
 
     def attempt[M[_]](consistencyLevel: Option[ConsistencyLevel] = None)(
-        implicit Q: QueryModule[QueryModule.Op],
+        implicit API: SessionAPI[SessionAPI.Op],
         S: Session,
         AC: AsyncContext[M],
         E: ExecutionContext,
         ME: MonadError[M, Throwable]): M[Unit] =
-      asFree(consistencyLevel).interpret[M]
+      asFree[SessionAPI.Op](consistencyLevel).interpret[M]
 
     def attemptAs[M[_], A](consistencyLevel: Option[ConsistencyLevel] = None)(
         implicit Q: QueryModule[QueryModule.Op],
