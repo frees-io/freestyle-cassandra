@@ -18,7 +18,6 @@ package freestyle.cassandra
 package handlers
 
 import com.datastax.driver.core._
-import freestyle.asyncGuava.implicits._
 import freestyle.cassandra.TestUtils.MatchersUtil
 import freestyle.cassandra.config.ConfigArbitraries._
 import freestyle.cassandra.query.QueryArbitraries._
@@ -45,7 +44,6 @@ class SessionAPIHandlerSpec
   val rsMock: ResultSet             = stub[ResultSet]
 
   import cats.instances.future._
-  import freestyle.async.implicits._
   import freestyle.cassandra.implicits._
   import TestUtils._
   val handler: SessionAPIHandler[Future] = new SessionAPIHandler[Future]
