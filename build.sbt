@@ -13,7 +13,7 @@ lazy val commonDependencies: Seq[ModuleID] = Seq(
   %("cassandra-driver-core"),
   %("cassandra-driver-mapping"),
   %("cassandra-driver-extras"),
-  "io.github.cassandra-scala" %% "troy-schema" % "0.4.0",
+  "io.github.cassandra-scala" %% "troy-schema" % "0.5.0",
   "com.propensive"            %% "contextual"  % "1.0.1"
 )
 
