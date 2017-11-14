@@ -40,13 +40,13 @@ import org.scalacheck.{Arbitrary, Gen}
 import troy.cql.ast.ddl.{Field, Index, Keyspace, Table}
 import troy.cql.ast.dml.{Operator, Select, WhereClause}
 import troy.cql.ast.{
-  Constant,
   CreateIndex,
   CreateKeyspace,
   CreateTable,
   CreateType,
   KeyspaceName,
   SelectStatement,
+  StringConstant,
   TableName,
   TypeName,
   DataType => TroyDataType
@@ -474,7 +474,7 @@ trait MetadataArbitraries {
                     .Simple(
                       columnName = columnName,
                       operator = Operator.Equals,
-                      term = Constant(columnValue))))),
+                      term = StringConstant(columnValue))))),
             orderBy = None,
             perPartitionLimit = None,
             limit = None,
