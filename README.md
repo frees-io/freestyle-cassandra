@@ -29,7 +29,7 @@ libraryDependencies += "io.frees" %% "frees-cassandra" % "0.0.4"
 
 [comment]: # (End Replace)
 
-## Documentation
+## Documentation
 
 Access to the documentation [here](http://frees.io/docs/cassandra)
 
