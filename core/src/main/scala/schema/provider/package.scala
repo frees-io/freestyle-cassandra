@@ -14,15 +14,15 @@
  * limitations under the License.
  */
 
-package freestyle.cassandra.macros
-package interpolator
+package freestyle.cassandra
+package schema
 
-// $COVERAGE-OFF$Test classes
-import freestyle.cassandra.query.interpolator.MacroInterpolator.SchemaFileInterpolator
+import cats.MonadError
 
-@SchemaFileInterpolator("/schema.sql")
-trait MySchemaInterpolator
+package object provider {
 
-@SchemaFileInterpolator("/invalidPath.sql")
-trait MyInvalidSchemaInterpolator
-// $COVERAGE-ON$
+  trait SchemaDefinitionProvider[M[_]] {
+    def schemaDefinition(implicit E: MonadError[M, Throwable]): M[SchemaDefinition]
+  }
+
+}

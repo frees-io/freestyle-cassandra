@@ -14,15 +14,20 @@
  * limitations under the License.
  */
 
-package freestyle.cassandra.macros
-package interpolator
+package freestyle.cassandra
+package api
 
-// $COVERAGE-OFF$Test classes
-import freestyle.cassandra.query.interpolator.MacroInterpolator.SchemaFileInterpolator
+import com.datastax.driver.core.ResultSet
+import freestyle._
+import freestyle.cassandra.query.mapper.FromReader
 
-@SchemaFileInterpolator("/schema.sql")
-trait MySchemaInterpolator
+@free
+trait ResultSetAPI {
 
-@SchemaFileInterpolator("/invalidPath.sql")
-trait MyInvalidSchemaInterpolator
-// $COVERAGE-ON$
+  def read[A](resultSet: ResultSet)(implicit FR: FromReader[A]): FS[A]
+
+  def readOption[A](resultSet: ResultSet)(implicit FR: FromReader[A]): FS[Option[A]]
+
+  def readList[A](resultSet: ResultSet)(implicit FR: FromReader[A]): FS[List[A]]
+
+}
