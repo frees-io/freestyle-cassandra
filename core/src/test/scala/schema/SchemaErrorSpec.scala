@@ -14,15 +14,23 @@
  * limitations under the License.
  */
 
-package freestyle.cassandra.macros
-package interpolator
+package freestyle.cassandra
+package schema
 
-// $COVERAGE-OFF$Test classes
-import freestyle.cassandra.query.interpolator.MacroInterpolator.SchemaFileInterpolator
+import org.scalatest.{Matchers, WordSpec}
 
-@SchemaFileInterpolator("/schema.sql")
-trait MySchemaInterpolator
+class SchemaErrorSpec extends WordSpec with Matchers {
 
-@SchemaFileInterpolator("/invalidPath.sql")
-trait MyInvalidSchemaInterpolator
-// $COVERAGE-ON$
+  "SchemaError" should {
+
+    "call to super.init when passing an exception" in {
+      val exception: RuntimeException = new RuntimeException("Test Exception")
+      val myError: SchemaDefinitionProviderError =
+        SchemaDefinitionProviderError("My message", Some(exception))
+
+      myError.getCause shouldBe exception
+    }
+
+  }
+
+}

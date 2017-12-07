@@ -14,15 +14,16 @@
  * limitations under the License.
  */
 
-package freestyle.cassandra.macros
-package interpolator
+package freestyle.cassandra
+package api
 
-// $COVERAGE-OFF$Test classes
-import freestyle.cassandra.query.interpolator.MacroInterpolator.SchemaFileInterpolator
+import freestyle.free._
 
-@SchemaFileInterpolator("/schema.sql")
-trait MySchemaInterpolator
+@module
+trait QueryModule {
 
-@SchemaFileInterpolator("/invalidPath.sql")
-trait MyInvalidSchemaInterpolator
-// $COVERAGE-ON$
+  val sessionAPI: SessionAPI
+  val statementAPI: StatementAPI
+  val resultSetAPI: ResultSetAPI
+
+}

@@ -14,15 +14,15 @@
  * limitations under the License.
  */
 
-package freestyle.free.cassandra
+package freestyle.cassandra
 
 import cats.{~>, MonadError}
 import com.datastax.driver.core.{Cluster, Session}
 import freestyle.free.async.AsyncContext
 import freestyle.free.async.{Implicits => AsyncImplicits}
 import freestyle.free.asyncGuava.AsyncGuavaImplicits
-import freestyle.free.cassandra.api._
-import freestyle.free.cassandra.handlers._
+import freestyle.cassandra.api._
+import freestyle.cassandra.handlers._
 
 import scala.concurrent.ExecutionContext
 

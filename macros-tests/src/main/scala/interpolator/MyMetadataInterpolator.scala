@@ -14,11 +14,11 @@
  * limitations under the License.
  */
 
-package freestyle.free.cassandra.macros
+package freestyle.cassandra.macros
 package interpolator
 
 // $COVERAGE-OFF$Test classes
-import freestyle.free.cassandra.query.interpolator.MacroInterpolator.SchemaMetadataInterpolator
+import freestyle.cassandra.query.interpolator.MacroInterpolator.SchemaMetadataInterpolator
 
 @SchemaMetadataInterpolator("/cluster.conf")
 trait MyMetadataInterpolator
