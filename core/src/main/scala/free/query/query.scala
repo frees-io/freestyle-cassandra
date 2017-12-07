@@ -14,15 +14,32 @@
  * limitations under the License.
  */
 
-package freestyle.free.cassandra.macros
-package interpolator
+package freestyle.free.cassandra
 
-// $COVERAGE-OFF$Test classes
-import freestyle.free.cassandra.query.interpolator.MacroInterpolator.SchemaMetadataInterpolator
+import java.nio.ByteBuffer
 
-@SchemaMetadataInterpolator("/cluster.conf")
-trait MyMetadataInterpolator
+import cats.MonadError
 
-@SchemaMetadataInterpolator("/invalidPath.conf")
-trait MyInvalidMetadataInterpolator
-// $COVERAGE-ON$
+package object query {
+
+  trait ByteBufferReader {
+    def read[M[_]](name: String)(implicit ME: MonadError[M, Throwable]): M[ByteBuffer]
+  }
+
+  trait Printer {
+    def print(name: String): String
+  }
+
+  object Printer {
+    def apply(f: String => String): Printer = new Printer {
+      override def print(name: String): String = f(name)
+    }
+  }
+
+  val identityPrinter: Printer = Printer(identity)
+
+  val lowerCasePrinter: Printer = Printer(_.toLowerCase)
+
+  val upperCasePrinter: Printer = Printer(_.toUpperCase)
+
+}

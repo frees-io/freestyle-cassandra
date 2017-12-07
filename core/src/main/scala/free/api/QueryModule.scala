@@ -14,15 +14,16 @@
  * limitations under the License.
  */
 
-package freestyle.free.cassandra.macros
-package interpolator
+package freestyle.free.cassandra
+package api
 
-// $COVERAGE-OFF$Test classes
-import freestyle.free.cassandra.query.interpolator.MacroInterpolator.SchemaMetadataInterpolator
+import freestyle.free._
 
-@SchemaMetadataInterpolator("/cluster.conf")
-trait MyMetadataInterpolator
+@module
+trait QueryModule {
 
-@SchemaMetadataInterpolator("/invalidPath.conf")
-trait MyInvalidMetadataInterpolator
-// $COVERAGE-ON$
+  val sessionAPI: SessionAPI
+  val statementAPI: StatementAPI
+  val resultSetAPI: ResultSetAPI
+
+}

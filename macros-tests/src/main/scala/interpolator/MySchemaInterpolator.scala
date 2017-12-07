@@ -14,11 +14,11 @@
  * limitations under the License.
  */
 
-package freestyle.cassandra.macros
+package freestyle.free.cassandra.macros
 package interpolator
 
 // $COVERAGE-OFF$Test classes
-import freestyle.cassandra.query.interpolator.MacroInterpolator.SchemaFileInterpolator
+import freestyle.free.cassandra.query.interpolator.MacroInterpolator.SchemaFileInterpolator
 
 @SchemaFileInterpolator("/schema.sql")
 trait MySchemaInterpolator

@@ -14,15 +14,28 @@
  * limitations under the License.
  */
 
-package freestyle.free.cassandra.macros
-package interpolator
+package freestyle.free.cassandra
 
-// $COVERAGE-OFF$Test classes
-import freestyle.free.cassandra.query.interpolator.MacroInterpolator.SchemaMetadataInterpolator
+import java.util.UUID
 
-@SchemaMetadataInterpolator("/cluster.conf")
-trait MyMetadataInterpolator
+import org.scalacheck.{Arbitrary, Gen}
 
-@SchemaMetadataInterpolator("/invalidPath.conf")
-trait MyInvalidMetadataInterpolator
-// $COVERAGE-ON$
+trait TestData {
+
+  case class User(id: UUID, firstName: String, lastName: String, age: Int)
+
+  val usAsciiStringGen: Gen[String] =
+    Gen.containerOf[Array, Char](Gen.choose[Char](0, 127)).map(_.mkString)
+
+  implicit val userArb: Arbitrary[User] = Arbitrary {
+    for {
+      id        <- Gen.uuid
+      firstName <- usAsciiStringGen
+      lastName  <- usAsciiStringGen
+      age       <- Gen.posNum[Int]
+    } yield User(id, firstName, lastName, age)
+  }
+
+}
+
+object TestData extends TestData

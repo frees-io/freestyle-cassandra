@@ -14,15 +14,15 @@
  * limitations under the License.
  */
 
-package freestyle.free.cassandra.macros
-package interpolator
+package freestyle.free.cassandra
+package schema
 
-// $COVERAGE-OFF$Test classes
-import freestyle.free.cassandra.query.interpolator.MacroInterpolator.SchemaMetadataInterpolator
+import cats.MonadError
 
-@SchemaMetadataInterpolator("/cluster.conf")
-trait MyMetadataInterpolator
+package object provider {
 
-@SchemaMetadataInterpolator("/invalidPath.conf")
-trait MyInvalidMetadataInterpolator
-// $COVERAGE-ON$
+  trait SchemaDefinitionProvider[M[_]] {
+    def schemaDefinition(implicit E: MonadError[M, Throwable]): M[SchemaDefinition]
+  }
+
+}

@@ -14,15 +14,25 @@
  * limitations under the License.
  */
 
-package freestyle.free.cassandra.macros
-package interpolator
+package freestyle.free.cassandra
+package api
 
-// $COVERAGE-OFF$Test classes
-import freestyle.free.cassandra.query.interpolator.MacroInterpolator.SchemaMetadataInterpolator
+import com.datastax.driver.core.{Configuration, Metadata, Metrics, Session}
+import freestyle.free.free
 
-@SchemaMetadataInterpolator("/cluster.conf")
-trait MyMetadataInterpolator
+@free
+trait ClusterAPI {
 
-@SchemaMetadataInterpolator("/invalidPath.conf")
-trait MyInvalidMetadataInterpolator
-// $COVERAGE-ON$
+  def connect: FS[Session]
+
+  def connectKeyspace(keyspace: String): FS[Session]
+
+  def close: FS[Unit]
+
+  def configuration: FS[Configuration]
+
+  def metadata: FS[Metadata]
+
+  def metrics: FS[Metrics]
+
+}

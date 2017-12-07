@@ -1,0 +1,49 @@
+/*
+ * Copyright 2017 47 Degrees, LLC. <http://www.47deg.com>
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package freestyle.free.cassandra
+package query.interpolator
+
+import cats.MonadError
+import cats.data.Validated.Valid
+import cats.data.ValidatedNel
+import contextual.Interpolator
+import freestyle.free.cassandra.schema.{SchemaError, Statements}
+import freestyle.free.cassandra.schema.validator.SchemaValidator
+import org.scalatest.{Matchers, WordSpec}
+
+import scala.util.{Success, Try}
+
+class CQLInterpolatorSpec extends WordSpec with Matchers {
+
+  "CQLInterpolator" should {
+
+    "provide a cql interpolator" in {
+
+      implicit val E: MonadError[Try, Throwable] = cats.instances.try_.catsStdInstancesForTry
+
+      val schemaValidator: SchemaValidator[Try] = new SchemaValidator[Try] {
+        override def validateStatement(st: Statements)(
+            implicit E: MonadError[Try, Throwable]): Try[ValidatedNel[SchemaError, Unit]] =
+          Success(Valid((): Unit))
+      }
+
+      new CQLInterpolator(schemaValidator) shouldBe an[Interpolator]
+    }
+
+  }
+
+}

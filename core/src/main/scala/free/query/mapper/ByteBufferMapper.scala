@@ -14,15 +14,19 @@
  * limitations under the License.
  */
 
-package freestyle.free.cassandra.macros
-package interpolator
+package freestyle.free.cassandra
+package query.mapper
 
-// $COVERAGE-OFF$Test classes
-import freestyle.free.cassandra.query.interpolator.MacroInterpolator.SchemaMetadataInterpolator
+trait ByteBufferMapper[A] {
+  def map(a: A): List[FieldMapper]
+}
 
-@SchemaMetadataInterpolator("/cluster.conf")
-trait MyMetadataInterpolator
+object ByteBufferMapper {
 
-@SchemaMetadataInterpolator("/invalidPath.conf")
-trait MyInvalidMetadataInterpolator
-// $COVERAGE-ON$
+  def apply[A](implicit ev: ByteBufferMapper[A]): ByteBufferMapper[A] = ev
+
+  implicit def genericMapper[A](implicit fieldLister: FieldListMapper[A]): ByteBufferMapper[A] =
+    new ByteBufferMapper[A] {
+      override def map(a: A): List[FieldMapper] = fieldLister.map(a)
+    }
+}

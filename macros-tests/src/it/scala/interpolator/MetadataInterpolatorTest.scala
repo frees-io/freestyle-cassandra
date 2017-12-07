@@ -14,14 +14,14 @@
  * limitations under the License.
  */
 
-package freestyle.cassandra.macros
+package freestyle.free.cassandra.macros
 package interpolator
 
 import java.nio.ByteBuffer
 import java.util.UUID
 
 import com.datastax.driver.core.{ProtocolVersion, TypeCodec}
-import freestyle.cassandra.query.model.SerializableValueBy
+import freestyle.free.cassandra.query.model.SerializableValueBy
 import org.scalatest._
 
 import scala.util.{Success, Try}
@@ -42,7 +42,7 @@ class MetadataInterpolatorTest extends WordSpec with Matchers {
       implicit val protocolVersion: ProtocolVersion   = ProtocolVersion.V4
       implicit val stringTypeCodec: TypeCodec[String] = TypeCodec.ascii()
       implicit val uuidTypeCodec: TypeCodec[UUID]     = TypeCodec.uuid()
-      import freestyle.cassandra.codecs._
+      import freestyle.free.cassandra.codecs._
 
       val id = UUID.randomUUID()
 

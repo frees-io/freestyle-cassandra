@@ -14,15 +14,20 @@
  * limitations under the License.
  */
 
-package freestyle.free.cassandra.macros
-package interpolator
+package freestyle.free.cassandra
+package api
 
-// $COVERAGE-OFF$Test classes
-import freestyle.free.cassandra.query.interpolator.MacroInterpolator.SchemaMetadataInterpolator
+import com.datastax.driver.core.ResultSet
+import freestyle.free._
+import freestyle.free.cassandra.query.mapper.FromReader
 
-@SchemaMetadataInterpolator("/cluster.conf")
-trait MyMetadataInterpolator
+@free
+trait ResultSetAPI {
 
-@SchemaMetadataInterpolator("/invalidPath.conf")
-trait MyInvalidMetadataInterpolator
-// $COVERAGE-ON$
+  def read[A](resultSet: ResultSet)(implicit FR: FromReader[A]): FS[A]
+
+  def readOption[A](resultSet: ResultSet)(implicit FR: FromReader[A]): FS[Option[A]]
+
+  def readList[A](resultSet: ResultSet)(implicit FR: FromReader[A]): FS[List[A]]
+
+}

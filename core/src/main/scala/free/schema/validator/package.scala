@@ -14,15 +14,19 @@
  * limitations under the License.
  */
 
-package freestyle.free.cassandra.macros
-package interpolator
+package freestyle.free.cassandra
+package schema
 
-// $COVERAGE-OFF$Test classes
-import freestyle.free.cassandra.query.interpolator.MacroInterpolator.SchemaMetadataInterpolator
+import cats.MonadError
+import cats.data.ValidatedNel
 
-@SchemaMetadataInterpolator("/cluster.conf")
-trait MyMetadataInterpolator
+package object validator {
 
-@SchemaMetadataInterpolator("/invalidPath.conf")
-trait MyInvalidMetadataInterpolator
-// $COVERAGE-ON$
+  trait SchemaValidator[M[_]] {
+
+    def validateStatement(st: Statements)(
+        implicit E: MonadError[M, Throwable]): M[ValidatedNel[SchemaError, Unit]]
+
+  }
+
+}
