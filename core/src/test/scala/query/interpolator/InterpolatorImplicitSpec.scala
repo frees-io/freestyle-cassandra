@@ -24,6 +24,7 @@ import cats.MonadError
 import com.datastax.driver.core._
 import freestyle.free._
 import freestyle.free.implicits._
+import freestyle.async.implicits._
 import freestyle.cassandra.TestData._
 import freestyle.cassandra.TestUtils._
 import freestyle.cassandra.codecs.ByteBufferCodec

@@ -44,6 +44,7 @@ class SessionAPIHandlerSpec
   val rsMock: ResultSet             = stub[ResultSet]
 
   import cats.instances.future._
+  import freestyle.async.implicits._
   import freestyle.cassandra.implicits._
   import TestUtils._
   val handler: SessionAPIHandler[Future] = new SessionAPIHandler[Future]
