@@ -22,7 +22,7 @@ import com.datastax.driver.core.{ConsistencyLevel, ResultSet, Session}
 import contextual.Context
 import freestyle.free._
 import freestyle.free.implicits._
-import freestyle.free.async.AsyncContext
+import freestyle.async.AsyncContext
 import freestyle.cassandra.api._
 import freestyle.cassandra.query.mapper.FromReader
 import freestyle.cassandra.query.model.SerializableValueBy

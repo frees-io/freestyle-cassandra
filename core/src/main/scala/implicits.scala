@@ -18,7 +18,7 @@ package freestyle.cassandra
 
 import cats.{~>, MonadError}
 import com.datastax.driver.core.{Cluster, Session}
-import freestyle.free.async.AsyncContext
+import freestyle.async.AsyncContext
 import freestyle.free.async.{Implicits => AsyncImplicits}
 import freestyle.free.asyncGuava.AsyncGuavaImplicits
 import freestyle.cassandra.api._
