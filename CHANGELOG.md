@@ -1,5 +1,14 @@
 # Changelog
 
+## 12/21/2017 - Version 0.1.0
+
+Release changes:
+
+* Upgrades Troy to latest stable version ([#123](https://github.com/frees-io/freestyle-cassandra/pull/123))
+* Updates the README.md file ([#129](https://github.com/frees-io/freestyle-cassandra/pull/129))
+* Move freestyle to freestyle free ([#131](https://github.com/frees-io/freestyle-cassandra/pull/131))
+
+
 ## 11/10/2017 - Version 0.0.4
 
 Release changes:
