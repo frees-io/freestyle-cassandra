@@ -20,8 +20,8 @@ package query
 import cats.{~>, MonadError}
 import com.datastax.driver.core.{ConsistencyLevel, ResultSet, Session}
 import contextual.Context
-import freestyle._
-import freestyle.implicits._
+import freestyle.free._
+import freestyle.free.implicits._
 import freestyle.async.AsyncContext
 import freestyle.cassandra.api._
 import freestyle.cassandra.query.mapper.FromReader

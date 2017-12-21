@@ -22,8 +22,9 @@ import java.util.UUID
 
 import cats.MonadError
 import com.datastax.driver.core._
-import freestyle._
-import freestyle.implicits._
+import freestyle.free._
+import freestyle.free.implicits._
+import freestyle.async.implicits._
 import freestyle.cassandra.TestData._
 import freestyle.cassandra.TestUtils._
 import freestyle.cassandra.codecs.ByteBufferCodec
@@ -52,7 +53,7 @@ class InterpolatorImplicitSpec
 
   import RuntimeCQLInterpolator._
 
-  import freestyle.async.implicits._
+  import freestyle.free.async.implicits._
   import scala.concurrent.ExecutionContext.Implicits.global
 
   implicit val E: MonadError[Future, Throwable] =

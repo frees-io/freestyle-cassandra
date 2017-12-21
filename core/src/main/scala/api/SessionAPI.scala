@@ -18,7 +18,7 @@ package freestyle.cassandra
 package api
 
 import com.datastax.driver.core._
-import freestyle._
+import freestyle.free._
 import freestyle.cassandra.query.model.SerializableValueBy
 
 @free

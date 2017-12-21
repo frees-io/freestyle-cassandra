@@ -20,7 +20,7 @@ package api
 import java.nio.ByteBuffer
 
 import com.datastax.driver.core._
-import freestyle._
+import freestyle.free._
 import freestyle.cassandra.codecs.ByteBufferCodec
 import freestyle.cassandra.query.model.SerializableValueBy
 

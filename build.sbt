@@ -5,8 +5,8 @@ pgpPublicRing := file(s"$gpgFolder/pubring.gpg")
 pgpSecretRing := file(s"$gpgFolder/secring.gpg")
 
 lazy val commonDependencies: Seq[ModuleID] = Seq(
-  %%("frees-async", "0.4.2"),
-  %%("frees-async-guava", "0.4.2"),
+  %%("frees-async", "0.5.0"),
+  %%("frees-async-guava", "0.5.0"),
   %%("shapeless"),
   %%("classy-core"),
   %%("classy-config-typesafe"),

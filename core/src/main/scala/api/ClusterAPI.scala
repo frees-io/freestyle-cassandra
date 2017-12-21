@@ -18,7 +18,7 @@ package freestyle.cassandra
 package api
 
 import com.datastax.driver.core.{Configuration, Metadata, Metrics, Session}
-import freestyle.free
+import freestyle.free.free
 
 @free
 trait ClusterAPI {

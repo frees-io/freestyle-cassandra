@@ -38,6 +38,7 @@ class ClusterAPIHandlerSpec
   val metadataTest: Metadata       = MetadataTest()
 
   import cats.instances.future._
+  import freestyle.async.implicits._
   import freestyle.cassandra.implicits._
   import TestUtils._
   val handler: ClusterAPIHandler[Future] = new ClusterAPIHandler[Future]

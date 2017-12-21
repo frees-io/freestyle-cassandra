@@ -21,7 +21,7 @@ import java.nio.ByteBuffer
 
 import cats.{~>, Id}
 import com.datastax.driver.core._
-import freestyle._
+import freestyle.free._
 import freestyle.cassandra.codecs._
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, OneInstancePerTest, WordSpec}

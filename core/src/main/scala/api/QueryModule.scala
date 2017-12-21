@@ -17,7 +17,7 @@
 package freestyle.cassandra
 package api
 
-import freestyle._
+import freestyle.free._
 
 @module
 trait QueryModule {

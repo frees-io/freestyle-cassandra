@@ -18,7 +18,7 @@ package freestyle.cassandra
 package api
 
 import com.datastax.driver.core.ResultSet
-import freestyle._
+import freestyle.free._
 import freestyle.cassandra.query.mapper.FromReader
 
 @free
