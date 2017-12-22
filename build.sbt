@@ -1,4 +1,5 @@
 import sbtorgpolicies.templates.badges._
+import sbtorgpolicies.runnable.syntax._
 
 pgpPassphrase := Some(getEnvVar("PGP_PASSPHRASE").getOrElse("").toCharArray)
 pgpPublicRing := file(s"$gpgFolder/pubring.gpg")
@@ -33,6 +34,11 @@ lazy val orgSettings = Seq(
   ),
   embeddedCassandraCQLFileSetting := Option(file("macros-tests/src/main/resources/schema.sql"))
 )
+orgAfterCISuccessTaskListSetting := List(
+    depUpdateDependencyIssues.asRunnableItem,
+    orgPublishReleaseTask.asRunnableItem(allModules = true, aggregated = false, crossScalaVersions = true),
+    orgUpdateDocFiles.asRunnableItem
+     )
 
 lazy val root = project
   .in(file("."))
@@ -40,8 +46,8 @@ lazy val root = project
   .settings(noPublishSettings)
   .enablePlugins(EmbeddedCassandraPlugin)
   .settings(orgSettings)
-  .dependsOn(core, `macros-tests`)
-  .aggregate(core, `macros-tests`)
+  .dependsOn(core, `macros-tests`, docs)
+  .aggregate(core, `macros-tests`, docs)
 
 lazy val core = project
   .in(file("core"))
@@ -61,3 +67,20 @@ lazy val `macros-tests` = project
   .settings(Defaults.itSettings)
   .settings(libraryDependencies ++= testDependencies)
   .dependsOn(core)
+
+lazy val docs = project
+  .in(file("docs"))
+    .dependsOn(core)
+    .aggregate(core)
+  .settings(name := "frees-cassandra-docs")
+  .settings(noPublishSettings: _*)
+  .settings(
+      addCompilerPlugin(%%("scalameta-paradise") cross CrossVersion.full),
+      libraryDependencies += %%("scalameta", "1.8.0"),
+      scalacOptions += "-Xplugin-require:macroparadise",
+      scalacOptions in Tut ~= (_ filterNot Set("-Ywarn-unused-import", "-Xlint").contains),
+      // Pointing to https://github.com/frees-io/freestyle/tree/master/docs/src/main/tut/docs/rpc
+          tutTargetDirectory := baseDirectory.value.getParentFile.getParentFile / "docs" / "src"
+              / "main" / "tut" / "docs" / "cassandra"
+  )
+  .enablePlugins(TutPlugin)
