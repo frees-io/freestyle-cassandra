@@ -5,9 +5,11 @@ pgpPassphrase := Some(getEnvVar("PGP_PASSPHRASE").getOrElse("").toCharArray)
 pgpPublicRing := file(s"$gpgFolder/pubring.gpg")
 pgpSecretRing := file(s"$gpgFolder/secring.gpg")
 
+lazy val freesV = "0.5.0"
+
 lazy val commonDependencies: Seq[ModuleID] = Seq(
-  %%("frees-async"),
-  %%("frees-async-guava"),
+  %%("frees-async",freesV),
+  %%("frees-async-guava",freesV),
   %%("shapeless"),
   %%("classy-core"),
   %%("classy-config-typesafe"),
