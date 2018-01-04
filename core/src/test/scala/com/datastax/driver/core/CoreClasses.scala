@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 47 Degrees, LLC. <http://www.47deg.com>
+ * Copyright 2017-2018 47 Degrees, LLC. <http://www.47deg.com>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,11 +15,13 @@
  */
 
 package com.datastax.driver.core
+
 import java.net.InetSocketAddress
 import java.nio.ByteBuffer
 import java.util
 import java.util.concurrent.{Executor, TimeUnit}
 
+import com.datastax.driver.core.PreparedId.PreparedMetadata
 import com.google.common.util.concurrent.ListenableFuture
 import freestyle.cassandra.TestUtils._
 
@@ -199,9 +201,8 @@ object ColumnDefinitionsTest
 
 object PreparedIdTest
     extends PreparedId(
-      Null[MD5Digest],
-      Null[ColumnDefinitions],
-      Null[ColumnDefinitions],
+      Null[PreparedMetadata],
+      Null[PreparedMetadata],
       Array.empty[Int],
       ProtocolVersion.V4)
 
