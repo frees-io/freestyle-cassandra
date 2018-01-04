@@ -178,7 +178,8 @@ class Decoders[Config] extends DatastaxReads[Config] {
         case (b, ContactPointList(l))         => b.addContactPoints(l.asJava)
         case (b, ContactPointWithPortList(l)) => b.addContactPointsWithPorts(l.asJava)
       }(contactPointListRead),
-      customField[Credentials]("credentials") { (b, v) => b.withCredentials(v.username, v.password)
+      customField[Credentials]("credentials") { (b, v) =>
+        b.withCredentials(v.username, v.password)
       }(credentialsDecoder),
       flagField("allowBetaProtocolVersion", _.allowBetaProtocolVersion),
       flagField("enableSSL", _.withSSL),

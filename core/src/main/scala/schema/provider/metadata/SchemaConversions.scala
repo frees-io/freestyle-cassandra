@@ -18,6 +18,7 @@ package freestyle.cassandra
 package schema.provider.metadata
 
 import cats.MonadError
+import cats.implicits._
 import cats.instances.list._
 import cats.syntax.traverse._
 import com.datastax.driver.core.{
@@ -61,7 +62,7 @@ trait SchemaConversions {
     E.flatten {
       catchNonFatalAsSchemaError {
         val columnsM: M[List[Table.Column]] =
-          E.traverse(metadata.getColumns.asScala.toList)(toTableColumn[M](_)(E))
+          E.traverse(metadata.getColumns.asScala.toList)(toTableColumn(_)[M])
         val pKeyM: M[PrimaryKey] = toPrimaryKey(
           metadata.getPartitionKey.asScala.toList,
           metadata.getClusteringColumns.asScala.toList)
@@ -111,7 +112,8 @@ trait SchemaConversions {
 
         val typeName = TypeName(Some(KeyspaceName(userType.getKeyspace)), userType.getTypeName)
 
-        E.map(fieldsM) { list => CreateType(ifNotExists = false, typeName = typeName, fields = list)
+        E.map(fieldsM) { list =>
+          CreateType(ifNotExists = false, typeName = typeName, fields = list)
         }
       }
     }
@@ -168,10 +170,12 @@ trait SchemaConversions {
 
       val maybeCol: Option[M[DataType]] = collectionType.getName match {
         case Name.LIST =>
-          typeArgs.headOption map { typeArg => E.map(toDataTypeNative(typeArg))(DataType.List)
+          typeArgs.headOption map { typeArg =>
+            E.map(toDataTypeNative(typeArg))(DataType.List)
           }
         case Name.SET =>
-          typeArgs.headOption map { typeArg => E.map(toDataTypeNative(typeArg))(DataType.Set)
+          typeArgs.headOption map { typeArg =>
+            E.map(toDataTypeNative(typeArg))(DataType.Set)
           }
         case Name.MAP =>
           for {

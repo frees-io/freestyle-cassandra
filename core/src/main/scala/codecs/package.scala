@@ -71,22 +71,26 @@ package object codecs {
 
   implicit val booleanCodec: ByteBufferCodec[Boolean] =
     PrimitiveByteBufferCodec[Boolean](DataType.smallint(), byteSize = 1, defaultValue = false) {
-      byteBuffer => byteBuffer.get(byteBuffer.position()) == 1
+      byteBuffer =>
+        byteBuffer.get(byteBuffer.position()) == 1
     }
 
   implicit val byteCodec: ByteBufferCodec[Byte] =
     PrimitiveByteBufferCodec[Byte](DataType.smallint(), byteSize = 1, defaultValue = 0) {
-      byteBuffer => byteBuffer.get(byteBuffer.position())
+      byteBuffer =>
+        byteBuffer.get(byteBuffer.position())
     }
 
   implicit val doubleCodec: ByteBufferCodec[Double] =
     PrimitiveByteBufferCodec[Double](DataType.cdouble(), byteSize = 8, defaultValue = 0) {
-      byteBuffer => byteBuffer.getDouble(byteBuffer.position())
+      byteBuffer =>
+        byteBuffer.getDouble(byteBuffer.position())
     }
 
   implicit val floatCodec: ByteBufferCodec[Float] =
     PrimitiveByteBufferCodec[Float](DataType.cfloat(), byteSize = 4, defaultValue = 0) {
-      byteBuffer => byteBuffer.getFloat(byteBuffer.position())
+      byteBuffer =>
+        byteBuffer.getFloat(byteBuffer.position())
     }
 
   implicit val intCodec: ByteBufferCodec[Int] =
@@ -96,12 +100,14 @@ package object codecs {
 
   implicit val longCodec: ByteBufferCodec[Long] =
     PrimitiveByteBufferCodec[Long](DataType.bigint(), byteSize = 8, defaultValue = 0) {
-      byteBuffer => byteBuffer.getLong(byteBuffer.position())
+      byteBuffer =>
+        byteBuffer.getLong(byteBuffer.position())
     }
 
   implicit val shortCodec: ByteBufferCodec[Short] =
     PrimitiveByteBufferCodec[Short](DataType.smallint(), byteSize = 2, defaultValue = 0) {
-      byteBuffer => byteBuffer.getShort(byteBuffer.position())
+      byteBuffer =>
+        byteBuffer.getShort(byteBuffer.position())
     }
 
   implicit def byteBufferCodec[T](
