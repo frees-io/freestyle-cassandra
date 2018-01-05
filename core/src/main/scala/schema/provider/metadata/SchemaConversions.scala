@@ -18,7 +18,7 @@ package freestyle.cassandra
 package schema.provider.metadata
 
 import cats.MonadError
-import cats.implicits._
+import cats.Traverse
 import cats.instances.list._
 import cats.syntax.traverse._
 import com.datastax.driver.core.{
