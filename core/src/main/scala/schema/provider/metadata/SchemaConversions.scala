@@ -18,7 +18,6 @@ package freestyle.cassandra
 package schema.provider.metadata
 
 import cats.MonadError
-import cats.Traverse
 import cats.instances.list._
 import cats.syntax.traverse._
 import com.datastax.driver.core.{
@@ -62,7 +61,7 @@ trait SchemaConversions {
     E.flatten {
       catchNonFatalAsSchemaError {
         val columnsM: M[List[Table.Column]] =
-          Traverse[List].traverse(metadata.getColumns.asScala.toList)(toTableColumn(_))(E)
+          metadata.getColumns.asScala.toList.traverse(toTableColumn(_)(E))
         val pKeyM: M[PrimaryKey] = toPrimaryKey(
           metadata.getPartitionKey.asScala.toList,
           metadata.getClusteringColumns.asScala.toList)
