@@ -34,7 +34,8 @@ class PackageAPISpec extends WordSpec with MatchersUtil with Checkers {
     "apply the Kleisli function for a valid dependency" in {
 
       check {
-        forAll { s: String => kleisli(sample).run(s) isEqualTo Success(s.length)
+        forAll { s: String =>
+          kleisli(sample).run(s) isEqualTo Success(s.length)
         }
       }
 

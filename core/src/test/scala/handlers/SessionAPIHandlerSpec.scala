@@ -133,12 +133,12 @@ class SessionAPIHandlerSpec
               .executeAsync(_: Statement))
               .expects(where { (st: Statement) =>
                 st.isInstanceOf[SimpleStatement] &&
-                  st.asInstanceOf[SimpleStatement].getQueryString() == query &&
-                  (st
-                    .asInstanceOf[SimpleStatement]
-                    .getValues(Null[ProtocolVersion], Null[CodecRegistry])
-                    .toList == values.map(_._1)) &&
-                  cl.forall(_ == st.getConsistencyLevel)
+                st.asInstanceOf[SimpleStatement].getQueryString() == query &&
+                (st
+                  .asInstanceOf[SimpleStatement]
+                  .getValues(Null[ProtocolVersion], Null[CodecRegistry])
+                  .toList == values.map(_._1)) &&
+                cl.forall(_ == st.getConsistencyLevel)
               })
               .returns(ResultSetFutureTest(rsMock))
             runK(handler.executeWithByteBuffer(query, values.map(_._2), cl), session) isEqualTo rsMock

@@ -62,7 +62,7 @@ trait SchemaConversions {
     E.flatten {
       catchNonFatalAsSchemaError {
         val columnsM: M[List[Table.Column]] =
-          E.traverse(metadata.getColumns.asScala.toList)(toTableColumn(_)[M])
+          Traverse[List].traverse(metadata.getColumns.asScala.toList)(toTableColumn(_))(E)
         val pKeyM: M[PrimaryKey] = toPrimaryKey(
           metadata.getPartitionKey.asScala.toList,
           metadata.getClusteringColumns.asScala.toList)
