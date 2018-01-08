@@ -1,5 +1,14 @@
 # Changelog
 
+## 01/08/2018 - Version 0.1.1
+
+Release changes:
+
+* Compile Cassandra docs in frees-cassandra repo ([#132](https://github.com/frees-io/freestyle-cassandra/pull/132))
+* Adds the replace blocks for the library version ([#135](https://github.com/frees-io/freestyle-cassandra/pull/135))
+* Upgrade to cats 1.0.1 ([#136](https://github.com/frees-io/freestyle-cassandra/pull/136))
+
+
 ## 12/21/2017 - Version 0.1.0
 
 Release changes:
