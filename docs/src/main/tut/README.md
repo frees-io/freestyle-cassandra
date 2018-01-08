@@ -48,7 +48,7 @@ For Scala `2.11.x` and `2.12.x`:
 [comment]: # (Start Replace)
 ```scala
 Resolver.bintrayRepo("tabdulradi", "maven")
-libraryDependencies += "io.frees" %% "frees-cassandra" % "0.1.0" 
+libraryDependencies += "io.frees" %% "frees-cassandra" % "0.1.1" 
 ```
 
 [comment]: # (End Replace)
