@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 47 Degrees, LLC. <http://www.47deg.com>
+ * Copyright 2017-2018 47 Degrees, LLC. <http://www.47deg.com>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -34,7 +34,8 @@ class PackageAPISpec extends WordSpec with MatchersUtil with Checkers {
     "apply the Kleisli function for a valid dependency" in {
 
       check {
-        forAll { s: String => kleisli(sample).run(s) isEqualTo Success(s.length)
+        forAll { s: String =>
+          kleisli(sample).run(s) isEqualTo Success(s.length)
         }
       }
 

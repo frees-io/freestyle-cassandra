@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 47 Degrees, LLC. <http://www.47deg.com>
+ * Copyright 2017-2018 47 Degrees, LLC. <http://www.47deg.com>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -61,7 +61,7 @@ trait SchemaConversions {
     E.flatten {
       catchNonFatalAsSchemaError {
         val columnsM: M[List[Table.Column]] =
-          E.traverse(metadata.getColumns.asScala.toList)(toTableColumn[M](_)(E))
+          metadata.getColumns.asScala.toList.traverse(toTableColumn(_)(E))
         val pKeyM: M[PrimaryKey] = toPrimaryKey(
           metadata.getPartitionKey.asScala.toList,
           metadata.getClusteringColumns.asScala.toList)
@@ -111,7 +111,8 @@ trait SchemaConversions {
 
         val typeName = TypeName(Some(KeyspaceName(userType.getKeyspace)), userType.getTypeName)
 
-        E.map(fieldsM) { list => CreateType(ifNotExists = false, typeName = typeName, fields = list)
+        E.map(fieldsM) { list =>
+          CreateType(ifNotExists = false, typeName = typeName, fields = list)
         }
       }
     }
@@ -168,10 +169,12 @@ trait SchemaConversions {
 
       val maybeCol: Option[M[DataType]] = collectionType.getName match {
         case Name.LIST =>
-          typeArgs.headOption map { typeArg => E.map(toDataTypeNative(typeArg))(DataType.List)
+          typeArgs.headOption map { typeArg =>
+            E.map(toDataTypeNative(typeArg))(DataType.List)
           }
         case Name.SET =>
-          typeArgs.headOption map { typeArg => E.map(toDataTypeNative(typeArg))(DataType.Set)
+          typeArgs.headOption map { typeArg =>
+            E.map(toDataTypeNative(typeArg))(DataType.Set)
           }
         case Name.MAP =>
           for {

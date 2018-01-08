@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 47 Degrees, LLC. <http://www.47deg.com>
+ * Copyright 2017-2018 47 Degrees, LLC. <http://www.47deg.com>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -89,7 +89,8 @@ class TestDecoderUtils extends WordSpec with MatchersUtil with Checkers with Moc
     }
     poc.initializationExecutor.foreach { v =>
       (poolingOptionsMock.setInitializationExecutor _)
-        .expects(where { e: java.util.concurrent.Executor => e.isInstanceOf[MyJavaExecutor]
+        .expects(where { e: java.util.concurrent.Executor =>
+          e.isInstanceOf[MyJavaExecutor]
         })
         .returns(poolingOptionsMock)
     }
@@ -110,7 +111,8 @@ class TestDecoderUtils extends WordSpec with MatchersUtil with Checkers with Moc
     qoc.defaultIdempotence.foreach { v =>
       (qoMock.setDefaultIdempotence _).expects(v).returns(qoMock)
     }
-    qoc.fetchSize.foreach { v => (qoMock.setFetchSize _).expects(v).returns(qoMock)
+    qoc.fetchSize.foreach { v =>
+      (qoMock.setFetchSize _).expects(v).returns(qoMock)
     }
     qoc.maxPendingRefreshNodeListRequests.foreach { v =>
       (qoMock.setMaxPendingRefreshNodeListRequests _).expects(v).returns(qoMock)
@@ -121,9 +123,11 @@ class TestDecoderUtils extends WordSpec with MatchersUtil with Checkers with Moc
     qoc.maxPendingRefreshSchemaRequests.foreach { v =>
       (qoMock.setMaxPendingRefreshSchemaRequests _).expects(v).returns(qoMock)
     }
-    qoc.metadataEnabled.foreach { v => (qoMock.setMetadataEnabled _).expects(v).returns(qoMock)
+    qoc.metadataEnabled.foreach { v =>
+      (qoMock.setMetadataEnabled _).expects(v).returns(qoMock)
     }
-    qoc.prepareOnAllHosts.foreach { v => (qoMock.setPrepareOnAllHosts _).expects(v).returns(qoMock)
+    qoc.prepareOnAllHosts.foreach { v =>
+      (qoMock.setPrepareOnAllHosts _).expects(v).returns(qoMock)
     }
     qoc.refreshNodeIntervalMillis.foreach { v =>
       (qoMock.setRefreshNodeIntervalMillis _).expects(v).returns(qoMock)
@@ -134,7 +138,8 @@ class TestDecoderUtils extends WordSpec with MatchersUtil with Checkers with Moc
     qoc.refreshSchemaIntervalMillis.foreach { v =>
       (qoMock.setRefreshSchemaIntervalMillis _).expects(v).returns(qoMock)
     }
-    qoc.reprepareOnUp.foreach { v => (qoMock.setReprepareOnUp _).expects(v).returns(qoMock)
+    qoc.reprepareOnUp.foreach { v =>
+      (qoMock.setReprepareOnUp _).expects(v).returns(qoMock)
     }
     qoc.serialConsistencyLevel.foreach { v =>
       (qoMock.setSerialConsistencyLevel _).expects(v.consistency).returns(qoMock)
@@ -153,19 +158,26 @@ class TestDecoderUtils extends WordSpec with MatchersUtil with Checkers with Moc
     soc.connectTimeoutMillis.foreach { v =>
       (soMock.setConnectTimeoutMillis _).expects(v).returns(soMock)
     }
-    soc.keepAlive.foreach { v => (soMock.setKeepAlive _).expects(v).returns(soMock)
+    soc.keepAlive.foreach { v =>
+      (soMock.setKeepAlive _).expects(v).returns(soMock)
     }
-    soc.readTimeoutMillis.foreach { v => (soMock.setReadTimeoutMillis _).expects(v).returns(soMock)
+    soc.readTimeoutMillis.foreach { v =>
+      (soMock.setReadTimeoutMillis _).expects(v).returns(soMock)
     }
-    soc.receiveBufferSize.foreach { v => (soMock.setReceiveBufferSize _).expects(v).returns(soMock)
+    soc.receiveBufferSize.foreach { v =>
+      (soMock.setReceiveBufferSize _).expects(v).returns(soMock)
     }
-    soc.reuseAddress.foreach { v => (soMock.setReuseAddress _).expects(v).returns(soMock)
+    soc.reuseAddress.foreach { v =>
+      (soMock.setReuseAddress _).expects(v).returns(soMock)
     }
-    soc.sendBufferSize.foreach { v => (soMock.setSendBufferSize _).expects(v).returns(soMock)
+    soc.sendBufferSize.foreach { v =>
+      (soMock.setSendBufferSize _).expects(v).returns(soMock)
     }
-    soc.soLinger.foreach { v => (soMock.setSoLinger _).expects(v).returns(soMock)
+    soc.soLinger.foreach { v =>
+      (soMock.setSoLinger _).expects(v).returns(soMock)
     }
-    soc.tcpNoDelay.foreach { v => (soMock.setTcpNoDelay _).expects(v).returns(soMock)
+    soc.tcpNoDelay.foreach { v =>
+      (soMock.setTcpNoDelay _).expects(v).returns(soMock)
     }
 
     val builder = new SocketOptionsBuilder() {
